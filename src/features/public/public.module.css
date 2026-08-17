@@ -1,0 +1,580 @@
+/* Módulo 1 · Comprador Web — estilos por pantalla (valores del handoff) */
+
+.contenido {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: 28px 32px 72px;
+}
+
+/* ── Sub-barra de pasos (rutas en producción) ───────────────── */
+.subBarra {
+  display: flex;
+  gap: 6px;
+  padding: 12px 24px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+/* ── HERO ───────────────────────────────────────────────────── */
+.hero {
+  background: var(--grad-hero);
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+}
+.heroCirculo1 {
+  position: absolute;
+  right: -140px;
+  top: -160px;
+  width: 520px;
+  height: 520px;
+  border-radius: 50%;
+  background: rgba(96, 165, 250, 0.22);
+}
+.heroCirculo2 {
+  position: absolute;
+  right: 180px;
+  bottom: -220px;
+  width: 420px;
+  height: 420px;
+  border-radius: 50%;
+  background: rgba(59, 130, 246, 0.18);
+}
+.heroNav {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: 26px 32px 0;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  position: relative;
+}
+.heroMarca {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.heroMarcaNombre {
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.heroMarcaLinea {
+  height: 2px;
+  background: var(--blue-400);
+}
+.heroLinks {
+  display: flex;
+  gap: 20px;
+  margin-left: 24px;
+  font-size: 14px;
+  color: var(--blue-150);
+}
+.heroLinks span { cursor: pointer; }
+.heroLinks span:hover { color: #fff; }
+.btnIngresar {
+  margin-left: auto;
+  background: transparent;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: var(--r-3);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+.btnIngresar:hover { background: rgba(255, 255, 255, 0.16); }
+
+.heroCuerpo {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: 64px 32px 130px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 400px;
+  gap: 56px;
+  align-items: center;
+  position: relative;
+}
+.heroH1 {
+  font-size: 66px;
+  line-height: 1.04;
+  letter-spacing: -0.035em;
+  font-weight: 700;
+  max-width: 17ch;
+}
+.heroParrafo {
+  font-size: 19px;
+  line-height: 1.6;
+  color: var(--blue-150);
+  max-width: 48ch;
+  margin-top: 20px;
+}
+.heroBotonera {
+  display: flex;
+  gap: 12px;
+  margin-top: 32px;
+  flex-wrap: wrap;
+}
+
+/* ── Buscador flotante ──────────────────────────────────────── */
+.buscador {
+  margin-top: -58px;
+  position: relative;
+  z-index: 5;
+  background: var(--surface);
+  border-radius: var(--r-18);
+  box-shadow: var(--shadow-search);
+  padding: 16px;
+  display: grid;
+  grid-template-columns: 1.2fr 1.2fr 1fr 0.8fr auto;
+  gap: 12px;
+  align-items: end;
+}
+
+/* ── Cifras ─────────────────────────────────────────────────── */
+.cifras {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  padding: 44px 0 8px;
+}
+.cifra {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-16);
+  padding: 20px;
+}
+.cifraNumero {
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--blue-700);
+}
+.cifraLabel {
+  font-size: 13px;
+  color: var(--text-soft);
+  margin-top: 8px;
+}
+
+/* ── Tablero de salidas ─────────────────────────────────────── */
+.tableroTitulos {
+  padding: 44px 0 16px;
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+}
+.kicker {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--blue-600);
+}
+.tableroH2 {
+  margin-top: 8px;
+  font-size: 34px;
+  letter-spacing: -0.025em;
+  font-weight: 700;
+}
+.actualizado {
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--text-faint);
+}
+.tablero {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-18);
+  overflow: hidden;
+}
+.tableroCabecera,
+.tableroFila {
+  display: grid;
+  grid-template-columns: 110px 1fr 210px 120px 150px 130px;
+  padding: 14px 20px;
+  align-items: center;
+}
+.tableroCabecera {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-faint);
+  background: var(--surface-alt);
+  border-bottom: 1px solid var(--border);
+}
+.tableroFila {
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--divider);
+  cursor: pointer;
+}
+.tableroFila:hover { background: var(--surface-alt); }
+.tableroFila:last-child { border-bottom: 0; }
+.tabHora { font-size: 22px; font-weight: 700; }
+.tabDestino { font-size: 18px; font-weight: 700; }
+.tabMeta { font-size: 13px; color: var(--text-soft); }
+.tabPrecio { text-align: right; font-size: 18px; font-weight: 700; color: var(--blue-700); }
+
+/* ── Flota + cómo funciona ──────────────────────────────────── */
+.bloqueDoble {
+  display: grid;
+  grid-template-columns: 6fr 6fr;
+  gap: 24px;
+  margin: 56px 0 72px;
+  align-items: stretch;
+}
+.marcadorFoto {
+  border-radius: var(--r-20);
+  overflow: hidden;
+  min-height: 400px;
+  background: var(--tint-100);
+  display: grid;
+  place-items: center;
+  color: var(--text-faint);
+  font-size: 13px;
+}
+.comoFunciona {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-20);
+  padding: 34px 32px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.paso {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--divider);
+}
+.paso:last-child { border-bottom: 0; }
+.pasoNumero {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--r-11);
+  background: var(--tint-50);
+  color: var(--blue-700);
+  font-weight: 700;
+  font-size: 14px;
+  display: grid;
+  place-items: center;
+}
+.pasoTitulo { font-weight: 700; font-size: 18px; }
+.pasoCopy {
+  margin-top: 5px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text-soft);
+}
+
+/* ── Cierre navy + pie ──────────────────────────────────────── */
+.cierre { background: var(--navy); color: #fff; }
+.cierreCuerpo {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: 64px 32px;
+  display: flex;
+  align-items: center;
+  gap: 40px;
+  flex-wrap: wrap;
+}
+.cierreH2 {
+  font-size: 44px;
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+  max-width: 22ch;
+  font-weight: 700;
+}
+.cierreBotones { display: flex; gap: 12px; margin-left: auto; }
+.pie { border-top: 1px solid rgba(255, 255, 255, 0.12); }
+.pieCuerpo {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: 20px 32px;
+  display: flex;
+  gap: 28px;
+  font-size: 13px;
+  color: #9fb6e4;
+  flex-wrap: wrap;
+}
+
+/* ── Salidas (1.2) ──────────────────────────────────────────── */
+.criterios {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-16);
+  padding: 14px;
+  display: grid;
+  grid-template-columns: 1.2fr 1.2fr 1fr 0.8fr auto;
+  gap: 12px;
+  align-items: end;
+}
+.resultadosCabecera {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  margin-top: 32px;
+}
+.resultadosH2 {
+  font-size: 30px;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+}
+.resultadosSub {
+  font-size: 14px;
+  color: var(--text-soft);
+  margin-top: 4px;
+}
+.listaSalidas {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 20px;
+}
+.tarjetaSalida {
+  background: var(--surface);
+  border-radius: var(--r-18);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-card);
+}
+.tarjetaSalidaHl { border-color: var(--tint-300); }
+.tarjetaSalidaInterior {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 32px;
+  align-items: center;
+  padding: 22px 24px;
+}
+.horario { display: flex; align-items: center; gap: 20px; }
+.horaGrande { font-size: 30px; font-weight: 700; line-height: 1; }
+.horaSub { font-size: 12px; color: var(--text-faint); margin-top: 3px; }
+.unidadInfo {
+  border-left: 1px solid var(--divider);
+  padding-left: 28px;
+}
+.unidadTipo { font-weight: 700; font-size: 16px; }
+.unidadMeta { font-size: 13px; color: var(--text-soft); margin-top: 2px; }
+.amenidades { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+.amenidad {
+  font-size: 12px;
+  color: var(--text-muted);
+  background: var(--canvas);
+  border: 1px solid var(--border);
+  padding: 5px 11px;
+  border-radius: var(--r-pill);
+}
+.precioCta { display: flex; align-items: center; gap: 24px; }
+.precioGrande { font-size: 26px; font-weight: 700; line-height: 1; }
+.btnEscoger {
+  font-size: 14px;
+  font-weight: 700;
+  padding: 14px 22px;
+  border-radius: var(--r-12);
+  background: var(--tint-50);
+  color: var(--blue-700);
+}
+.btnEscogerHl {
+  background: var(--blue-600);
+  color: #fff;
+  box-shadow: var(--shadow-btn);
+}
+.btnEscogerHl:hover { background: var(--blue-700); }
+
+/* ── Asientos (1.3) ─────────────────────────────────────────── */
+.layoutAsientos {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: 24px 32px 72px;
+  display: grid;
+  grid-template-columns: 1fr 390px;
+  gap: 24px;
+  align-items: start;
+}
+.tarjetaMapa {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-20);
+  margin-top: 20px;
+  overflow: hidden;
+}
+.mapaCabecera {
+  display: flex;
+  gap: 6px;
+  padding: 14px;
+  background: var(--surface-alt);
+  border-bottom: 1px solid var(--border);
+  align-items: center;
+}
+.tabPiso {
+  text-align: left;
+  padding: 10px 18px;
+  border-radius: var(--r-12);
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border-input);
+}
+.tabPisoActivo {
+  background: var(--blue-600);
+  color: #fff;
+  border-color: var(--blue-600);
+}
+.tabPisoNombre { display: block; font-size: 14px; font-weight: 700; }
+.tabPisoSub { display: block; font-size: 12px; font-weight: 500; opacity: 0.8; }
+.mapaCuerpo {
+  padding: 30px;
+  display: flex;
+  justify-content: center;
+  background: #fbfcfe;
+}
+.panelViaje {
+  position: sticky;
+  top: 88px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-20);
+  overflow: hidden;
+  box-shadow: var(--shadow-panel);
+}
+.panelFoto {
+  height: 150px;
+  background: var(--tint-100);
+  display: grid;
+  place-items: center;
+  color: var(--text-faint);
+  font-size: 13px;
+}
+.panelCuerpo { padding: 20px; }
+.panelKicker { font-size: 13px; font-weight: 700; color: var(--blue-600); }
+.panelRuta { font-size: 20px; font-weight: 700; margin-top: 4px; letter-spacing: -0.02em; }
+.panelMeta { font-size: 13px; color: var(--text-soft); margin-top: 2px; }
+.divisor { height: 1px; background: var(--divider); margin: 16px 0; }
+.puestoElegido {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  padding: 10px 12px;
+  background: var(--tint-50);
+  border-radius: var(--r-12);
+}
+.puestoCuadro {
+  width: 26px;
+  height: 26px;
+  border-radius: var(--r-8);
+  background: var(--blue-600);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+}
+.vacio {
+  font-size: 13px;
+  color: var(--text-faint);
+  padding: 14px;
+  background: var(--surface-alt);
+  border-radius: var(--r-12);
+  text-align: center;
+}
+.desgloseFila {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+}
+.desgloseFila span:first-child { color: var(--text-soft); }
+.totalFila {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--divider);
+}
+.totalGrande { font-size: 26px; font-weight: 700; }
+
+/* ── Checkout (1.4) ─────────────────────────────────────────── */
+.layoutCheckout {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: 24px 32px 72px;
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 28px;
+  align-items: start;
+}
+.tarjetaPasajero {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-18);
+  margin-top: 16px;
+  overflow: hidden;
+}
+.pasajeroCabecera {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  background: var(--surface-alt);
+  border-bottom: 1px solid var(--border);
+}
+.pasajeroCuadro {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-9);
+  background: var(--blue-600);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+}
+.pasajeroCampos {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  gap: 14px;
+  padding: 18px;
+}
+.metodosPago {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+.metodoPago {
+  text-align: left;
+  padding: 14px;
+  border-radius: var(--r-14);
+  background: var(--surface);
+  border: 1px solid var(--border-input);
+}
+.metodoPagoActivo {
+  border: 2px solid var(--blue-600);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.16);
+  padding: 13px;
+}
+.metodoLabel { display: block; font-weight: 700; font-size: 14px; }
+.metodoSub { display: block; font-size: 12px; color: var(--text-faint); margin-top: 2px; }
+
+/* ── Responsive a una columna ───────────────────────────────── */
+@media (max-width: 1020px) {
+  .heroCuerpo { grid-template-columns: 1fr; padding: 44px 24px 110px; }
+  .heroH1 { font-size: 44px; }
+  .heroLinks { display: none; }
+  .buscador { grid-template-columns: 1fr 1fr; }
+  .cifras { grid-template-columns: repeat(2, 1fr); }
+  .bloqueDoble { grid-template-columns: 1fr; }
+  .tableroCabecera { display: none; }
+  .tableroFila { grid-template-columns: 80px 1fr 110px; }
+  .tableroFila > :nth-child(3),
+  .tableroFila > :nth-child(4) { display: none; }
+  .tableroFila > :nth-child(5) { display: none; }
+  .layoutAsientos,
+  .layoutCheckout { grid-template-columns: 1fr; padding: 20px 16px 56px; }
+  .panelViaje { position: static; }
+  .contenido { padding: 20px 16px 56px; }
+  .criterios { grid-template-columns: 1fr 1fr; }
+  .tarjetaSalidaInterior { grid-template-columns: 1fr; gap: 16px; }
+  .unidadInfo { border-left: 0; padding-left: 0; }
+  .metodosPago { grid-template-columns: 1fr 1fr; }
+  .pasajeroCampos { grid-template-columns: 1fr; }
+  .cierreH2 { font-size: 32px; }
+  .cierreBotones { margin-left: 0; }
+}

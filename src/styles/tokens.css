@@ -1,0 +1,109 @@
+/**
+ * Tokens de diseño — Butaca En Línea
+ * Mapeo 1:1 con docs/README.md (§ Design Tokens) y docs/BRAND.md.
+ * Los valores son FINALES (handoff hifi): no inventar variantes.
+ */
+:root {
+  /* ── Marca / azules ─────────────────────────────────────────── */
+  --navy: #0b2a6b;
+  --navy-mid: #123b8f;
+  --blue-700: #1d4ed8;
+  --blue-600: #2563eb; /* acción primaria */
+  --blue-500: #3b82f6;
+  --blue-400: #60a5fa;
+  --blue-200: #9fc0ff;
+  --blue-150: #c7d9fb;
+  --blue-100: #dbe7fe;
+
+  /* ── Tintes claros ──────────────────────────────────────────── */
+  --tint-50: #eff4ff;
+  --tint-100: #e8eefb;
+  --tint-200: #d3e1fd;
+  --tint-300: #bbd0fa;
+
+  /* ── Superficies y bordes ───────────────────────────────────── */
+  --canvas: #f4f7fc;
+  --surface: #ffffff;
+  --surface-alt: #f7f9fe;
+  --pill-bg: #f1f5fc;
+  --border: #e6ebf4;
+  --border-input: #e2e8f2;
+  --divider: #eef2f9;
+  --row-divider: #f1f5f9;
+  --dash: #cbd5e1;
+
+  /* ── Texto ──────────────────────────────────────────────────── */
+  --text: #0f172a;
+  --text-muted: #475569;
+  --text-soft: #64748b;
+  --text-faint: #7c8aa5;
+  --text-hint: #a3aec2;
+
+  /* ── Asientos ───────────────────────────────────────────────── */
+  --seat-free-bg: #e8f7ee;
+  --seat-free-border: #34a853;
+  --seat-free-text: #12703f;
+  --seat-taken-bg: #e9edf3;
+  --seat-taken-border: #c3cbd8;
+  --seat-taken-text: #95a0b3;
+
+  /* ── Estados funcionales ────────────────────────────────────── */
+  --ok-bg: #e8f7ee;
+  --ok-text: #12703f;
+  --ok-dot: #16a34a;
+  --ok-border: #bce7cd;
+  --warn-bg: #fef3e2;
+  --warn-text: #9a5b08;
+  --warn-text-alert: #8a5108;
+  --warn-border: #f59e0b;
+  --warn-border-soft: #f6ddb4;
+  --bad-bg: #fde7e7;
+  --bad-text: #8f1d1d;
+  --bad-border: #dc2626;
+  --neutral-chip-bg: #f1f5f9;
+  --neutral-chip-text: #475569;
+  --info-chip-bg: #e8f0fe;
+  --info-chip-text: #1d4ed8;
+  --scanner-bg: #0f172a;
+  --scanner-hint: #93a7c4;
+
+  /* ── Degradados ─────────────────────────────────────────────── */
+  --grad-hero: linear-gradient(165deg, #0b2a6b 0%, #123b8f 45%, #1d4ed8 100%);
+  --grad-logo: linear-gradient(140deg, #3b82f6, #1d4ed8);
+  --grad-progress: linear-gradient(90deg, #3b82f6, #1d4ed8);
+
+  /* ── Sombras ────────────────────────────────────────────────── */
+  --shadow-card: 0 4px 14px rgba(15, 23, 42, 0.05);
+  --shadow-panel: 0 10px 30px rgba(15, 23, 42, 0.06);
+  --shadow-elevated: 0 12px 34px rgba(15, 23, 42, 0.08);
+  --shadow-pos: 0 18px 50px rgba(15, 23, 42, 0.1);
+  --shadow-search: 0 14px 40px rgba(15, 23, 42, 0.12);
+  --shadow-phone: 0 24px 60px rgba(15, 23, 42, 0.22);
+  --shadow-ticket: 0 26px 60px rgba(3, 17, 49, 0.34);
+  --shadow-btn: 0 8px 20px rgba(37, 99, 235, 0.28);
+  --shadow-btn-pos: 0 10px 24px rgba(37, 99, 235, 0.3);
+  --shadow-seat-sel: 0 4px 10px rgba(37, 99, 235, 0.35);
+
+  /* ── Radios ─────────────────────────────────────────────────── */
+  --r-3: 3px; /* botones de campaña sobre navy, deliberadamente rectos */
+  --r-8: 8px;
+  --r-9: 9px;
+  --r-10: 10px;
+  --r-11: 11px;
+  --r-12: 12px;
+  --r-14: 14px;
+  --r-16: 16px;
+  --r-18: 18px;
+  --r-20: 20px;
+  --r-22: 22px;
+  --r-26: 26px;
+  --r-44: 44px;
+  --r-pill: 999px;
+
+  /* ── Tipografía ─────────────────────────────────────────────── */
+  --font: 'Space Grotesk', system-ui, sans-serif;
+
+  /* ── Layout ─────────────────────────────────────────────────── */
+  --content-max: 1320px;
+  --content-max-erp: 1400px;
+}

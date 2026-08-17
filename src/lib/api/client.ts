@@ -1,0 +1,64 @@
+/**
+ * Cliente HTTP hacia Strapi. Adjunta el JWT si hay sesión y normaliza errores
+ * (incluye el `code` de negocio que devuelven los endpoints custom).
+ */
+import { useAuth } from '../../stores/auth';
+
+export const API_URL: string = import.meta.env.VITE_API_URL ?? 'http://localhost:1337';
+
+export class ApiError extends Error {
+  status: number;
+  code: string;
+  details: unknown;
+
+  constructor(status: number, code: string, details?: unknown) {
+    super(code);
+    this.status = status;
+    this.code = code;
+    this.details = details;
+  }
+}
+
+interface Opciones {
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  body?: unknown;
+  auth?: boolean; // adjuntar JWT si existe (default true)
+  signal?: AbortSignal;
+}
+
+export async function api<T>(path: string, opciones: Opciones = {}): Promise<T> {
+  const { method = 'GET', body, auth = true, signal } = opciones;
+  const headers: Record<string, string> = {};
+  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  const jwt = useAuth.getState().jwt;
+  if (auth && jwt) headers['Authorization'] = `Bearer ${jwt}`;
+
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}${path}`, {
+      method,
+      headers,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+      signal,
+    });
+  } catch (e) {
+    throw new ApiError(0, 'sin_conexion', e);
+  }
+
+  const texto = await res.text();
+  const json = texto ? JSON.parse(texto) : {};
+
+  if (!res.ok) {
+    if (res.status === 401 && auth && jwt) useAuth.getState().cerrarSesion();
+    const code = json?.error?.message ?? `http_${res.status}`;
+    throw new ApiError(res.status, code, json?.error?.details);
+  }
+  // Si el payload trae la clave `data`, ese ES el valor — aunque sea null
+  // (p. ej. "sin unidad asignada", "sin turno abierto"). `json.data ?? json`
+  // convertía ese null legítimo en el objeto envoltorio y rompía los guards.
+  return (Object.prototype.hasOwnProperty.call(json, 'data') ? json.data : json) as T;
+}
+
+/** URL final de un archivo de media: absoluta (R2/S3) o relativa al API (disco local). */
+export const urlMedia = (url?: string | null): string | null =>
+  !url ? null : url.startsWith('http') ? url : `${API_URL}${url}`;

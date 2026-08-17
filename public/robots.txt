@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /empresa
+Disallow: /pos
+Disallow: /chofer
+Disallow: /cuenta
+Disallow: /plataforma
+Disallow: /boleto/
+
+Sitemap: https://butacaenlinea.com/sitemap.xml

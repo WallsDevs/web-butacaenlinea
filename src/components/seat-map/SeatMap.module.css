@@ -1,0 +1,232 @@
+/* Mapa de asientos — fidelidad al prototipo (BitacoraApp.dc.html) */
+
+/* Marco con forma de autobús */
+.bus {
+  width: fit-content;
+  background: var(--surface);
+  border: 2px solid #dce3ee;
+  border-radius: 80px 80px 26px 26px;
+  padding: 16px 26px 20px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.07);
+}
+.busPos {
+  border-radius: 70px 70px 22px 22px;
+  padding: 14px 24px 18px;
+  box-shadow: none;
+}
+.busMovil {
+  border-radius: 64px 64px 20px 20px;
+  padding: 12px 18px 16px;
+  box-shadow: none;
+}
+
+/* Cabecera: volante + nombre del piso */
+.cabina {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 2px 14px;
+}
+.volante {
+  position: relative;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 3px solid #c7d2e3;
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+.volanteH,
+.volanteV {
+  position: absolute;
+  background: #c7d2e3;
+}
+.volanteH {
+  left: -1px;
+  right: -1px;
+  top: 50%;
+  height: 3px;
+  transform: translateY(-50%);
+}
+.volanteV {
+  left: 50%;
+  top: 50%;
+  bottom: -1px;
+  width: 3px;
+  transform: translateX(-50%);
+}
+.volanteCentro {
+  position: relative;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 0 3px #c7d2e3;
+}
+.conductorLabel {
+  font-size: 12px;
+  color: var(--text-faint);
+}
+.pisoNombre {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* Cuerpo de filas */
+.filas {
+  border-top: 1px dashed #dce3ee;
+  padding-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.fila {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.filaLabel {
+  width: 14px;
+  font-size: 11px;
+  color: #b6c0d0;
+}
+.lado {
+  display: flex;
+  gap: 10px;
+}
+.pasillo {
+  width: 46px;
+  display: grid;
+  place-items: center;
+}
+.pasilloPos {
+  width: 44px;
+}
+.pasilloBarra {
+  width: 3px;
+  height: 22px;
+  border-radius: var(--r-pill);
+  background: var(--divider);
+}
+
+/* Pie del bus */
+.pieBus {
+  margin-top: 18px;
+  padding-top: 12px;
+  border-top: 1px dashed #dce3ee;
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #b6c0d0;
+}
+
+/* ── Asiento (sillita con respaldo y apoyabrazos) ───────────── */
+.asiento {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  border-radius: 13px 13px 5px 5px;
+  font-weight: 700;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid transparent;
+  padding: 0;
+}
+.asientoPos {
+  width: 60px;
+  height: 58px;
+  font-size: 15px;
+}
+.asientoMovil {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px 12px 5px 5px;
+  font-size: 12px;
+}
+.asientoNum {
+  position: relative;
+}
+.brazo {
+  position: absolute;
+  top: 8px;
+  bottom: 9px;
+  width: 4px;
+  border-radius: var(--r-pill);
+}
+.brazoIzq { left: 3px; }
+.brazoDer { right: 3px; }
+.respaldo {
+  position: absolute;
+  left: 9px;
+  right: 9px;
+  top: 4px;
+  height: 4px;
+  border-radius: var(--r-pill);
+}
+
+.libre {
+  background: var(--seat-free-bg);
+  border-color: var(--seat-free-border);
+  color: var(--seat-free-text);
+  cursor: pointer;
+}
+.libre .brazo,
+.libre .respaldo {
+  background: #a6dcbe;
+}
+.seleccionado {
+  background: var(--blue-600);
+  border-color: var(--blue-700);
+  color: #fff;
+  box-shadow: 0 6px 14px rgba(37, 99, 235, 0.34);
+  cursor: pointer;
+}
+.seleccionado .brazo,
+.seleccionado .respaldo {
+  background: rgba(255, 255, 255, 0.6);
+}
+.ocupado {
+  background: var(--seat-taken-bg);
+  border-color: var(--seat-taken-border);
+  color: var(--seat-taken-text);
+  cursor: not-allowed;
+}
+.ocupado .brazo,
+.ocupado .respaldo {
+  background: #cbd3df;
+}
+
+/* Leyenda */
+.leyenda {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.leyendaItem {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.muestra {
+  width: 14px;
+  height: 14px;
+  border-radius: 5px;
+}
+.muestraLibre {
+  background: var(--seat-free-bg);
+  border: 1.5px solid var(--seat-free-border);
+}
+.muestraSel {
+  background: var(--blue-600);
+}
+.muestraOcupado {
+  background: var(--seat-taken-bg);
+  border: 1.5px solid var(--seat-taken-border);
+}

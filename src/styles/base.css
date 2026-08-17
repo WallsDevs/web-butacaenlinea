@@ -1,0 +1,111 @@
+@import './tokens.css';
+
+/* Space Grotesk 400/500/600/700 (no existe 800: titulares en 700) */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100vh;
+}
+
+body {
+  background: var(--canvas);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  /* Toda cifra en tabular: horas, precios, kilometrajes, cédulas */
+  font-variant-numeric: tabular-nums;
+}
+
+a {
+  color: var(--blue-600);
+  text-decoration: none;
+}
+a:hover {
+  color: var(--blue-700);
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+  border: 0;
+  background: none;
+  padding: 0;
+  color: inherit;
+}
+
+input,
+select,
+textarea {
+  font: inherit;
+  color: var(--text);
+}
+
+h1,
+h2,
+h3,
+h4,
+p {
+  margin: 0;
+}
+
+/* Transiciones sugeridas por el handoff: 120–160ms ease-out, sin animaciones decorativas */
+button,
+a {
+  transition:
+    background-color 140ms ease-out,
+    border-color 140ms ease-out,
+    color 140ms ease-out,
+    box-shadow 140ms ease-out;
+}
+
+::selection {
+  background: var(--tint-200);
+}
+
+/* Impresión: solo el contenido del documento (boleto, manifiesto, arqueo) —
+   el chrome de la app y los botones de acción llevan .no-print */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  .solo-impresion {
+    display: inline !important;
+  }
+  body {
+    background: #fff !important;
+  }
+}
+
+@page {
+  margin: 14mm;
+}
+
+/* Ficha imprimible (onboarding de empresa): al imprimir, solo la ficha */
+@media print {
+  body:has(.ficha-imprimible) * {
+    visibility: hidden;
+  }
+  body:has(.ficha-imprimible) .ficha-imprimible,
+  body:has(.ficha-imprimible) .ficha-imprimible * {
+    visibility: visible;
+  }
+  .ficha-imprimible {
+    position: absolute !important;
+    inset: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+}

@@ -1,0 +1,174 @@
+/* Tarjeta de boleto — componente de marca (hero, checkout, POS, móvil) */
+
+.card {
+  background: var(--surface);
+  color: var(--text);
+  border-radius: var(--r-20);
+  overflow: hidden;
+  box-shadow: var(--shadow-panel);
+}
+.cardHero {
+  border-radius: var(--r-22);
+  box-shadow: var(--shadow-ticket);
+}
+
+.header {
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface-alt);
+  border-bottom: 1px solid var(--border);
+}
+.headerLogo {
+  width: 26px;
+  height: 26px;
+  border-radius: var(--r-8);
+  background: var(--grad-logo);
+  flex: none;
+}
+.headerTitle {
+  font-size: 13px;
+  font-weight: 700;
+}
+.headerFolio {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+.body {
+  padding: 20px;
+}
+.linea {
+  font-weight: 700;
+  font-size: 18px;
+}
+.rutaFecha {
+  font-size: 13px;
+  color: var(--text-soft);
+}
+
+.horas {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-top: 16px;
+}
+.horaLabel {
+  font-size: 11px;
+  color: var(--text-faint);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.horaValor {
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.05;
+}
+.horaValorLg {
+  font-size: 34px;
+}
+.horaCiudad {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.tramo {
+  flex: 1;
+  margin: 0 14px 10px;
+  height: 2px;
+  background: repeating-linear-gradient(90deg, var(--dash) 0 6px, transparent 6px 12px);
+}
+
+.datos {
+  display: grid;
+  gap: 8px;
+  margin-top: 18px;
+}
+.datos3 { grid-template-columns: repeat(3, 1fr); }
+.datos4 { grid-template-columns: repeat(4, 1fr); }
+.dato {
+  background: var(--surface-alt);
+  border-radius: var(--r-12);
+  padding: 10px;
+}
+.datoLabel {
+  font-size: 11px;
+  color: var(--text-faint);
+}
+.datoValor {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+/* Troquel: la separación característica de la marca */
+.troquel {
+  border-top: 1px dashed var(--dash);
+}
+
+.zonaQr {
+  padding: 20px;
+  display: grid;
+  place-items: center;
+}
+.qrMarco {
+  background: #fff;
+  padding: 8px;
+  border: 1px solid var(--border-input);
+  border-radius: var(--r-14);
+  display: grid;
+  place-items: center;
+}
+.qrCodigo {
+  font-size: 12px;
+  color: var(--text-faint);
+  letter-spacing: 0.14em;
+  margin-top: 10px;
+}
+.qrNombre {
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 6px;
+}
+
+/* Variante hero: QR pequeño a la izquierda + datos del pasajero */
+.zonaQrHero {
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.heroNombre {
+  font-weight: 700;
+  font-size: 15px;
+}
+.heroDoc {
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+.footer {
+  padding: 0 20px 20px;
+}
+.totalFila {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding-top: 14px;
+  border-top: 1px solid var(--divider);
+}
+.totalLabel {
+  font-weight: 700;
+}
+.totalValor {
+  font-size: 26px;
+  font-weight: 700;
+}
+
+@media print {
+  .card {
+    box-shadow: none;
+    border: 1px solid var(--border);
+    break-inside: avoid;
+  }
+}

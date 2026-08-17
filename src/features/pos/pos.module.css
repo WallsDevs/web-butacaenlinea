@@ -1,0 +1,280 @@
+/* Módulo 2 · Punto de Venta — pantalla táctil 1280px (objetivos ≥44px) */
+
+.marco {
+  padding: 24px;
+  display: grid;
+  place-items: start center;
+}
+.ventana {
+  width: 1280px;
+  max-width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-22);
+  overflow: hidden;
+  box-shadow: var(--shadow-pos);
+}
+
+/* Cabecera navy */
+.cabecera {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  background: var(--navy);
+  color: #fff;
+}
+.cabeceraIso {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-9);
+  background: rgba(255, 255, 255, 0.16);
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+.cabeceraTitulo { font-weight: 700; font-size: 15px; }
+.cabeceraMeta { font-size: 13px; color: #9fb6e4; }
+.folioPill {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.12);
+  padding: 7px 14px;
+  border-radius: var(--r-pill);
+}
+.folioLabel { font-size: 12px; color: var(--blue-150); }
+.folioValor { font-weight: 700; font-size: 14px; }
+
+/* Cuerpo dos columnas */
+.cuerpo {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+}
+.panelIzq {
+  padding: 20px;
+  border-right: 1px solid var(--divider);
+}
+.criterios {
+  display: grid;
+  grid-template-columns: 1fr 1fr 0.7fr auto;
+  gap: 12px;
+  align-items: end;
+}
+.rutasRapidas {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+.rutaRapida {
+  border: 1px solid var(--border-input);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 16px;
+  border-radius: var(--r-pill);
+}
+.rutaRapida:hover,
+.rutaRapidaActiva {
+  background: var(--tint-50);
+  border-color: var(--tint-300);
+  color: var(--blue-700);
+}
+.salidaCabecera {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 22px;
+}
+.salidaTitulo { font-weight: 700; font-size: 18px; }
+.salidaMeta { font-size: 13px; color: var(--text-soft); }
+.zonaMapa {
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--r-18);
+  padding: 20px;
+  margin-top: 14px;
+  display: flex;
+  justify-content: center;
+}
+.listaSalidasMini {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+.salidaMini {
+  border: 1px solid var(--border-input);
+  border-radius: var(--r-12);
+  padding: 10px 14px;
+  text-align: left;
+  background: var(--surface);
+}
+.salidaMiniActiva {
+  border: 2px solid var(--blue-600);
+  padding: 9px 13px;
+}
+.salidaMiniHora { font-size: 16px; font-weight: 700; display: block; }
+.salidaMiniMeta { font-size: 12px; color: var(--text-soft); display: block; }
+
+/* Panel derecho */
+.panelDer {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 640px;
+}
+.apartadoFila {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--tint-50);
+  border-radius: var(--r-12);
+  padding: 10px 12px;
+}
+.apartadoCabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+}
+.apartadoCuadro {
+  width: 26px;
+  height: 26px;
+  border-radius: var(--r-8);
+  background: var(--blue-600);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+}
+.apartadoCampos {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 8px;
+}
+.apartadoInput {
+  border: 1px solid var(--border-input);
+  background: var(--surface);
+  border-radius: var(--r-8);
+  padding: 8px 10px;
+  font-size: 13px;
+  width: 100%;
+}
+.metodos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.metodo {
+  text-align: left;
+  padding: 12px;
+  border-radius: var(--r-12);
+  background: var(--surface);
+  border: 1px solid var(--border-input);
+}
+.metodoActivo {
+  border: 2px solid var(--blue-600);
+  padding: 11px;
+}
+.metodoLabel { display: block; font-weight: 700; font-size: 13px; }
+.metodoSub { display: block; font-size: 11px; color: var(--text-faint); }
+.totales {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid var(--divider);
+}
+.totalFila { display: flex; justify-content: space-between; font-size: 14px; }
+.totalFila span:first-child { color: var(--text-soft); }
+.cobrarFila {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-top: 12px;
+}
+.cobrarLabel { font-weight: 700; font-size: 15px; }
+.cobrarValor { font-size: 32px; font-weight: 700; color: var(--navy-mid); }
+.btnEmitir {
+  width: 100%;
+  background: var(--blue-600);
+  color: #fff;
+  font-size: 17px;
+  font-weight: 700;
+  padding: 17px;
+  border-radius: var(--r-14);
+  margin-top: 12px;
+  box-shadow: var(--shadow-btn-pos);
+}
+.btnEmitir:hover { background: var(--blue-700); }
+.btnEmitir:disabled { opacity: 0.55; cursor: not-allowed; }
+.secundarios { display: flex; gap: 8px; margin-top: 8px; }
+.btnSec {
+  flex: 1;
+  border: 1px solid var(--border-input);
+  background: var(--surface);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 11px;
+  border-radius: var(--r-12);
+}
+.btnSec:hover { background: var(--tint-50); }
+
+/* Barra de arqueo */
+.arqueo {
+  display: flex;
+  gap: 24px;
+  padding: 14px 20px;
+  background: var(--surface-alt);
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--text-soft);
+  flex-wrap: wrap;
+}
+.arqueo strong { color: var(--text); font-weight: 700; }
+.arqueoAnulacion strong { color: var(--bad-border); }
+
+/* Modal de emisión */
+.velo {
+  position: fixed;
+  inset: 0;
+  background: rgba(11, 42, 107, 0.45);
+  display: grid;
+  place-items: center;
+  z-index: 50;
+  padding: 24px;
+}
+.modal {
+  width: 420px;
+  max-width: 100%;
+  max-height: 90vh;
+  overflow: auto;
+}
+
+/* Cierre de turno */
+.cierreContenido {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 28px 24px 72px;
+}
+.cierreTabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.cierreTabla th {
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-faint);
+  padding: 12px 16px;
+  background: var(--surface-alt);
+}
+.cierreTabla td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--row-divider);
+}

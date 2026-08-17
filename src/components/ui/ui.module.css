@@ -1,0 +1,180 @@
+/* Primitivas compartidas — valores exactos del handoff */
+
+/* ── StatusChip ─────────────────────────────────────────────── */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: var(--r-pill);
+  white-space: nowrap;
+}
+.chipSm {
+  font-size: 11px;
+  padding: 4px 10px;
+}
+.chipOk { background: var(--ok-bg); color: var(--ok-text); }
+.chipWarn { background: var(--warn-bg); color: var(--warn-text); }
+.chipBad { background: var(--bad-bg); color: var(--bad-text); }
+.chipNeutral { background: var(--neutral-chip-bg); color: var(--neutral-chip-text); }
+.chipInfo { background: var(--info-chip-bg); color: var(--info-chip-text); }
+.chipDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ok-dot);
+}
+
+/* ── PillTabs ───────────────────────────────────────────────── */
+.pillGroup {
+  display: flex;
+  gap: 4px;
+  background: var(--pill-bg);
+  padding: 4px;
+  border-radius: var(--r-12);
+}
+.pill {
+  border: 0;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 9px 16px;
+  border-radius: var(--r-9);
+  color: var(--text-soft);
+  background: transparent;
+  white-space: nowrap;
+}
+.pillActive {
+  background: var(--surface);
+  color: var(--navy-mid);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1);
+}
+/* Variante: pastillas sueltas (sub-barra M1, orden de salidas) */
+.pillLoose {
+  border-radius: var(--r-pill);
+  background: transparent;
+}
+.pillLooseActive {
+  background: var(--tint-50);
+  color: var(--blue-700);
+  box-shadow: none;
+}
+
+/* ── Field ──────────────────────────────────────────────────── */
+.field {
+  display: block;
+  min-width: 0;
+}
+.fieldLabel {
+  font-size: 12px;
+  color: var(--text-faint);
+  margin-bottom: 6px;
+}
+.fieldInput {
+  width: 100%;
+  border: 1px solid var(--border-input);
+  background: var(--surface-alt);
+  border-radius: var(--r-12);
+  padding: 12px 14px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  outline: none;
+}
+.fieldInput:focus {
+  border-color: var(--blue-600);
+  background: var(--surface);
+}
+.fieldInputPos {
+  padding: 13px 14px;
+  font-size: 17px;
+}
+
+/* ── Botones ────────────────────────────────────────────────── */
+.btnPrimary {
+  background: var(--blue-600);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  padding: 13px 30px;
+  border-radius: var(--r-12);
+  box-shadow: var(--shadow-btn);
+}
+.btnPrimary:hover { background: var(--blue-700); }
+.btnPrimary:disabled { opacity: 0.55; cursor: not-allowed; }
+.btnPrimaryLg {
+  width: 100%;
+  font-size: 16px;
+  padding: 15px;
+  border-radius: var(--r-14);
+}
+.btnSecondary {
+  background: var(--surface);
+  border: 1px solid var(--border-input);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 13px 16px;
+  border-radius: var(--r-14);
+}
+.btnSecondary:hover { background: var(--tint-50); border-color: var(--tint-300); color: var(--blue-700); }
+.btnGhost {
+  color: var(--blue-600);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 0;
+}
+/* Botón de campaña sobre navy: bloque recto con regla (BRAND.md) */
+.btnCampaign {
+  background: #fff;
+  color: var(--navy-mid);
+  font-size: 16px;
+  font-weight: 700;
+  padding: 17px 26px;
+  border-radius: var(--r-3);
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+}
+.btnCampaign:hover { background: var(--tint-50); }
+.btnCampaignRule {
+  width: 24px;
+  height: 2px;
+  background: var(--navy-mid);
+}
+.btnCampaignGhost {
+  background: transparent;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  padding: 17px 2px 15px;
+  border-radius: 0;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.45);
+}
+.btnCampaignGhost:hover { border-bottom-color: #fff; }
+
+/* ── Tarjeta base ───────────────────────────────────────────── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-18);
+  box-shadow: var(--shadow-card);
+}
+
+/* ── RouteDash (tramo punteado del viaje) ───────────────────── */
+.routeDash {
+  height: 2px;
+  background: repeating-linear-gradient(90deg, var(--dash) 0 6px, transparent 6px 12px);
+  position: relative;
+  flex: 1;
+}
+.routeDashLabel {
+  position: absolute;
+  top: -22px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-faint);
+}
