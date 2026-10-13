@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { useModulos } from '../../lib/useModulos';
+import { AvisoIntegracion } from '../../components/ui/AvisoIntegracion';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   cancelarSalida,
@@ -26,6 +28,7 @@ export default function EmpresaSalidas() {
   const [modo, setModo] = useState<ModoFiltro>('todas');
   const [fecha, setFecha] = useState(hoyISO());
   const [rango, setRango] = useState({ desde: hoyISO(), hasta: hoyISO() });
+  const { integracionActiva } = useModulos();
   const [form, setForm] = useState({ rutaId: '', unidadId: '', choferId: '', fecha: hoyISO(), hora: '20:30', rampa: 'Rampa 03' });
   const [mensaje, setMensaje] = useState<string | null>(null);
 
@@ -238,6 +241,9 @@ export default function EmpresaSalidas() {
         </div>
 
         {/* Programar */}
+        {integracionActiva ? (
+          <AvisoIntegracion que="salidas" />
+        ) : (
         <div className={ui.card} style={{ padding: 20 }}>
           <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 14 }}>Programar salida</div>
           {mensaje && (
@@ -309,6 +315,7 @@ export default function EmpresaSalidas() {
             </div>
           </div>
         </div>
+        )}
       </div>
     </div>
   );

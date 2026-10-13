@@ -20,6 +20,7 @@ export const SECCIONES_ADMIN: SeccionModulo[] = [
   { id: 'dashboard', label: 'Dashboard', ruta: '/admin' },
   { id: 'empresas', label: 'Empresas', ruta: '/admin/empresas' },
   { id: 'contratos', label: 'Contratos', ruta: '/admin/contratos' },
+  { id: 'integraciones', label: 'Integraciones', ruta: '/admin/integraciones' },
   { id: 'liquidaciones', label: 'Liquidaciones', ruta: '/admin/liquidaciones' },
   { id: 'facturas', label: 'Facturas', ruta: '/admin/facturas' },
   { id: 'tasas', label: 'Tasas', ruta: '/admin/tasas' },

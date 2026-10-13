@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { useModulos } from '../../lib/useModulos';
+import { AvisoIntegracion } from '../../components/ui/AvisoIntegracion';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   eliminarRuta,
@@ -39,6 +41,7 @@ const NUEVA: FormRuta = {
 /** Rutas y tarifas por clase de servicio. */
 export default function EmpresaRutas() {
   const queryClient = useQueryClient();
+  const { integracionActiva } = useModulos();
   const [form, setForm] = useState<FormRuta | null>(null);
 
   const slug = useAuth((s) => s.usuario)?.linea?.slug;
@@ -109,10 +112,13 @@ export default function EmpresaRutas() {
         <h2 style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-0.02em' }}>
           {isLoading ? 'Cargando…' : `${rutas?.length ?? 0} rutas`}
         </h2>
-        <button className={ui.btnPrimary} style={{ marginLeft: 'auto', fontSize: 14, padding: '12px 20px' }} onClick={() => setForm(NUEVA)}>
-          Nueva ruta
-        </button>
+        {!integracionActiva && (
+          <button className={ui.btnPrimary} style={{ marginLeft: 'auto', fontSize: 14, padding: '12px 20px' }} onClick={() => setForm(NUEVA)}>
+            Nueva ruta
+          </button>
+        )}
       </div>
+      {integracionActiva && <AvisoIntegracion que="rutas y tarifas" />}
 
       <div className={ui.card} style={{ overflow: 'hidden' }}>
         <table className={styles.tabla}>
@@ -137,10 +143,11 @@ export default function EmpresaRutas() {
                   {(r.tarifas ?? []).map((t) => `${t.claseServicio} $${t.precioUsd}`).join(' · ') || '—'}
                 </td>
                 <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                  <button className={ui.btnGhost} style={{ fontSize: 13, marginRight: 12 }} onClick={() => editar(r)}>
+                  <button className={ui.btnGhost} style={{ fontSize: 13, marginRight: 12 }} onClick={() => editar(r)} hidden={integracionActiva}>
                     Editar
                   </button>
                   <button
+                    hidden={integracionActiva}
                     style={{ fontSize: 13, fontWeight: 600, color: 'var(--bad-text)' }}
                     onClick={() => {
                       if (confirm(`¿Eliminar la ruta ${r.origen} → ${r.destino}?`)) eliminar.mutate(r.documentId);

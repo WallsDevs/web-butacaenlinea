@@ -21,6 +21,8 @@ export function useModulos(): {
   /** El contrato vigente de la línea (vencido o no), si lo hay. */
   contrato: Contrato | null;
   vencido: boolean;
+  /** Su sistema carga rutas y salidas por la API: crear y editar se quedan en solo lectura. */
+  integracionActiva: boolean;
 } {
   const usuario = useAuth((s) => s.usuario);
   const aplica = ROLES_CON_LINEA.has(usuario?.role?.type ?? '') && Boolean(usuario?.linea);
@@ -39,5 +41,6 @@ export function useModulos(): {
     tiene: (m) => modulos === null || modulos.includes(m),
     contrato: (aplica && data?.contrato) || null,
     vencido,
+    integracionActiva: Boolean(aplica && data?.integracionActiva),
   };
 }

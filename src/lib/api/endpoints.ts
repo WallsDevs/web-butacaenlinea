@@ -837,6 +837,8 @@ export interface ResumenContratoLinea {
 /** Lo que ve el personal de una línea: `sinContrato` = todo abierto (transición); `vencido` = nada abierto. */
 export interface MiContrato {
   sinContrato: boolean;
+  /** La boletería de la línea carga rutas y salidas por la API: el panel queda en solo lectura. */
+  integracionActiva?: boolean;
   vencido: boolean;
   modulos: ClaveModulo[];
   contrato: Contrato | null;
@@ -923,3 +925,41 @@ export const getRecorrido = (unidadId: string, desde?: string, hasta?: string) =
   if (hasta) q.set('hasta', hasta);
   return api<Recorrido>(`/api/unidades/${unidadId}/recorrido${q.size ? `?${q}` : ''}`);
 };
+
+// ── Integraciones (API externa de la boletería de la línea) ──────────────────
+export interface Integracion {
+  documentId: string;
+  linea: { documentId: string; nombre: string };
+  nombre: string;
+  clavePrefijo: string;
+  webhookUrl: string | null;
+  webhookConfigurado: boolean;
+  activa: boolean;
+  ultimoUsoEn: string | null;
+  claveRotadaEn: string | null;
+  creadaEn: string | null;
+}
+/** Solo al crear o rotar: la clave y el secreto se muestran UNA vez. */
+export type IntegracionConSecretos = Integracion & { clave?: string; webhookSecreto?: string };
+export interface EntregaWebhook {
+  documentId: string;
+  tipo: string;
+  entidadId: string | null;
+  estado: 'pendiente' | 'entregado' | 'fallido';
+  intentos: number;
+  ultimoStatus: number | null;
+  ultimoError: string | null;
+  proximoIntentoEn: string | null;
+  entregadoEn: string | null;
+  creadoEn: string | null;
+}
+export const getIntegraciones = () => api<Integracion[]>('/api/admin/integraciones');
+export const crearIntegracion = (datos: { lineaId: string; nombre: string; webhookUrl?: string }) =>
+  api<IntegracionConSecretos>('/api/admin/integraciones', { method: 'POST', body: datos });
+export const actualizarIntegracion = (id: string, datos: { nombre?: string; webhookUrl?: string | null; activa?: boolean }) =>
+  api<IntegracionConSecretos>(`/api/admin/integraciones/${id}`, { method: 'PUT', body: datos });
+export const rotarClaveIntegracion = (id: string) => api<IntegracionConSecretos>(`/api/admin/integraciones/${id}/rotar-clave`, { method: 'POST', body: {} });
+export const rotarSecretoIntegracion = (id: string) => api<IntegracionConSecretos>(`/api/admin/integraciones/${id}/rotar-secreto`, { method: 'POST', body: {} });
+export const getEntregasIntegracion = (id: string, estado?: string) => api<EntregaWebhook[]>(`/api/admin/integraciones/${id}/entregas${estado ? `?estado=${estado}` : ''}`);
+export const reintentarEntrega = (id: string, eventoId: string) => api<{ ok: boolean }>(`/api/admin/integraciones/${id}/entregas/${eventoId}/reintentar`, { method: 'POST', body: {} });
+export const probarWebhook = (id: string) => api<{ documentId: string }>(`/api/admin/integraciones/${id}/probar`, { method: 'POST', body: {} });
