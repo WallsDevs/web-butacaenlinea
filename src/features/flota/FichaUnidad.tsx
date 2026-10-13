@@ -7,6 +7,7 @@ import {
   getAlertas,
   getChoferes,
   getCauchos,
+  getLineas,
   getOrdenes,
   getResumenMantenimiento,
   getSalidas,
@@ -15,6 +16,9 @@ import {
   rotarCauchos,
 } from '../../lib/api/endpoints';
 import { fechaCorta, hora } from '../../lib/time';
+import { useAuth } from '../../stores/auth';
+import { ServicioUrbanoCard } from '../urbano/ServicioUrbanoCard';
+import { EtiquetasEquipajeCard } from './EtiquetasEquipajeCard';
 import { StatusChip } from '../../components/ui/StatusChip';
 import { Field } from '../../components/ui/Field';
 import type { CauchoDto } from '../../lib/api/types';
@@ -38,6 +42,7 @@ export default function FichaUnidad() {
   const { unidadId } = useParams<{ unidadId: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const usuario = useAuth((s) => s.usuario);
   const [cauchoSel, setCauchoSel] = useState<CauchoDto | null>(null);
   const [modoRotacion, setModoRotacion] = useState(false);
   const [rotacionOrigen, setRotacionOrigen] = useState<CauchoDto | null>(null);
@@ -49,6 +54,9 @@ export default function FichaUnidad() {
   const { data: alertas } = useQuery({ queryKey: ['alertas', unidadId], queryFn: () => getAlertas(unidadId!) });
   const { data: ordenes } = useQuery({ queryKey: ['ordenes', unidadId], queryFn: () => getOrdenes(unidadId!) });
   const { data: choferes } = useQuery({ queryKey: ['choferes'], queryFn: getChoferes });
+  // El modo de etiqueta lo fija la empresa; decide qué tarjeta de equipaje se ve
+  const { data: lineas } = useQuery({ queryKey: ['lineas'], queryFn: getLineas });
+  const miLinea = lineas?.find((l) => l.documentId === usuario?.linea?.documentId);
   const asignarChofer = useMutation({
     mutationFn: (choferId: string | null) => asignarChoferUnidad(unidadId!, choferId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['unidad', unidadId] }),
@@ -247,7 +255,9 @@ export default function FichaUnidad() {
           </div>
           <div className={styles.divisor} />
           <div style={{ fontSize: 12, color: 'var(--text-faint)', marginBottom: 8 }}>
-            Conductor asignado — verá esta unidad en su módulo y podrá reportar km y novedades.
+            Conductor asignado — verá esta unidad en su app y podrá reportar km y novedades. Un
+            mismo conductor puede tener varias unidades a su cargo: escoge cuál maneja al abrir
+            su turno.
           </div>
           <select
             className={ui.fieldInput}
@@ -285,6 +295,23 @@ export default function FichaUnidad() {
           )}
         </div>
       </div>
+
+      {/* Servicio urbano: ruta, reparto y QR de la buseta */}
+      {usuario?.role?.type === 'empresa' && (
+        <ServicioUrbanoCard
+          unidadId={unidad.documentId}
+          numeroUnidad={unidad.numero}
+          lineaNombre={usuario?.linea?.nombre ?? ''}
+        />
+      )}
+
+      {/* Talonario de etiquetas de equipaje (rutas largas) */}
+      {usuario?.role?.type === 'empresa' && (
+        <EtiquetasEquipajeCard
+          unidadId={unidad.documentId}
+          modoEmpresa={(miLinea?.modoEtiquetaEquipaje ?? 'empresa') === 'empresa'}
+        />
+      )}
 
       {/* Cauchos por posición */}
       {cauchos && cauchos.ejes.length > 0 && (

@@ -37,6 +37,7 @@ export default function Ingresar() {
         cajero: '/pos',
         empresa: '/empresa',
         chofer: '/chofer',
+        colector: '/colector',
         cliente: '/cuenta',
       };
       // `next` solo aplica si el rol puede entrar ahí; si no, va a su propio panel
@@ -47,6 +48,8 @@ export default function Ingresar() {
             ? rol === 'cajero' || rol === 'empresa'
             : ruta.startsWith('/chofer')
               ? rol === 'chofer'
+              : ruta.startsWith('/colector')
+                ? rol === 'colector' || rol === 'chofer' || rol === 'empresa'
               : ruta.startsWith('/admin')
                 ? rol === 'superadmin'
                 : ruta.startsWith('/cuenta')

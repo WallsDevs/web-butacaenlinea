@@ -63,6 +63,7 @@ export function RequireAuth({ roles, children }: { roles: string[]; children: Re
       empresa: '/empresa',
       cajero: '/pos',
       chofer: '/chofer',
+      colector: '/colector',
       cliente: '/cuenta',
     };
     return <Navigate to={hogar[usuario.role?.type ?? ''] ?? '/'} replace />;

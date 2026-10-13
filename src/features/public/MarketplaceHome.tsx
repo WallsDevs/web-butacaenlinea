@@ -78,6 +78,10 @@ export default function MarketplaceHome() {
               <button className={ui.btnCampaignGhost} onClick={() => navigate('/cuenta')}>
                 Consultar mi boleto
               </button>
+              {/* El que espera la buseta llega aquí sin escanear nada */}
+              <button className={ui.btnCampaignGhost} onClick={() => navigate('/busetas')}>
+                Ver busetas en vivo
+              </button>
             </div>
           </div>
           <div>

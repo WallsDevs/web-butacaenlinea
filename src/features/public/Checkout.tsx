@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { emitirBoletos, getMapaAsientos, getMetodosPago } from '../../lib/api/endpoints';
+import { emitirBoletos, getMapaAsientos, getMetodosPago, getWallet } from '../../lib/api/endpoints';
 import { ApiError } from '../../lib/api/client';
 import { hora, fechaCorta } from '../../lib/time';
 import { Field } from '../../components/ui/Field';
@@ -45,6 +45,11 @@ export default function Checkout() {
     queryFn: getMetodosPago,
     enabled: esCliente,
   });
+  const { data: wallet } = useQuery({
+    queryKey: ['wallet'],
+    queryFn: getWallet,
+    enabled: esCliente,
+  });
   const prefillHecho = useRef(false);
   useEffect(() => {
     if (!esCliente || prefillHecho.current || !pasajeros.length) return;
@@ -69,7 +74,10 @@ export default function Checkout() {
 
   const emitir = useMutation({
     mutationFn: () => {
-      const metodo = METODOS.find((m) => m.id === metodoPago)!;
+      const metodo =
+        metodoPago === 'wallet'
+          ? { id: 'wallet' as MetodoPago, moneda: 'BS' as const }
+          : METODOS.find((m) => m.id === metodoPago)!;
       return emitirBoletos({
         reservaToken: reservaToken!,
         pasajeros: pasajeros.map((p) => ({
@@ -79,7 +87,11 @@ export default function Checkout() {
           telefono: p.telefono,
           equipajePiezas: 1,
         })),
-        pago: { metodoPago: metodo.id, monedaPago: metodo.moneda, referencia },
+        pago: {
+          metodoPago: metodo.id,
+          monedaPago: metodo.moneda,
+          referencia: metodo.id === 'wallet' ? undefined : referencia,
+        },
       });
     },
     onSuccess: (r) => {
@@ -90,7 +102,12 @@ export default function Checkout() {
     },
     onError: (e) => {
       if (e instanceof ApiError && e.code === 'reserva_expirada') setExpirada(true);
-      else setError('No se pudo emitir el boleto. Revisa los datos e intenta de nuevo.');
+      else if (e instanceof ApiError && e.code === 'saldo_insuficiente') {
+        const d = e.details as { saldoBs?: number; requeridoBs?: number };
+        setError(
+          `Saldo insuficiente: tienes Bs ${(d.saldoBs ?? 0).toLocaleString('es-VE')} y el total es Bs ${(d.requeridoBs ?? 0).toLocaleString('es-VE')}. Recarga tu wallet o usa otro método.`
+        );
+      } else setError('No se pudo emitir el boleto. Revisa los datos e intenta de nuevo.');
     },
   });
 
@@ -107,6 +124,9 @@ export default function Checkout() {
   const recargos = mapa?.recargosUsd ?? { tasaTerminal: 0, seguro: 0 };
   const subtotal = pasajeros.reduce((acc, p) => acc + Number(precios[p.claseServicio] ?? 0), 0);
   const total = subtotal + pasajeros.length * (recargos.tasaTerminal + recargos.seguro);
+  const totalBs = Math.round(total * (mapa?.tasas?.bcv ?? 0) * 100) / 100;
+  const saldoBs = wallet?.saldoBs ?? 0;
+  const walletAlcanza = saldoBs >= totalBs && totalBs > 0;
   const datosCompletos = pasajeros.every((p) => p.nombre.trim().length > 2 && p.documento.trim().length > 4);
 
   const pisoLabel = [...new Set(pasajeros.map((p) => p.piso))].join(' · ');
@@ -183,6 +203,21 @@ export default function Checkout() {
 
         <h3 style={{ margin: '28px 0 12px', fontSize: 20, fontWeight: 700 }}>Forma de pago</h3>
         <div className={styles.metodosPago}>
+          {esCliente && (
+            <button
+              className={`${styles.metodoPago} ${metodoPago === 'wallet' ? styles.metodoPagoActivo : ''}`}
+              disabled={!walletAlcanza}
+              style={!walletAlcanza ? { opacity: 0.55 } : undefined}
+              onClick={() => setMetodoPago('wallet')}
+            >
+              <span className={styles.metodoLabel}>Wallet Butaca ⚡</span>
+              <span className={styles.metodoSub}>
+                {walletAlcanza
+                  ? `Saldo Bs ${saldoBs.toLocaleString('es-VE')} · pago instantáneo`
+                  : `Saldo Bs ${saldoBs.toLocaleString('es-VE')} · insuficiente`}
+              </span>
+            </button>
+          )}
           {METODOS.map((m) => (
             <button
               key={m.id}
@@ -195,25 +230,33 @@ export default function Checkout() {
           ))}
         </div>
 
-        <div style={{ marginTop: 16, maxWidth: 420 }}>
-          <Field
-            label="Referencia del pago (nro. de operación o confirmación)"
-            value={referencia}
-            onChange={(e) => setReferencia(e.target.value)}
-            placeholder="Ej. 00482913"
-          />
-          <p style={{ fontSize: 12, color: 'var(--text-faint)', marginTop: 8, lineHeight: 1.5 }}>
-            Tu boleto se emite de inmediato y la línea verifica el pago contra su banco antes de la
-            salida. Guarda tu comprobante.
+        {metodoPago === 'wallet' ? (
+          <p style={{ fontSize: 13, color: 'var(--blue-700)', background: 'var(--tint-50)', borderRadius: 12, padding: '10px 14px', marginTop: 16, maxWidth: 460 }}>
+            Se descuentan Bs {totalBs.toLocaleString('es-VE', { minimumFractionDigits: 2 })} de tu
+            wallet y el boleto sale <strong>pagado al instante</strong> — sin referencias ni espera
+            de verificación.
           </p>
-        </div>
+        ) : (
+          <div style={{ marginTop: 16, maxWidth: 420 }}>
+            <Field
+              label="Referencia del pago (nro. de operación o confirmación)"
+              value={referencia}
+              onChange={(e) => setReferencia(e.target.value)}
+              placeholder="Ej. 00482913"
+            />
+            <p style={{ fontSize: 12, color: 'var(--text-faint)', marginTop: 8, lineHeight: 1.5 }}>
+              Tu boleto se emite de inmediato y la línea verifica el pago contra su banco antes de la
+              salida. Guarda tu comprobante.
+            </p>
+          </div>
+        )}
       </div>
 
       <div>
         <TicketCard
           data={{
             folio: 'Por emitir',
-            lineaNombre: s?.linea?.nombre ?? 'Expresos Táchira',
+            lineaNombre: s?.linea?.nombre ?? '',
             origen: s?.ruta?.origen ?? '',
             destino: s?.ruta?.destino ?? '',
             fecha: s ? fechaCorta(s.fechaHoraSalida) : '',
@@ -234,7 +277,7 @@ export default function Checkout() {
               <button
                 className={`${ui.btnPrimary} ${ui.btnPrimaryLg}`}
                 style={{ marginTop: 12 }}
-                disabled={!datosCompletos || !referencia.trim() || expirada || emitir.isPending}
+                disabled={!datosCompletos || (metodoPago !== 'wallet' && !referencia.trim()) || expirada || emitir.isPending}
                 onClick={() => emitir.mutate()}
               >
                 {emitir.isPending ? 'Emitiendo…' : 'Confirmar y emitir'}

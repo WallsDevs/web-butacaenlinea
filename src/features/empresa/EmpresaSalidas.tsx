@@ -37,7 +37,12 @@ export default function EmpresaSalidas() {
         : {};
   const { data: salidas } = useQuery({
     queryKey: ['empresa-salidas', slug, modo, fecha, rango.desde, rango.hasta],
-    queryFn: () => getSalidas({ ...filtro, lineaSlug: slug }),
+    queryFn: () =>
+      getSalidas({
+        ...filtro,
+        lineaSlug: slug,
+        estados: ['programada', 'abordando', 'en_ruta', 'finalizada', 'cancelada'],
+      }),
   });
   const conFecha = modo !== 'dia';
   const { data: rutas } = useQuery({ queryKey: ['rutas', slug], queryFn: () => getRutas(slug) });
@@ -195,21 +200,29 @@ export default function EmpresaSalidas() {
                   <td>
                     {s.estado === 'abordando' ? (
                       <StatusChip tono="info" size="sm">Abordando</StatusChip>
+                    ) : s.estado === 'en_ruta' ? (
+                      <StatusChip tono="info" size="sm">En Ruta</StatusChip>
+                    ) : s.estado === 'finalizada' ? (
+                      <StatusChip tono="ok" size="sm">Finalizada</StatusChip>
+                    ) : s.estado === 'cancelada' ? (
+                      <StatusChip tono="bad" size="sm">Cancelada</StatusChip>
                     ) : (
                       <StatusChip tono="neutral" size="sm">Programada</StatusChip>
                     )}
                   </td>
                   <td style={{ textAlign: 'right' }}>
-                    <button
-                      style={{ fontSize: 12, fontWeight: 600, color: 'var(--bad-text)' }}
-                      onClick={() => {
-                        if (confirm(`¿Cancelar la salida de ${hora(s.fechaHoraSalida)} a ${s.ruta?.destino}?`)) {
-                          cancelar.mutate({ id: s.documentId });
-                        }
-                      }}
-                    >
-                      Cancelar
-                    </button>
+                    {['programada', 'abordando'].includes(s.estado) && (
+                      <button
+                        style={{ fontSize: 12, fontWeight: 600, color: 'var(--bad-text)' }}
+                        onClick={() => {
+                          if (confirm(`¿Cancelar la salida de ${hora(s.fechaHoraSalida)} a ${s.ruta?.destino}?`)) {
+                            cancelar.mutate({ id: s.documentId });
+                          }
+                        }}
+                      >
+                        Cancelar
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}

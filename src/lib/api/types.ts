@@ -1,4 +1,4 @@
-/** Contratos TS de la API — espejo de los endpoints custom de Strapi (api/). */
+/** Contratos TS de la API — espejo de los endpoints del backend (api/). */
 
 // ── Tasas ────────────────────────────────────────────────────────────────────
 export interface TasasVigentes {
@@ -20,9 +20,22 @@ export interface LineaDto {
   telefono?: string;
   tasaTerminalUsd: number;
   seguroViajeUsd: number;
+  /** Equipaje del turno largo: etiquetas del talonario de la empresa o generadas por la app. */
+  modoEtiquetaEquipaje?: 'empresa' | 'app';
+  piezasIncluidasPorBoleto?: number;
+  tarifaPiezaExtraUsd?: number;
 }
 
-// ── Salidas (REST core de Strapi v5) ─────────────────────────────────────────
+// ── Salidas (listado paginado, sintaxis REST heredada) ───────────────────────
+/** Parada intermedia del itinerario: donde el conductor puede dejar pasajeros. */
+export interface ParadaRuta {
+  nombre: string;
+  ciudad?: string | null;
+  orden: number;
+  minutosDesdeOrigen?: number | null;
+  minutosDeParada?: number | null;
+}
+
 export interface RutaDto {
   documentId: string;
   codigo: string;
@@ -32,6 +45,7 @@ export interface RutaDto {
   duracionMin: number;
   distanciaKm: number;
   tarifas?: { claseServicio: string; precioUsd: number }[];
+  paradas?: ParadaRuta[];
 }
 
 export interface UnidadResumenDto {
@@ -145,7 +159,8 @@ export type MetodoPago =
   | 'transferencia'
   | 'punto_venta'
   | 'tarjeta_cop'
-  | 'zelle';
+  | 'zelle'
+  | 'wallet';
 
 export type EstadoPago = 'verificado' | 'por_verificar' | 'rechazado';
 
@@ -318,17 +333,29 @@ export interface BoletoAdmin {
 }
 
 // ── Manifiesto ───────────────────────────────────────────────────────────────
+export interface PiezaEquipaje {
+  codigo: string;
+  estado: 'a_bordo' | 'entregada' | 'no_reclamada';
+  esExtra: boolean;
+  estadoCobro: 'incluida' | 'cobrada' | 'pendiente' | 'exonerada';
+}
 export interface PasajeroManifiesto {
+  documentId?: string;
   folio: string;
   qrId: string;
   asientoId: string;
   piso: number;
   pasajeroNombre: string;
   pasajeroDocumento?: string;
-  estado: 'abordado' | 'pendiente' | 'no_show';
+  /** `descendido` = subió y ya se bajó. Distinto de `no_show`, que nunca subió. */
+  estado: 'abordado' | 'pendiente' | 'no_show' | 'descendido';
   equipajePiezas: number;
   equipajeNota?: string;
+  piezas?: PiezaEquipaje[];
+  piezasEnBodega?: number;
   abordadoEn?: string;
+  descendidoEn?: string | null;
+  descendidoLugar?: { tipo: string; nombre: string | null; lat: number | null; lng: number | null } | null;
 }
 export interface Manifiesto {
   salida: {
@@ -336,12 +363,27 @@ export interface Manifiesto {
     estado: SalidaDto['estado'];
     fechaHoraSalida: string;
     rampa: string;
-    ruta?: { origen: string; destino: string };
+    ruta?: {
+      documentId?: string;
+      origen: string;
+      destino: string;
+      paradas?: ParadaRuta[];
+    };
     unidad?: { numero: string };
     reporteSalida: ReporteSalida | null;
   };
   pasajeros: PasajeroManifiesto[];
-  resumen: { total: number; abordados: number; pendientes: number; ausentes: number; piezas: number };
+  resumen: {
+    total: number;
+    abordados: number;
+    aBordo?: number;
+    descendidos?: number;
+    pendientes: number;
+    ausentes: number;
+    piezas: number;
+    piezasEnBodega?: number;
+    piezasEntregadas?: number;
+  };
 }
 
 // ── Turnos ───────────────────────────────────────────────────────────────────

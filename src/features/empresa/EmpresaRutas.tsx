@@ -1,9 +1,17 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { eliminarRuta, getRutas, guardarRuta } from '../../lib/api/endpoints';
+import {
+  eliminarRuta,
+  eliminarRutaUrbana,
+  getRutas,
+  getRutasUrbanas,
+  guardarRuta,
+  guardarRutaUrbana,
+} from '../../lib/api/endpoints';
 import { useAuth } from '../../stores/auth';
 import { duracion } from '../../lib/time';
 import { Field } from '../../components/ui/Field';
+import { EditorRutaUrbana, nuevaFormUrbana, type FormUrbana } from '../urbano/EditorRutaUrbana';
 import type { RutaDto } from '../../lib/api/types';
 import ui from '../../components/ui/ui.module.css';
 import styles from '../flota/flota.module.css';
@@ -35,6 +43,29 @@ export default function EmpresaRutas() {
 
   const slug = useAuth((s) => s.usuario)?.linea?.slug;
   const { data: rutas, isLoading } = useQuery({ queryKey: ['rutas', slug], queryFn: () => getRutas(slug) });
+
+  // Rutas urbanas: tarifa plana en Bs, sin asientos ni salidas (pasaje por QR)
+  const [formUrbana, setFormUrbana] = useState<FormUrbana | null>(null);
+  const { data: urbanas } = useQuery({ queryKey: ['rutas-urbanas'], queryFn: getRutasUrbanas });
+  const guardarUrbana = useMutation({
+    mutationFn: (f: FormUrbana) =>
+      guardarRutaUrbana(f.documentId, {
+        nombre: f.nombre.trim(),
+        tarifaBs: Number(f.tarifaBs),
+        activa: true,
+        // El trazo por las calles y las paradas con nombre: lo que ve el pasajero
+        recorrido: f.recorrido,
+        paradas: f.paradas.map((x, i) => ({ ...x, orden: i + 1 })),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['rutas-urbanas'] });
+      setFormUrbana(null);
+    },
+  });
+  const eliminarUrbana = useMutation({
+    mutationFn: (id: string) => eliminarRutaUrbana(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['rutas-urbanas'] }),
+  });
 
   const guardar = useMutation({
     mutationFn: (f: FormRuta) =>
@@ -123,6 +154,74 @@ export default function EmpresaRutas() {
           </tbody>
         </table>
       </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', margin: '32px 0 16px' }}>
+        <div>
+          <h2 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>Rutas urbanas</h2>
+          <div style={{ fontSize: 13, color: 'var(--text-soft)' }}>
+            Tarifa plana en bolívares; el pasajero paga escaneando el QR de la unidad. Sin asientos, sin salidas, sin equipaje.
+          </div>
+        </div>
+        <button
+          className={ui.btnSecondary}
+          style={{ marginLeft: 'auto', fontSize: 14 }}
+          onClick={() => setFormUrbana(nuevaFormUrbana())}
+        >
+          Nueva ruta urbana
+        </button>
+      </div>
+      <div className={ui.card} style={{ overflow: 'hidden' }}>
+        <table className={styles.tabla}>
+          <thead>
+            <tr>
+              <th>Ruta</th>
+              <th>Pasaje (Bs)</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {(urbanas ?? []).map((u) => (
+              <tr key={u.documentId}>
+                <td style={{ fontWeight: 600 }}>{u.nombre}</td>
+                <td>Bs {Number(u.tarifaBs).toLocaleString('es-VE', { minimumFractionDigits: 2 })}</td>
+                <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                  <button
+                    className={ui.btnGhost}
+                    style={{ fontSize: 13, marginRight: 12 }}
+                    onClick={() => setFormUrbana(nuevaFormUrbana(u))}
+                  >
+                    Editar
+                  </button>
+                  <button
+                    style={{ fontSize: 13, fontWeight: 600, color: 'var(--bad-text)' }}
+                    onClick={() => {
+                      if (confirm(`¿Eliminar la ruta urbana ${u.nombre}?`)) eliminarUrbana.mutate(u.documentId);
+                    }}
+                  >
+                    Eliminar
+                  </button>
+                </td>
+              </tr>
+            ))}
+            {!urbanas?.length && (
+              <tr>
+                <td colSpan={3} style={{ textAlign: 'center', color: 'var(--text-soft)', padding: 22 }}>
+                  Sin rutas urbanas. Crea una y asígnala a tus unidades en la ficha de cada bus.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {formUrbana && (
+        <EditorRutaUrbana
+          inicial={formUrbana}
+          guardando={guardarUrbana.isPending}
+          onGuardar={(f) => guardarUrbana.mutate(f)}
+          onCancelar={() => setFormUrbana(null)}
+        />
+      )}
 
       {form && (
         <div className={styles.velo} onClick={() => setForm(null)}>
