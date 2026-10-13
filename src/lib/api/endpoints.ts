@@ -898,3 +898,28 @@ export const verificarFactura = (documentId: string, aprobada: boolean, nota?: s
 export const getMisFacturas = () => api<Factura[]>('/api/empresa/facturas');
 export const reportarPagoFactura = (documentId: string, referencia: string, banco?: string) =>
   api<Factura>(`/api/empresa/facturas/${documentId}/pagar`, { method: 'POST', body: { referencia, banco } });
+
+// ── Rastreo de la flota (Mantenimiento y Urbano) ─────────────────────────────
+export interface UnidadEnVivo {
+  documentId: string;
+  numero: string;
+  placa: string | null;
+  estado: string | null;
+  chofer: string | null;
+  posicion: { lat: number; lng: number; hora: string | null; haceSeg: number | null; viva: boolean } | null;
+  jornada: { modo: 'urbano' | 'largo' | 'jornada'; abiertoEn: string | null } | null;
+}
+export interface Recorrido {
+  unidad: string;
+  desde: string;
+  hasta: string;
+  total: number;
+  puntos: { lat: number; lng: number; hora: string; velocidadKmh: number | null }[];
+}
+export const getFlotaEnVivo = () => api<UnidadEnVivo[]>('/api/empresa/flota-en-vivo');
+export const getRecorrido = (unidadId: string, desde?: string, hasta?: string) => {
+  const q = new URLSearchParams();
+  if (desde) q.set('desde', desde);
+  if (hasta) q.set('hasta', hasta);
+  return api<Recorrido>(`/api/unidades/${unidadId}/recorrido${q.size ? `?${q}` : ''}`);
+};

@@ -41,6 +41,7 @@ const AdminSeguridad = lazy(() => import('../features/admin/AdminSeguridad'));
 const AdminWallet = lazy(() => import('../features/admin/AdminWallet'));
 const AdminContratos = lazy(() => import('../features/admin/AdminContratos'));
 const AdminFacturas = lazy(() => import('../features/admin/AdminFacturas'));
+const FlotaEnVivo = lazy(() => import('../features/empresa/FlotaEnVivo'));
 const EmpresaFacturas = lazy(() => import('../features/empresa/EmpresaFacturas'));
 const FichaUnidad = lazy(() => import('../features/flota/FichaUnidad'));
 const PagoUrbano = lazy(() => import('../features/urbano/PagoUrbano'));
@@ -233,6 +234,7 @@ export const router = createBrowserRouter([
           { path: 'pagos', element: <VerificacionPagos /> },
           { path: 'boletos', element: <EmpresaBoletos /> },
           { path: 'reportes', element: <EmpresaReportes /> },
+          { path: 'flota-en-vivo', element: <FlotaEnVivo /> },
           { path: 'facturas', element: <EmpresaFacturas /> },
           { path: 'configuracion', element: <EmpresaConfiguracion /> },
         ],

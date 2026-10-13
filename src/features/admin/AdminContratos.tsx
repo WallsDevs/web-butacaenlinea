@@ -42,8 +42,8 @@ const PLAZOS: { meses: number | null; label: string }[] = [
 
 const NOMBRE_PLAN: Record<ClavePlan, string> = {
   mantenimiento: 'Mantenimiento',
-  venta: 'Solo venta en línea',
-  completo: 'Butaca completo',
+  venta: 'Solo boletería',
+  completo: 'Full',
   personalizado: 'Personalizado',
 };
 
@@ -97,8 +97,8 @@ export default function AdminContratos() {
       </div>
       <p style={{ color: 'var(--text-soft)', fontSize: 14, marginBottom: 16, maxWidth: 760 }}>
         Tres formas de vender la plataforma: <strong>Mantenimiento</strong> (tarifa fija por bus al mes),{' '}
-        <strong>Solo venta en línea</strong> (Butaca vende los boletos de la línea en el marketplace y cobra comisión por pasaje) y{' '}
-        <strong>Butaca completo</strong> (toda la plataforma, comisión por pasaje). Un contrato con plazo deja de regir al vencer:
+        <strong>Solo boletería</strong> (Butaca vende parte de los boletos de la línea, que sigue con su sistema, y cobra comisión por pasaje) y{' '}
+        <strong>Full</strong> (toda la plataforma, comisión por pasaje). Un contrato con plazo deja de regir al vencer:
         la línea pierde sus módulos y sus salidas salen del marketplace hasta que se renueve. Una línea sin contrato se comporta como si tuviera todo.
       </p>
 

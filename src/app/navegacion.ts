@@ -33,6 +33,7 @@ export const SECCIONES_EMPRESA: SeccionModulo[] = [
   { id: 'salidas', label: 'Salidas', ruta: '/empresa/salidas', modulos: ['boleteria'] },
   { id: 'rutas', label: 'Rutas', ruta: '/empresa/rutas', modulos: ['boleteria', 'urbano'] },
   { id: 'unidades', label: 'Unidades', ruta: '/empresa/unidades' },
+  { id: 'flota-vivo', label: 'Flota en vivo', ruta: '/empresa/flota-en-vivo', modulos: ['mantenimiento', 'urbano'] },
   { id: 'personal', label: 'Personal', ruta: '/empresa/personal' },
   { id: 'pagos', label: 'Pagos', ruta: '/empresa/pagos', modulos: ['boleteria'] },
   { id: 'boletos', label: 'Boletos', ruta: '/empresa/boletos', modulos: ['boleteria'] },

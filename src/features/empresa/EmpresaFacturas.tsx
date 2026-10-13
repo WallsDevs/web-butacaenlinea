@@ -12,7 +12,7 @@ import { CHIP_ESTADO, nombreDePeriodo } from '../../lib/facturas';
 const usd = (n: number) => `$ ${n.toLocaleString('es-VE', { minimumFractionDigits: 2 })}`;
 const bs = (n: number) => `Bs ${n.toLocaleString('es-VE', { maximumFractionDigits: 2 })}`;
 const dia = (iso: string) => fechaCorta(`${iso}T12:00:00`);
-const NOMBRE_PLAN = { mantenimiento: 'Mantenimiento', venta: 'Solo venta en línea', completo: 'Butaca completo', personalizado: 'Personalizado' } as const;
+const NOMBRE_PLAN = { mantenimiento: 'Mantenimiento', venta: 'Solo boletería', completo: 'Full', personalizado: 'Personalizado' } as const;
 const NOMBRE_MODULO: Record<string, string> = { flota: 'Flota y personal', mantenimiento: 'Mantenimiento', boleteria: 'Boletería', taquilla: 'Taquilla', equipaje: 'Equipaje', urbano: 'Urbano por QR' };
 
 /** Lo que la empresa tiene contratado: plan, módulos, cómo paga y hasta cuándo. */
