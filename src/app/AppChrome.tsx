@@ -55,7 +55,13 @@ export function AppChrome() {
   const cerrarSesion = useAuth((s) => s.cerrarSesion);
   const [menuAbierto, setMenuAbierto] = useState(false);
   // Las secciones de la empresa dependen de lo que contrató su línea
-  const { modulos, tiene } = useModulos();
+  const { modulos, tiene, contrato, vencido } = useModulos();
+  // Aviso del contrato: vencido, o a punto de vencer (lo ve todo el personal de la línea)
+  const avisoContrato = vencido
+    ? `El contrato de la línea venció${contrato?.venceEn ? ` el ${new Date(`${contrato.venceEn}T12:00:00`).toLocaleDateString('es-VE')}` : ''}: los módulos y la venta de sus salidas están cerrados hasta renovarlo.`
+    : contrato?.estado === 'por_vencer'
+      ? `El contrato de la línea vence en ${contrato.diasRestantes} ${contrato.diasRestantes === 1 ? 'día' : 'días'}.`
+      : null;
   // En las páginas de acceso el chrome es mínimo: solo la marca
   const esPaginaAcceso = ['/ingresar', '/registro', '/plataforma'].includes(location.pathname);
   // Un solo patrón para todos los roles: las secciones del módulo viven en esta barra
@@ -91,6 +97,7 @@ export function AppChrome() {
     : 'BE';
 
   return (
+    <>
     <header className={`${styles.chrome} no-print`}>
       <button
         className={styles.brandZone}
@@ -258,5 +265,22 @@ export function AppChrome() {
       </span>
       )}
     </header>
+    {avisoContrato && !esPaginaAcceso && (
+      <div
+        className="no-print"
+        role="status"
+        style={{
+          background: vencido ? 'var(--bad-bg, #FEF2F2)' : 'var(--warn-bg, #FFFBEB)',
+          color: vencido ? 'var(--bad-text, #991B1B)' : 'var(--warn-text, #92400E)',
+          fontSize: 13,
+          fontWeight: 600,
+          padding: '8px 16px',
+          textAlign: 'center',
+        }}
+      >
+        {avisoContrato}
+      </div>
+    )}
+    </>
   );
 }

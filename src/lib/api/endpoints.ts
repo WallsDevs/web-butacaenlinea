@@ -423,7 +423,9 @@ export const crearEmpresa = (datos: {
   razonSocial?: string;
   terminalBase?: string;
   telefono?: string;
+  /** Contrato inicial (todos los módulos): comisión por boleto y monto mensual por bus. */
   comisionPct?: number;
+  montoBusUsd?: number;
   logoId?: number;
   admin: { username: string; password: string; nombreCorto?: string };
 }) => api<{ documentId: string; slug: string }>('/api/admin/empresas', { method: 'POST', body: datos });
@@ -799,16 +801,32 @@ export interface ModuloCatalogo {
   depende: ClaveModulo[];
   cobro: 'comision' | 'por_bus' | 'ninguno';
 }
+/** Cómo se vende la plataforma: un plan preajusta los módulos y su forma de cobro. */
+export type ClavePlan = 'mantenimiento' | 'venta' | 'completo' | 'personalizado';
+export interface PlanCatalogo {
+  clave: Exclude<ClavePlan, 'personalizado'>;
+  nombre: string;
+  descripcion: string;
+  modulos: ClaveModulo[];
+  cobro: 'por_bus' | 'comision';
+}
+export type EstadoContrato = 'vigente' | 'por_vencer' | 'vencido';
 export interface Contrato {
   documentId: string;
   linea: { documentId: string; nombre: string; slug: string };
   version: number;
+  plan: ClavePlan;
   modulos: ClaveModulo[];
   comisionPct: number;
   montoBusUsd: number;
   diasGracia: number;
   vigenteDesde: string;
   vigenteHasta: string | null;
+  /** Plazo en meses; `venceEn` es el último día en que rige (inclusive). Sin plazo = indefinido. */
+  plazoMeses: number | null;
+  venceEn: string | null;
+  estado: EstadoContrato;
+  diasRestantes: number | null;
   notas: string | null;
   creadoEn: string;
 }
@@ -816,22 +834,26 @@ export interface ResumenContratoLinea {
   linea: { documentId: string; nombre: string; slug: string; activa: boolean };
   contrato: Contrato | null;
 }
-/** Lo que ve el personal de una línea: `sinContrato` = todo abierto (transición). */
+/** Lo que ve el personal de una línea: `sinContrato` = todo abierto (transición); `vencido` = nada abierto. */
 export interface MiContrato {
   sinContrato: boolean;
+  vencido: boolean;
   modulos: ClaveModulo[];
   contrato: Contrato | null;
 }
 export const getCatalogoModulos = () => api<ModuloCatalogo[]>('/api/admin/contratos/modulos');
+export const getCatalogoPlanes = () => api<PlanCatalogo[]>('/api/admin/contratos/planes');
 export const getAdminContratos = () => api<ResumenContratoLinea[]>('/api/admin/contratos');
 export const getHistorialContratos = (lineaId: string) => api<Contrato[]>(`/api/admin/contratos/linea/${lineaId}`);
 export const crearContrato = (datos: {
   lineaId: string;
+  plan?: ClavePlan;
   modulos: ClaveModulo[];
   comisionPct: number;
   montoBusUsd: number;
   diasGracia: number;
   vigenteDesde?: string;
+  plazoMeses?: number | null;
   notas?: string;
 }) => api<Contrato>('/api/admin/contratos', { method: 'POST', body: datos });
 export const getMiContrato = () => api<MiContrato>('/api/contratos/mio');

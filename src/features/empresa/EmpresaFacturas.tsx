@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getMisFacturas, reportarPagoFactura, type Factura } from '../../lib/api/endpoints';
 import { ApiError } from '../../lib/api/client';
+import { useModulos } from '../../lib/useModulos';
 import { fechaCorta } from '../../lib/time';
 import { StatusChip } from '../../components/ui/StatusChip';
 import ui from '../../components/ui/ui.module.css';
@@ -10,6 +11,41 @@ import { CHIP_ESTADO, nombreDePeriodo } from '../../lib/facturas';
 
 const usd = (n: number) => `$ ${n.toLocaleString('es-VE', { minimumFractionDigits: 2 })}`;
 const bs = (n: number) => `Bs ${n.toLocaleString('es-VE', { maximumFractionDigits: 2 })}`;
+const dia = (iso: string) => fechaCorta(`${iso}T12:00:00`);
+const NOMBRE_PLAN = { mantenimiento: 'Mantenimiento', venta: 'Solo venta en línea', completo: 'Butaca completo', personalizado: 'Personalizado' } as const;
+const NOMBRE_MODULO: Record<string, string> = { flota: 'Flota y personal', mantenimiento: 'Mantenimiento', boleteria: 'Boletería', taquilla: 'Taquilla', equipaje: 'Equipaje', urbano: 'Urbano por QR' };
+
+/** Lo que la empresa tiene contratado: plan, módulos, cómo paga y hasta cuándo. */
+function MiContratoCard() {
+  const { contrato, vencido } = useModulos();
+  if (!contrato) return null;
+  const porBus = contrato.modulos.includes('mantenimiento');
+  const comision = contrato.modulos.some((m) => m !== 'flota' && m !== 'mantenimiento');
+  return (
+    <div className={ui.card} style={{ padding: '14px 18px', marginBottom: 16, borderColor: vencido ? 'var(--bad-text)' : undefined }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Mi contrato</span>
+        <strong>{NOMBRE_PLAN[contrato.plan]}</strong>
+        {vencido ? (
+          <StatusChip tono="bad" size="sm">Vencido el {contrato.venceEn ? dia(contrato.venceEn) : ''}</StatusChip>
+        ) : contrato.estado === 'por_vencer' ? (
+          <StatusChip tono="warn" size="sm">Vence en {contrato.diasRestantes} {contrato.diasRestantes === 1 ? 'día' : 'días'}</StatusChip>
+        ) : contrato.venceEn ? (
+          <StatusChip tono="ok" size="sm">Hasta el {dia(contrato.venceEn)}</StatusChip>
+        ) : (
+          <StatusChip tono="ok" size="sm">Indefinido</StatusChip>
+        )}
+      </div>
+      <div style={{ fontSize: 13, color: 'var(--text-soft)', marginTop: 8, lineHeight: 1.6 }}>
+        {contrato.modulos.map((m) => NOMBRE_MODULO[m] ?? m).join(' · ')}
+        <br />
+        {comision && <>Comisión de la plataforma: <strong>{contrato.comisionPct} %</strong> por pasaje. </>}
+        {porBus && <>Tarifa de Mantenimiento: <strong>{usd(contrato.montoBusUsd)}</strong> por bus al mes, {contrato.diasGracia} días de gracia.</>}
+        {vencido && <><br />Para renovar, comuníquese con Butaca En Línea: mientras tanto el acceso a los módulos y la venta de sus salidas están cerrados; sus datos siguen intactos.</>}
+      </div>
+    </div>
+  );
+}
 
 /**
  * Las facturas de la empresa por los módulos de cobro fijo (Mantenimiento).
@@ -50,6 +86,8 @@ export default function EmpresaFacturas() {
         <h2 style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-0.02em' }}>Facturas</h2>
         {totalPendiente > 0 && <StatusChip tono="warn">{usd(totalPendiente)} por pagar</StatusChip>}
       </div>
+
+      <MiContratoCard />
 
       {vencidas.length > 0 && (
         <div className={`${styles.alerta} ${styles.alertaBad}`} style={{ marginBottom: 16 }}>
