@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { getSalidas, getUnidades } from '../../lib/api/endpoints';
 import { useAuth } from '../../stores/auth';
+import { useModulos } from '../../lib/useModulos';
 import { StatusChip } from '../../components/ui/StatusChip';
 import { NuevaUnidad } from './NuevaUnidad';
 import ui from '../../components/ui/ui.module.css';
@@ -19,11 +20,14 @@ export default function FlotaLista() {
   const navigate = useNavigate();
   const [creando, setCreando] = useState(false);
   const slug = useAuth((s) => s.usuario)?.linea?.slug;
+  const { tiene } = useModulos();
   const { data: unidades, isLoading } = useQuery({ queryKey: ['unidades', slug], queryFn: () => getUnidades(slug) });
   const { data: viajando } = useQuery({
     queryKey: ['salidas-en-ruta', slug],
     queryFn: () => getSalidas({ estados: ['en_ruta'], lineaSlug: slug }),
     refetchInterval: 30_000,
+    // «En ruta» sale de las salidas: solo existen con Boletería contratada
+    enabled: tiene('boleteria'),
   });
   const destinoDe = new Map((viajando ?? []).map((s) => [s.unidad?.documentId, s.ruta?.destino]));
 
