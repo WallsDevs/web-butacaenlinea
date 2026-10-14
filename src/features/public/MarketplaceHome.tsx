@@ -15,8 +15,8 @@ import { H2 } from './inicio/piezas';
 import { useInstalar } from './inicio/useInstalar';
 import css from './inicio/inicio.module.css';
 
-// Número de atención (solo dígitos, con código de país). Sin él no se muestra WhatsApp.
-const WHATSAPP = (import.meta.env.VITE_WHATSAPP as string | undefined)?.replace(/\D/g, '') || '';
+// Número de atención por WhatsApp (solo dígitos, con código de país). VITE_WHATSAPP lo reemplaza.
+const WHATSAPP = (import.meta.env.VITE_WHATSAPP as string | undefined)?.replace(/\D/g, '') || '584129647161';
 const COLORES_LINEA = ['#0B2A6B', '#2563EB', '#1D4ED8', '#123B8F', '#3B82F6', '#0B2A6B'];
 const DIAS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 const HOME_POR_ROL: Record<string, string> = { superadmin: '/admin', empresa: '/empresa', cajero: '/pos', chofer: '/chofer', colector: '/colector', cliente: '/cuenta' };
