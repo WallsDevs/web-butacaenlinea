@@ -963,3 +963,27 @@ export const rotarSecretoIntegracion = (id: string) => api<IntegracionConSecreto
 export const getEntregasIntegracion = (id: string, estado?: string) => api<EntregaWebhook[]>(`/api/admin/integraciones/${id}/entregas${estado ? `?estado=${estado}` : ''}`);
 export const reintentarEntrega = (id: string, eventoId: string) => api<{ ok: boolean }>(`/api/admin/integraciones/${id}/entregas/${eventoId}/reintentar`, { method: 'POST', body: {} });
 export const probarWebhook = (id: string) => api<{ documentId: string }>(`/api/admin/integraciones/${id}/probar`, { method: 'POST', body: {} });
+
+// ── Conectores (Solo boletería: Butaca consume la API de la línea) ──────────
+export interface Conector {
+  documentId: string;
+  linea: { documentId: string; nombre: string };
+  tipo: string;
+  nombre: string;
+  activo: boolean;
+  ultimaSyncEn: string | null;
+  ultimoError: string | null;
+  creadoEn: string | null;
+}
+export interface ResultadoSync {
+  rutas: number;
+  unidades: number;
+  salidasNuevas: number;
+  salidasActualizadas: number;
+}
+export const getConectores = () => api<Conector[]>('/api/admin/conectores');
+export const crearConector = (datos: { lineaId: string; tipo: string; nombre: string; config: unknown }) =>
+  api<Conector>('/api/admin/conectores', { method: 'POST', body: datos });
+export const actualizarConector = (id: string, datos: { activo?: boolean; nombre?: string; config?: unknown }) =>
+  api<Conector>(`/api/admin/conectores/${id}`, { method: 'PUT', body: datos });
+export const sincronizarConector = (id: string) => api<ResultadoSync>(`/api/admin/conectores/${id}/sincronizar`, { method: 'POST', body: {} });
