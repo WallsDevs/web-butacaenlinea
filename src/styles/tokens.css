@@ -104,6 +104,6 @@
   --font: 'Space Grotesk', system-ui, sans-serif;
 
   /* ── Layout ─────────────────────────────────────────────────── */
-  --content-max: 1320px;
-  --content-max-erp: 1400px;
+  --content-max: 1480px;
+  --content-max-erp: 1560px;
 }
