@@ -1,10 +1,9 @@
-import { useState } from 'react';
-import { H2, Demo } from './piezas';
+import { H2 } from './piezas';
 
 /**
- * DEMOSTRACIÓN. Los descuentos todavía no existen en el servidor: estas
- * tarjetas muestran cómo se verán y no alteran ningún precio. Cuando haya
- * promociones reales, esta lista sale de la API.
+ * Solo informativo: los descuentos todavía no existen en el servidor y estas
+ * tarjetas no alteran ningún precio. Cuando haya promociones reales, esta
+ * lista sale de la API.
  */
 const PROMOS = [
   { code: 'MARTES20', big: '−20%', titulo: 'Martes de ruta', desc: 'Todas las salidas de los martes, en cualquier línea afiliada.', bg: '#2563EB', color: '#FFFFFF', blob: 'rgba(255,255,255,.12)', dash: 'rgba(255,255,255,.6)' },
@@ -13,27 +12,20 @@ const PROMOS = [
 ];
 
 export function Promociones() {
-  const [aplicada, setAplicada] = useState<string | null>(null);
   return (
     <section id="promos" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-          <H2>Promociones de la semana</H2>
-          <Demo />
-        </div>
-        <span style={{ fontSize: 14, color: '#475569' }}>Toca una para aplicarla a tu boleto</span>
+        <H2>Promociones de la semana</H2>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: 18 }}>
         {PROMOS.map((p) => {
-          const on = p.code === aplicada;
           return (
-            <button
+            <div
               key={p.code}
-              onClick={() => setAplicada(on ? null : p.code)}
               style={{
-                position: 'relative', textAlign: 'left', fontFamily: 'inherit', cursor: 'pointer', borderRadius: 22, padding: 24, minHeight: 220,
+                position: 'relative', textAlign: 'left', borderRadius: 22, padding: 24, minHeight: 220,
                 display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 20, overflow: 'hidden',
-                background: p.bg, color: p.color, border: `2px solid ${on ? '#22A35A' : p.bg === '#FFFFFF' ? '#E6EBF4' : p.bg}`,
+                background: p.bg, color: p.color, border: `2px solid ${p.bg === '#FFFFFF' ? '#E6EBF4' : p.bg}`,
               }}
             >
               <span style={{ position: 'absolute', right: -50, bottom: -60, width: 180, height: 180, borderRadius: '50%', background: p.blob }} />
@@ -44,9 +36,8 @@ export function Promociones() {
               </div>
               <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
                 <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', padding: '6px 10px', borderRadius: 8, border: `1.5px dashed ${p.dash}` }}>{p.code}</span>
-                <span style={{ fontSize: 14, fontWeight: 700 }}>{on ? 'Aplicada ✓' : 'Aplicar →'}</span>
               </div>
-            </button>
+            </div>
           );
         })}
       </div>
