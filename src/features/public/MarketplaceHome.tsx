@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { getLineas, getOcupacionSalidas, getRutas, getSalidas } from '../../lib/api/endpoints';
@@ -13,6 +13,7 @@ import { Kilometros } from './inicio/Kilometros';
 import { Destinos } from './inicio/Destinos';
 import { H2 } from './inicio/piezas';
 import { Letras, TableroMuestra, casillas } from './inicio/Tablero';
+import { PanelAsientos } from './inicio/PanelAsientos';
 import { useInstalar } from './inicio/useInstalar';
 import css from './inicio/inicio.module.css';
 
@@ -57,6 +58,7 @@ export default function MarketplaceHome() {
   const usuario = useAuth((s) => s.usuario);
   const instalar = useInstalar();
   const { criterios, setCriterios } = useBooking();
+  const [abierta, setAbierta] = useState<string | null>(null);
 
   const { data: lineas } = useQuery({ queryKey: ['lineas'], queryFn: getLineas });
   const { data: rutas, isError: rutasError } = useQuery({ queryKey: ['rutas-publicas'], queryFn: () => getRutas() });
@@ -108,6 +110,9 @@ export default function MarketplaceHome() {
   };
   const precioMin = (s: { preciosUsd?: Record<string, number> }) => Math.min(...Object.values(s.preciosUsd ?? { x: 0 }));
   const lista = (salidas ?? []).filter((s) => !ocupacion || libresDe(s) >= pax);
+
+  // Otra ruta o fecha: se cierra el mapa abierto
+  useEffect(() => setAbierta(null), [origen, destino, fecha]);
 
   // Desde el pie o los destinos se vuelve al buscador
   useEffect(() => {
@@ -315,12 +320,13 @@ export default function MarketplaceHome() {
                 {lista.map((s) => {
                   const libres = libresDe(s);
                   const pocas = ocupacion != null && libres <= 5;
-                  const estado = pocas ? `QUEDAN ${libres}` : s.estado === 'abordando' ? 'ABORDANDO' : 'A TIEMPO';
-                  const colorEstado = pocas ? '#FBBF24' : s.estado === 'abordando' ? '#60A5FA' : '#9FC0FF';
+                  const elegida = abierta === s.documentId;
+                  const estado = elegida ? 'ELEGIDA' : pocas ? `QUEDAN ${libres}` : s.estado === 'abordando' ? 'ABORDANDO' : 'A TIEMPO';
+                  const colorEstado = elegida ? '#60A5FA' : pocas ? '#FBBF24' : s.estado === 'abordando' ? '#60A5FA' : '#9FC0FF';
                   const iniciales = (s.linea?.nombre ?? '').split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase();
                   return (
-                    <div key={s.documentId} style={{ border: '1.5px solid rgba(159,192,255,.14)', borderRadius: 16, overflow: 'hidden', background: 'rgba(159,192,255,.04)' }}>
-                      <button className={css.salidaFila} onClick={() => navigate(`/salidas/${s.documentId}/asientos`)}>
+                    <div key={s.documentId} style={{ border: `1.5px solid ${elegida ? '#60A5FA' : 'rgba(159,192,255,.14)'}`, borderRadius: 16, overflow: 'hidden', background: elegida ? 'rgba(37,99,235,.22)' : 'rgba(159,192,255,.04)' }}>
+                      <button className={css.salidaFila} aria-expanded={elegida} onClick={() => setAbierta(elegida ? null : s.documentId)}>
                         <Letras texto={hora(s.fechaHoraSalida)} />
                         <Letras texto={casillas(s.ruta?.destino ?? '', 9)} />
                         <span style={{ width: 34, height: 30, borderRadius: 8, background: 'rgba(159,192,255,.14)', color: '#C7D9FB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700 }}>{iniciales}</span>
@@ -333,6 +339,7 @@ export default function MarketplaceHome() {
                         <Money usd={precioMin(s)} style={{ fontSize: 18, fontWeight: 700, textAlign: 'right', whiteSpace: 'nowrap', color: '#FFFFFF' }} />
                         <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textAlign: 'right', whiteSpace: 'nowrap', color: colorEstado }}>{estado}</span>
                       </button>
+                      {elegida && <PanelAsientos salidaId={s.documentId} pax={pax} />}
                     </div>
                   );
                 })}
