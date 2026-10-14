@@ -3,7 +3,7 @@
 .contenido {
   max-width: var(--content-max);
   margin: 0 auto;
-  padding: 28px 20px 72px;
+  padding: 28px 28px 72px;
 }
 
 /* ── Sub-barra de pasos (rutas en producción) ───────────────── */
@@ -43,7 +43,7 @@
 .heroNav {
   max-width: var(--content-max);
   margin: 0 auto;
-  padding: 26px 20px 0;
+  padding: 26px 28px 0;
   display: flex;
   align-items: center;
   gap: 24px;
@@ -88,7 +88,7 @@
 .heroCuerpo {
   max-width: var(--content-max);
   margin: 0 auto;
-  padding: 64px 20px 130px;
+  padding: 64px 28px 130px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 400px;
   gap: 56px;
@@ -233,7 +233,7 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--r-20);
-  padding: 34px 20px;
+  padding: 34px 28px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -271,7 +271,7 @@
 .cierreCuerpo {
   max-width: var(--content-max);
   margin: 0 auto;
-  padding: 64px 20px;
+  padding: 64px 28px;
   display: flex;
   align-items: center;
   gap: 40px;
@@ -289,7 +289,7 @@
 .pieCuerpo {
   max-width: var(--content-max);
   margin: 0 auto;
-  padding: 20px 20px;
+  padding: 20px 28px;
   display: flex;
   gap: 28px;
   font-size: 13px;
@@ -383,7 +383,7 @@
 .layoutAsientos {
   max-width: var(--content-max);
   margin: 0 auto;
-  padding: 24px 20px 72px;
+  padding: 24px 28px 72px;
   display: grid;
   grid-template-columns: 1fr 390px;
   gap: 24px;
@@ -495,7 +495,7 @@
 .layoutCheckout {
   max-width: var(--content-max);
   margin: 0 auto;
-  padding: 24px 20px 72px;
+  padding: 24px 28px 72px;
   display: grid;
   grid-template-columns: 1fr 400px;
   gap: 28px;

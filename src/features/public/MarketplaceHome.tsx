@@ -128,7 +128,7 @@ export default function MarketplaceHome() {
           <div style={{ position: 'absolute', right: 220, top: 300, width: 300, height: 300, borderRadius: '50%', background: 'rgba(96,165,250,.10)' }} />
         </div>
 
-        <header style={{ position: 'relative', maxWidth: 1440, margin: '0 auto', padding: '20px 20px', display: 'flex', alignItems: 'center', gap: 24 }}>
+        <header style={{ position: 'relative', maxWidth: 1440, margin: '0 auto', padding: '20px 28px', display: 'flex', alignItems: 'center', gap: 24 }}>
           <a href="/" aria-label="Butaca En Línea" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <Isotipo size={34} trazo={5} contorno="#FFFFFF" acento="#60A5FA" />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -153,7 +153,7 @@ export default function MarketplaceHome() {
           </nav>
         </header>
 
-        <div style={{ position: 'relative', maxWidth: 1440, margin: '0 auto', padding: '28px 20px 40px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 40 }}>
+        <div style={{ position: 'relative', maxWidth: 1440, margin: '0 auto', padding: '28px 28px 40px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 40 }}>
           <div style={{ flex: '1 1 440px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 28 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 620 }}>
               <h1 style={{ margin: 0, fontSize: 'clamp(40px,5.2vw,64px)', fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 1, color: '#FFFFFF', textWrap: 'balance' }}>
@@ -214,7 +214,7 @@ export default function MarketplaceHome() {
       </div>
 
       {/* Buscador */}
-      <div style={{ position: 'relative', maxWidth: 1440, margin: '-110px auto 0', padding: '0 20px 28px', boxSizing: 'border-box' }}>
+      <div style={{ position: 'relative', maxWidth: 1440, margin: '-110px auto 0', padding: '0 28px 28px', boxSizing: 'border-box' }}>
         <div style={{ background: '#FFFFFF', borderRadius: 22, boxShadow: '0 24px 60px rgba(11,42,107,.22)', overflow: 'hidden', border: '1px solid #E6EBF4' }}>
           <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 20 }}>
             <div className={css.ciudades} style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 48px minmax(0,1fr)', alignItems: 'center', gap: 10 }}>
@@ -277,7 +277,7 @@ export default function MarketplaceHome() {
       </div>
 
       {/* Salidas */}
-      <div style={{ position: 'relative', maxWidth: 1440, margin: '0 auto', padding: '0 20px 80px' }}>
+      <div style={{ position: 'relative', maxWidth: 1440, margin: '0 auto', padding: '0 28px 80px' }}>
         <section id="salidas" style={{ background: '#FFFFFF', borderRadius: 22, boxShadow: '0 12px 40px rgba(11,42,107,.08)', border: '1px solid #E6EBF4', padding: '24px 24px 26px', display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, paddingBottom: 4 }}>
             <h2 style={{ margin: 0, fontSize: 24, fontWeight: 700, letterSpacing: '-0.03em' }}>{lista.length} salida{lista.length === 1 ? '' : 's'} · {diaTxt}</h2>
@@ -324,7 +324,7 @@ export default function MarketplaceHome() {
       </div>
 
       {/* Secciones */}
-      <div style={{ position: 'relative', maxWidth: 1440, margin: '0 auto', padding: '0 20px 96px', display: 'flex', flexDirection: 'column', gap: 88 }}>
+      <div style={{ position: 'relative', maxWidth: 1440, margin: '0 auto', padding: '0 28px 96px', display: 'flex', flexDirection: 'column', gap: 88 }}>
         <Promociones />
         <Kilometros destino={destino} pasajeros={pax} />
         <Destinos
@@ -388,7 +388,7 @@ export default function MarketplaceHome() {
       <footer style={{ position: 'relative', marginTop: 96, background: 'linear-gradient(165deg,#0B2A6B 0%,#123B8F 60%,#1D4ED8 100%)', color: '#C7D9FB', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', right: -160, top: -120, width: 520, height: 520, borderRadius: '50%', background: 'rgba(96,165,250,.12)' }} />
         <div style={{ position: 'absolute', left: -120, bottom: -200, width: 420, height: 420, borderRadius: '50%', background: 'rgba(96,165,250,.08)' }} />
-        <div style={{ position: 'relative', maxWidth: 1440, margin: '0 auto', padding: '0 20px' }}>
+        <div style={{ position: 'relative', maxWidth: 1440, margin: '0 auto', padding: '0 28px' }}>
           <div style={{ marginTop: 56, background: 'rgba(255,255,255,.08)', border: '1px solid rgba(159,192,255,.25)', borderRadius: 24, padding: '28px 32px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '20px 32px' }}>
             <div style={{ flex: '1 1 340px', display: 'flex', flexDirection: 'column', gap: 6 }}>
               <span style={{ fontSize: 24, fontWeight: 700, letterSpacing: '-0.03em', color: '#FFFFFF' }}>Lleva tus boletos en el teléfono</span>
