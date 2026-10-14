@@ -3,8 +3,8 @@
 /* Las divisiones son bordes de cada celda (no el fondo del grid): una última fila incompleta no deja hueco gris */
 .lineas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0 -1px -1px 0; }
 .lineas > div { border-right: 1px solid #e6ebf4; border-bottom: 1px solid #e6ebf4; }
-.salidaFila { width: 100%; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 16px; padding: 16px 18px; border: none; background: transparent; font-family: inherit; color: #0f172a; text-align: left; cursor: pointer; }
-.salidaFila:hover { background: #f7f9fe; }
+.salidaFila { width: 100%; display: grid; grid-template-columns: 118px 210px 44px minmax(180px, 1fr) 120px 110px; align-items: center; gap: 16px; padding: 12px 16px; border: none; background: transparent; font-family: inherit; color: #fff; text-align: left; cursor: pointer; }
+.salidaFila:hover { background: rgba(159, 192, 255, 0.06); }
 .navLink { color: #c7d9fb; }
 .navLink:hover { color: #fff; }
 .pieLink { color: #c7d9fb; }
@@ -16,8 +16,6 @@
 }
 @media (max-width: 640px) {
   .lineas { grid-template-columns: minmax(0, 1fr); }
-  .salidaFila { grid-template-columns: minmax(0, 1fr) auto; }
-  .salidaMedio { grid-column: 1 / -1; order: 3; }
   .kmCuerpo { padding: 26px 20px !important; }
 }
 @media (max-width: 640px) {
