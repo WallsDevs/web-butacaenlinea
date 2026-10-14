@@ -97,8 +97,8 @@ export function AppChrome() {
     : 'BE';
 
   // La página principal trae su propia cabecera (diseño «Sitio Público v5»)
-  // Acceso tiene su propio diseño de pantalla completa
-  if (['/', '/ingresar', '/registro'].includes(location.pathname)) return null;
+  // Las pantallas de acceso traen su propio diseño de pantalla completa
+  if (['/', '/ingresar', '/registro', '/plataforma'].includes(location.pathname)) return null;
 
   return (
     <>
