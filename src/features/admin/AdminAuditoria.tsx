@@ -28,6 +28,9 @@ const NOMBRE_TIPO: Record<string, string> = {
   onboarding_empresa: 'Alta/cambio de empresa',
   equipaje: 'Equipaje',
   asignacion_unidad: 'Asignación de unidad',
+  recarga: 'Recarga de wallet',
+  pasaje_urbano: 'Pasaje urbano (QR)',
+  retiro: 'Retiro de wallet',
 };
 
 const fmtMonto = (monto: number | null | undefined, moneda?: string | null) => {

@@ -4,6 +4,7 @@ import { actualizarConfiguracionEmpresa, getLineas } from '../../lib/api/endpoin
 import { useAuth } from '../../stores/auth';
 import { Field } from '../../components/ui/Field';
 import { TasasLinea } from './TasasLinea';
+import { WalletEmpresa } from './WalletEmpresa';
 import ui from '../../components/ui/ui.module.css';
 import styles from '../flota/flota.module.css';
 
@@ -18,6 +19,9 @@ export default function EmpresaConfiguracion() {
     telefono: '',
     tasaTerminalUsd: '',
     seguroViajeUsd: '',
+    modoEtiquetaEquipaje: 'empresa' as 'empresa' | 'app',
+    piezasIncluidasPorBoleto: '1',
+    tarifaPiezaExtraUsd: '',
   });
   const [mensaje, setMensaje] = useState<string | null>(null);
 
@@ -34,6 +38,9 @@ export default function EmpresaConfiguracion() {
           telefono: mia.telefono ?? '',
           tasaTerminalUsd: String(mia.tasaTerminalUsd ?? ''),
           seguroViajeUsd: String(mia.seguroViajeUsd ?? ''),
+          modoEtiquetaEquipaje: mia.modoEtiquetaEquipaje ?? 'empresa',
+          piezasIncluidasPorBoleto: String(mia.piezasIncluidasPorBoleto ?? 1),
+          tarifaPiezaExtraUsd: String(mia.tarifaPiezaExtraUsd ?? ''),
         });
       }
     })();
@@ -49,6 +56,9 @@ export default function EmpresaConfiguracion() {
         telefono: form.telefono,
         tasaTerminalUsd: Number(form.tasaTerminalUsd) || 0,
         seguroViajeUsd: Number(form.seguroViajeUsd) || 0,
+        modoEtiquetaEquipaje: form.modoEtiquetaEquipaje,
+        piezasIncluidasPorBoleto: Number(form.piezasIncluidasPorBoleto) || 0,
+        tarifaPiezaExtraUsd: Number(form.tarifaPiezaExtraUsd) || 0,
       }),
     onSuccess: () => setMensaje('Configuración guardada. Se refleja en tu tienda pública.'),
     onError: () => setMensaje('No se pudo guardar.'),
@@ -57,6 +67,7 @@ export default function EmpresaConfiguracion() {
   return (
     <div className={styles.contenido} style={{ maxWidth: 720, display: 'flex', flexDirection: 'column', gap: 18 }}>
       <TasasLinea />
+      <WalletEmpresa />
       <h2 style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 16 }}>
         Configuración de la empresa
       </h2>
@@ -86,6 +97,50 @@ export default function EmpresaConfiguracion() {
             onChange={(e) => setForm({ ...form, seguroViajeUsd: e.target.value })}
           />
         </div>
+        <div style={{ height: 1, background: 'var(--divider)', margin: '22px 0 18px' }} />
+
+        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-faint)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+          Equipaje en rutas largas
+        </div>
+        <p style={{ fontSize: 13, color: 'var(--text-soft)', margin: '6px 0 14px' }}>
+          Esto decide qué ve el conductor en su app cuando un pasajero sube con maletas. El
+          servicio urbano no lleva equipaje.
+        </p>
+
+        <div className={ui.pillGroup} style={{ alignSelf: 'flex-start', marginBottom: 14 }}>
+          {(['empresa', 'app'] as const).map((m) => (
+            <button
+              key={m}
+              className={`${ui.pill} ${form.modoEtiquetaEquipaje === m ? ui.pillActive : ''}`}
+              onClick={() => setForm({ ...form, modoEtiquetaEquipaje: m })}
+            >
+              {m === 'empresa' ? 'Mis etiquetas numeradas' : 'Las genera la app'}
+            </button>
+          ))}
+        </div>
+        <p style={{ fontSize: 13, color: 'var(--text-soft)', marginBottom: 14 }}>
+          {form.modoEtiquetaEquipaje === 'empresa'
+            ? 'El conductor pega una etiqueta de tu talonario, le da la contraparte al pasajero y registra el número en la app. Carga los rangos de cada unidad en Unidades → ficha.'
+            : 'La app genera el código de cada pieza y se lo muestra al conductor; también le llega al pasajero en su boleto.'}
+        </p>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <Field
+            label="Piezas incluidas en el boleto"
+            type="number"
+            min={0}
+            value={form.piezasIncluidasPorBoleto}
+            onChange={(e) => setForm({ ...form, piezasIncluidasPorBoleto: e.target.value })}
+          />
+          <Field
+            label="Pieza extra (USD)"
+            type="number"
+            min={0}
+            value={form.tarifaPiezaExtraUsd}
+            onChange={(e) => setForm({ ...form, tarifaPiezaExtraUsd: e.target.value })}
+          />
+        </div>
+
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 18 }}>
           <button className={ui.btnPrimary} disabled={guardar.isPending || !form.nombre} onClick={() => guardar.mutate()}>
             {guardar.isPending ? 'Guardando…' : 'Guardar cambios'}

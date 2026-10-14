@@ -1,4 +1,4 @@
-/** Funciones por recurso — el único lugar que conoce las rutas de Strapi. */
+/** Funciones por recurso — el único lugar que conoce las rutas del backend. */
 import { api, API_URL } from './client';
 import type {
   Alerta,
@@ -251,7 +251,7 @@ export const crearUsuarioEmpresa = (datos: {
   username: string;
   password: string;
   nombreCorto: string;
-  rol: 'cajero' | 'chofer' | 'empresa';
+  rol: 'cajero' | 'chofer' | 'colector' | 'empresa';
   taquillaId?: string;
   cedula?: string;
   email?: string;
@@ -261,7 +261,7 @@ export const actualizarUsuarioEmpresa = (
   datos: {
     nombreCorto?: string;
     password?: string;
-    rol?: 'cajero' | 'chofer' | 'empresa';
+    rol?: 'cajero' | 'chofer' | 'colector' | 'empresa';
     taquillaId?: string | null;
     cedula?: string;
   }
@@ -297,7 +297,7 @@ export const asignarChoferUnidad = (unidadId: string, choferId: string | null) =
 
 export interface HistorialConductor {
   chofer: { nombre: string; cedula?: string | null };
-  unidadFija: { numero: string; marcaModelo: string } | null;
+  unidadesACargo: { numero: string; marcaModelo: string; estado: string }[];
   viajes: {
     documentId: string;
     fechaHoraSalida: string;
@@ -322,7 +322,7 @@ export const actualizarConfiguracionEmpresa = (datos: Record<string, unknown>) =
 
 export const getRutas = (lineaSlug?: string) =>
   api<import('./types').RutaDto[]>(
-    `/api/rutas?populate[tarifas]=true&sort=codigo&pagination[pageSize]=100${lineaSlug ? `&filters[linea][slug][$eq]=${lineaSlug}` : ''}`
+    `/api/rutas?populate[tarifas]=true&populate[paradas]=true&sort=codigo&pagination[pageSize]=100${lineaSlug ? `&filters[linea][slug][$eq]=${lineaSlug}` : ''}`
   );
 export const guardarRuta = (documentId: string | null, data: Record<string, unknown>) =>
   documentId
@@ -423,7 +423,9 @@ export const crearEmpresa = (datos: {
   razonSocial?: string;
   terminalBase?: string;
   telefono?: string;
+  /** Contrato inicial (todos los módulos): comisión por boleto y monto mensual por bus. */
   comisionPct?: number;
+  montoBusUsd?: number;
   logoId?: number;
   admin: { username: string; password: string; nombreCorto?: string };
 }) => api<{ documentId: string; slug: string }>('/api/admin/empresas', { method: 'POST', body: datos });
@@ -459,7 +461,7 @@ export const activar2fa = (codigo: string) =>
 export const desactivar2fa = (codigo: string) =>
   api<{ totpHabilitado: boolean }>('/api/admin/seguridad/2fa/desactivar', { method: 'POST', body: { codigo } });
 
-/** Sube un archivo al media library de Strapi y devuelve su id. */
+/** Sube un archivo (`POST /api/upload`) y devuelve su id y su url. */
 export const subirArchivo = async (archivo: File): Promise<{ id: number; url: string }> => {
   const fd = new FormData();
   fd.append('files', archivo);
@@ -488,3 +490,500 @@ export const fijarTasaLinea = (moneda: 'BS' | 'COP', valor: number) =>
   api<{ registrada: boolean }>('/api/empresa/tasas', { method: 'POST', body: { moneda, valor } });
 export const usarTasaPlataforma = (moneda: 'BS' | 'COP') =>
   api<{ propia: boolean }>(`/api/empresa/tasas/${moneda}`, { method: 'DELETE' });
+
+// ── Wallet (pasajes urbanos) ─────────────────────────────────────────────────
+export interface MovimientoWallet {
+  documentId: string;
+  tipo: string;
+  estado: 'pendiente' | 'confirmado' | 'rechazado';
+  montoBs: number;
+  direccion: 'entrada' | 'salida';
+  referencia?: string | null;
+  contraparte?: string | null;
+  unidad?: string | null;
+  fecha: string;
+  nota?: string | null;
+}
+export const getWallet = () =>
+  api<{ saldoBs: number; movimientos: MovimientoWallet[] }>('/api/wallet');
+export const reportarRecarga = (montoBs: number, referencia: string, banco?: string) =>
+  api<{ movimientoId: string; estado: string }>('/api/wallet/recargas', {
+    method: 'POST',
+    body: { montoBs, referencia, banco },
+  });
+
+export interface RecargaPendiente {
+  documentId: string;
+  montoBs: number;
+  referencia?: string | null;
+  banco?: string | null;
+  fecha: string;
+  pasajero?: string | null;
+  telefono?: string | null;
+}
+export const getRecargasPendientes = () =>
+  api<RecargaPendiente[]>('/api/admin/wallet/recargas');
+export const verificarRecarga = (movimientoId: string, aprobar: boolean, nota?: string) =>
+  api<{ estado: string }>(`/api/admin/wallet/recargas/${movimientoId}/verificar`, {
+    method: 'POST',
+    body: { aprobar, nota },
+  });
+export interface Conciliacion {
+  custodiaEsperadaBs: number;
+  porTipo: Record<string, number>;
+  recargasPendientes: number;
+  cuentas: { documentId: string; tipo: string; nombre: string; saldoBs: number }[];
+}
+export const getConciliacion = () => api<Conciliacion>('/api/admin/wallet/conciliacion');
+
+// ── Pasaje urbano ────────────────────────────────────────────────────────────
+export interface UnidadUrbana {
+  unidad: { documentId: string; numero: string };
+  linea: { nombre: string };
+  ruta: { documentId?: string; nombre: string; tarifaBs: number };
+  enServicio: boolean;
+}
+export const getUnidadUrbana = (documentId: string) =>
+  api<UnidadUrbana>(`/api/urbano/unidad/${documentId}`, { auth: false });
+export const pagarPasajeUrbano = (unidadId: string) =>
+  api<{ pagado: boolean; tarifaBs: number; ruta: string; unidad: string; linea: string; hora: string; saldoBs: number }>(
+    '/api/urbano/pagar',
+    { method: 'POST', body: { unidadId } }
+  );
+export interface CobrosUrbanos {
+  unidad: string;
+  ruta: string | null;
+  tarifaBs: number;
+  pagos: { documentId: string; hora: string; pasajero: string; montoBs: number }[];
+  totalHoy: number;
+  recaudoHoyBs: number;
+}
+export const getCobrosUrbanos = (unidad: string) =>
+  api<CobrosUrbanos>(`/api/urbano/cobros?unidad=${unidad}`);
+export interface MapaRutaUrbana {
+  nombre: string;
+  linea: string;
+  tarifaBs: number;
+  recorrido: [number, number][];
+  /** Dónde para la buseta: la primera es el origen y la última el destino. */
+  paradas?: { nombre: string; orden: number; lat: number; lng: number }[];
+  unidades: { documentId: string; numero: string; lat: number; lng: number; hora: string }[];
+}
+/** Ruta urbana en el listado público: lo que ve quien espera en la parada. */
+export interface RutaUrbanaPublica {
+  documentId: string;
+  nombre: string;
+  linea: string | null;
+  tarifaBs: number;
+  origen: string | null;
+  destino: string | null;
+  paradas: number;
+  busetasEnCamino: number;
+  kmALaParadaMasCercana: number | null;
+}
+/** Público: no hace falta escanear ningún QR ni tener sesión. */
+export const getRutasUrbanasPublicas = (opts?: { buscar?: string; lat?: number; lng?: number }) => {
+  const q = new URLSearchParams();
+  if (opts?.buscar) q.set('buscar', opts.buscar);
+  if (opts?.lat != null && opts?.lng != null) {
+    q.set('lat', String(opts.lat));
+    q.set('lng', String(opts.lng));
+  }
+  const cola = q.toString();
+  return api<RutaUrbanaPublica[]>(`/api/urbano/rutas${cola ? `?${cola}` : ''}`, { auth: false });
+};
+
+export const getMapaRutaUrbana = (rutaId: string) =>
+  api<MapaRutaUrbana>(`/api/urbano/rutas/${rutaId}/mapa`, { auth: false });
+
+// Rutas urbanas (empresa)
+/** Parada de una ruta urbana: la primera es el origen y la última el destino. */
+export interface ParadaUrbana {
+  nombre: string;
+  orden: number;
+  lat: number;
+  lng: number;
+}
+export interface RutaUrbanaDto {
+  documentId: string;
+  nombre: string;
+  tarifaBs: number;
+  activa: boolean;
+  /** Trazo sobre las calles (lo calcula el editor entre paradas). */
+  recorrido?: [number, number][] | null;
+  paradas?: ParadaUrbana[];
+}
+export const getRutasUrbanas = () =>
+  api<RutaUrbanaDto[]>(
+    '/api/rutas-urbanas?populate[paradas]=true&sort=nombre&pagination[pageSize]=100'
+  );
+export const guardarRutaUrbana = (documentId: string | null, data: Record<string, unknown>) =>
+  documentId
+    ? api<RutaUrbanaDto>(`/api/rutas-urbanas/${documentId}`, { method: 'PUT', body: { data } })
+    : api<RutaUrbanaDto>('/api/rutas-urbanas', { method: 'POST', body: { data } });
+export const eliminarRutaUrbana = (documentId: string) =>
+  api<unknown>(`/api/rutas-urbanas/${documentId}`, { method: 'DELETE' });
+
+// Servicio urbano por unidad (empresa)
+export interface ServicioUrbanoUnidad {
+  /** Catálogo: las rutas que esta unidad PUEDE hacer. */
+  rutasUrbanaIds: string[];
+  /** El turno es del CONDUCTOR: quién maneja, qué ruta hace y desde cuándo. */
+  turnoEnCurso: {
+    documentId: string;
+    conductor: string;
+    ruta: string | null;
+    rutaId: string | null;
+    abiertoEn: string;
+    modo: 'urbano' | 'largo';
+  } | null;
+  /** La unidad quedó marcada en servicio sin turno que lo respalde. */
+  desincronizada: boolean;
+  repartoUrbano: { lineaPct: number; propietarioPct: number; conductorPct: number };
+  propietarioUsuarioId: number | null;
+}
+/** Destraba un turno que quedó abierto y limpia las banderas de la unidad. */
+export const cerrarTurnoDeUnidad = (unidadId: string) =>
+  api<{ cerrado: boolean }>(`/api/unidades/${unidadId}/cerrar-turno`, { method: 'POST' });
+export const getServicioUrbano = (unidadId: string) =>
+  api<ServicioUrbanoUnidad>(`/api/unidades/${unidadId}/servicio-urbano`);
+export const guardarServicioUrbano = (
+  unidadId: string,
+  datos: {
+    rutasUrbanaIds: string[];
+    repartoUrbano: { lineaPct: number; propietarioPct: number; conductorPct: number };
+    propietarioUsuarioId: number | null;
+  }
+) => api<{ guardado: boolean }>(`/api/unidades/${unidadId}/servicio-urbano`, { method: 'POST', body: datos });
+
+// ── Etiquetas físicas de equipaje por unidad ─────────────────────────────────
+export interface ResumenEtiquetas {
+  total: number;
+  libres: number;
+  usadas: number;
+  rangos: string[];
+}
+export const getResumenEtiquetas = (unidadId: string) =>
+  api<ResumenEtiquetas>(`/api/unidades/${unidadId}/etiquetas/resumen`);
+export const cargarEtiquetas = (
+  unidadId: string,
+  datos: { prefijo: string; desde: number; hasta: number }
+) =>
+  api<{ creadas: number; repetidas: number }>(`/api/unidades/${unidadId}/etiquetas`, {
+    method: 'POST',
+    body: datos,
+  });
+
+// ── Cobro de la pieza de equipaje extra (wallet del pasajero) ────────────────
+export interface CobroEquipaje {
+  codigo: string;
+  montoBs: number;
+  estado: 'pendiente' | 'pagada' | 'vencido';
+  pasajero: string | null;
+  asientoId: string | null;
+  linea: string | null;
+  unidad: string | null;
+  viaje: string | null;
+}
+/** Público: el pasajero escanea el QR del conductor y ve qué le cobran. */
+export const getCobroEquipaje = (token: string) =>
+  api<CobroEquipaje>(`/api/equipaje/cobro/${token}`);
+export const pagarCobroEquipaje = (token: string) =>
+  api<{ montoBs: number; saldoBs: number; repetido: boolean }>(
+    `/api/equipaje/cobro/${token}/pagar`,
+    { method: 'POST' }
+  );
+
+// ── Bodega de equipaje de una salida ─────────────────────────────────────────
+export interface PiezaBodega {
+  documentId: string;
+  codigo: string;
+  origenEtiqueta: 'empresa' | 'app';
+  esExtra: boolean;
+  cobroBs: number;
+  estadoCobro: 'incluida' | 'cobrada' | 'pendiente' | 'exonerada';
+  estado: 'a_bordo' | 'entregada' | 'no_reclamada';
+  fragil: boolean;
+  nota: string | null;
+  entregadaEn: string | null;
+  pasajero: string | null;
+  asientoId: string | null;
+  bajaEn: string | null;
+}
+export const getBodega = (salidaId: string) =>
+  api<{
+    piezas: PiezaBodega[];
+    resumen: {
+      total: number;
+      aBordo: number;
+      entregadas: number;
+      extrasPendientes: number;
+      montoPendienteBs: number;
+    };
+  }>(`/api/salidas/${salidaId}/bodega`);
+
+// ── Cobro wallet por QR fijo de taquilla ─────────────────────────────────────
+export interface ResumenCobro {
+  lineaNombre: string;
+  taquillaNombre: string;
+  terminal?: string | null;
+  origen?: string | null;
+  destino?: string | null;
+  fechaHoraSalida: string;
+  unidadNumero?: string | null;
+  asientos: string[];
+  pasajeros: { asientoId: string; nombre: string }[];
+  totalUsd: number;
+  totalBs: number;
+  tasaBcv: number;
+}
+export interface CobroTaquilla {
+  documentId: string;
+  estado: 'pendiente' | 'pagando' | 'pagado' | 'cancelado' | 'expirado';
+  expiraEn: string;
+  totalBs: number;
+  resultado?: { boletos: unknown[]; resumen: ResumenCobro } | null;
+}
+export const crearCobroTaquilla = (datos: {
+  reservaToken: string;
+  pasajeros: { asientoId: string; nombre: string; documento?: string }[];
+  turnoId: string;
+}) =>
+  api<{ documentId: string; totalBs: number; expiraEn: string }>('/api/cobros-taquilla', {
+    method: 'POST',
+    body: datos,
+  });
+export const getCobroTaquilla = (documentId: string) =>
+  api<CobroTaquilla>(`/api/cobros-taquilla/${documentId}`);
+export const cancelarCobroTaquilla = (documentId: string) =>
+  api<{ cancelado: boolean }>(`/api/cobros-taquilla/${documentId}/cancelar`, { method: 'POST' });
+export const getCobroDeTaquilla = (taquillaId: string) =>
+  api<{
+    taquilla: { nombre: string; terminal?: string | null; linea: string };
+    cobro: { documentId: string; estado: string; expiraEn: string; resumen: ResumenCobro; totalBs: number } | null;
+  }>(`/api/cobros-taquilla/taquilla/${taquillaId}`, { auth: false });
+export const pagarCobroTaquilla = (documentId: string) =>
+  api<{
+    pagado: boolean;
+    folios: string[];
+    boletos: { folio: string; qrId: string; asientoId: string; pasajeroNombre: string }[];
+    totalBs: number;
+    saldoBs: number;
+  }>(`/api/cobros-taquilla/${documentId}/pagar`, { method: 'POST' });
+
+// Retiros
+export const solicitarRetiro = (montoBs: number, datosPago: string) =>
+  api<{ movimientoId: string }>('/api/wallet/retiros', { method: 'POST', body: { montoBs, datosPago } });
+export const getWalletLinea = () => api<{ saldoBs: number }>('/api/empresa/wallet');
+export const retiroLinea = (montoBs: number, datosPago: string) =>
+  api<{ movimientoId: string }>('/api/empresa/wallet/retiros', { method: 'POST', body: { montoBs, datosPago } });
+export interface RetiroPendiente {
+  documentId: string;
+  montoBs: number;
+  titular?: string | null;
+  tipoTitular?: string | null;
+  datosPago?: string | null;
+  fecha: string;
+}
+export const getRetirosPendientes = () => api<RetiroPendiente[]>('/api/admin/wallet/retiros');
+export const resolverRetiro = (movimientoId: string, aprobar: boolean, referencia?: string) =>
+  api<{ resuelto: boolean }>(`/api/admin/wallet/retiros/${movimientoId}/resolver`, {
+    method: 'POST',
+    body: { aprobar, referencia },
+  });
+
+// ── Contratos y módulos — viven en el servidor nuevo (Nest) ──────────────────
+export type ClaveModulo = 'flota' | 'mantenimiento' | 'boleteria' | 'taquilla' | 'equipaje' | 'urbano';
+export interface ModuloCatalogo {
+  clave: ClaveModulo;
+  nombre: string;
+  descripcion: string;
+  depende: ClaveModulo[];
+  cobro: 'comision' | 'por_bus' | 'ninguno';
+}
+/** Cómo se vende la plataforma: un plan preajusta los módulos y su forma de cobro. */
+export type ClavePlan = 'mantenimiento' | 'venta' | 'completo' | 'personalizado';
+export interface PlanCatalogo {
+  clave: Exclude<ClavePlan, 'personalizado'>;
+  nombre: string;
+  descripcion: string;
+  modulos: ClaveModulo[];
+  cobro: 'por_bus' | 'comision';
+}
+export type EstadoContrato = 'vigente' | 'por_vencer' | 'vencido';
+export interface Contrato {
+  documentId: string;
+  linea: { documentId: string; nombre: string; slug: string };
+  version: number;
+  plan: ClavePlan;
+  modulos: ClaveModulo[];
+  comisionPct: number;
+  montoBusUsd: number;
+  diasGracia: number;
+  vigenteDesde: string;
+  vigenteHasta: string | null;
+  /** Plazo en meses; `venceEn` es el último día en que rige (inclusive). Sin plazo = indefinido. */
+  plazoMeses: number | null;
+  venceEn: string | null;
+  estado: EstadoContrato;
+  diasRestantes: number | null;
+  notas: string | null;
+  creadoEn: string;
+}
+export interface ResumenContratoLinea {
+  linea: { documentId: string; nombre: string; slug: string; activa: boolean };
+  contrato: Contrato | null;
+}
+/** Lo que ve el personal de una línea: `sinContrato` = todo abierto (transición); `vencido` = nada abierto. */
+export interface MiContrato {
+  sinContrato: boolean;
+  /** La boletería de la línea carga rutas y salidas por la API: el panel queda en solo lectura. */
+  integracionActiva?: boolean;
+  vencido: boolean;
+  modulos: ClaveModulo[];
+  contrato: Contrato | null;
+}
+export const getCatalogoModulos = () => api<ModuloCatalogo[]>('/api/admin/contratos/modulos');
+export const getCatalogoPlanes = () => api<PlanCatalogo[]>('/api/admin/contratos/planes');
+export const getAdminContratos = () => api<ResumenContratoLinea[]>('/api/admin/contratos');
+export const getHistorialContratos = (lineaId: string) => api<Contrato[]>(`/api/admin/contratos/linea/${lineaId}`);
+export const crearContrato = (datos: {
+  lineaId: string;
+  plan?: ClavePlan;
+  modulos: ClaveModulo[];
+  comisionPct: number;
+  montoBusUsd: number;
+  diasGracia: number;
+  vigenteDesde?: string;
+  plazoMeses?: number | null;
+  notas?: string;
+}) => api<Contrato>('/api/admin/contratos', { method: 'POST', body: datos });
+export const getMiContrato = () => api<MiContrato>('/api/contratos/mio');
+
+// ── Facturas por bus ────────────────────────────────────────────────────────
+export type EstadoFactura = 'pendiente' | 'por_verificar' | 'pagada' | 'vencida';
+export interface Factura {
+  documentId: string;
+  linea: { documentId: string; nombre: string; slug: string };
+  contratoDocumentId: string;
+  periodo: string;
+  buses: number;
+  montoBusUsd: number;
+  montoUsd: number;
+  tasaBs: number;
+  montoBs: number;
+  estado: EstadoFactura;
+  emitidaEn: string;
+  venceEn: string;
+  referencia: string | null;
+  banco: string | null;
+  pagoReportadoEn: string | null;
+  verificadaEn: string | null;
+  notaRechazo: string | null;
+  detalle: { documentId: string; numero: string; placa: string | null; estado: string }[] | null;
+}
+export const getAdminFacturas = (params?: { estado?: string; linea?: string }) => {
+  const q = new URLSearchParams();
+  if (params?.estado) q.set('estado', params.estado);
+  if (params?.linea) q.set('linea', params.linea);
+  return api<Factura[]>(`/api/admin/facturas?${q}`);
+};
+export const generarFacturas = (periodo?: string) =>
+  api<{ periodo: string; generadas: Factura[]; omitidas: number }>('/api/admin/facturas/generar', {
+    method: 'POST',
+    body: periodo ? { periodo } : {},
+  });
+export const vencerFacturas = () =>
+  api<{ vencidas: number }>('/api/admin/facturas/vencer', { method: 'POST', body: {} });
+export const verificarFactura = (documentId: string, aprobada: boolean, nota?: string) =>
+  api<Factura>(`/api/admin/facturas/${documentId}/verificar`, { method: 'POST', body: { aprobada, nota } });
+export const getMisFacturas = () => api<Factura[]>('/api/empresa/facturas');
+export const reportarPagoFactura = (documentId: string, referencia: string, banco?: string) =>
+  api<Factura>(`/api/empresa/facturas/${documentId}/pagar`, { method: 'POST', body: { referencia, banco } });
+
+// ── Rastreo de la flota (Mantenimiento y Urbano) ─────────────────────────────
+export interface UnidadEnVivo {
+  documentId: string;
+  numero: string;
+  placa: string | null;
+  estado: string | null;
+  chofer: string | null;
+  posicion: { lat: number; lng: number; hora: string | null; haceSeg: number | null; viva: boolean } | null;
+  jornada: { modo: 'urbano' | 'largo' | 'jornada'; abiertoEn: string | null } | null;
+}
+export interface Recorrido {
+  unidad: string;
+  desde: string;
+  hasta: string;
+  total: number;
+  puntos: { lat: number; lng: number; hora: string; velocidadKmh: number | null }[];
+}
+export const getFlotaEnVivo = () => api<UnidadEnVivo[]>('/api/empresa/flota-en-vivo');
+export const getRecorrido = (unidadId: string, desde?: string, hasta?: string) => {
+  const q = new URLSearchParams();
+  if (desde) q.set('desde', desde);
+  if (hasta) q.set('hasta', hasta);
+  return api<Recorrido>(`/api/unidades/${unidadId}/recorrido${q.size ? `?${q}` : ''}`);
+};
+
+// ── Integraciones (API externa de la boletería de la línea) ──────────────────
+export interface Integracion {
+  documentId: string;
+  linea: { documentId: string; nombre: string };
+  nombre: string;
+  clavePrefijo: string;
+  webhookUrl: string | null;
+  webhookConfigurado: boolean;
+  activa: boolean;
+  ultimoUsoEn: string | null;
+  claveRotadaEn: string | null;
+  creadaEn: string | null;
+}
+/** Solo al crear o rotar: la clave y el secreto se muestran UNA vez. */
+export type IntegracionConSecretos = Integracion & { clave?: string; webhookSecreto?: string };
+export interface EntregaWebhook {
+  documentId: string;
+  tipo: string;
+  entidadId: string | null;
+  estado: 'pendiente' | 'entregado' | 'fallido';
+  intentos: number;
+  ultimoStatus: number | null;
+  ultimoError: string | null;
+  proximoIntentoEn: string | null;
+  entregadoEn: string | null;
+  creadoEn: string | null;
+}
+export const getIntegraciones = () => api<Integracion[]>('/api/admin/integraciones');
+export const crearIntegracion = (datos: { lineaId: string; nombre: string; webhookUrl?: string }) =>
+  api<IntegracionConSecretos>('/api/admin/integraciones', { method: 'POST', body: datos });
+export const actualizarIntegracion = (id: string, datos: { nombre?: string; webhookUrl?: string | null; activa?: boolean }) =>
+  api<IntegracionConSecretos>(`/api/admin/integraciones/${id}`, { method: 'PUT', body: datos });
+export const rotarClaveIntegracion = (id: string) => api<IntegracionConSecretos>(`/api/admin/integraciones/${id}/rotar-clave`, { method: 'POST', body: {} });
+export const rotarSecretoIntegracion = (id: string) => api<IntegracionConSecretos>(`/api/admin/integraciones/${id}/rotar-secreto`, { method: 'POST', body: {} });
+export const getEntregasIntegracion = (id: string, estado?: string) => api<EntregaWebhook[]>(`/api/admin/integraciones/${id}/entregas${estado ? `?estado=${estado}` : ''}`);
+export const reintentarEntrega = (id: string, eventoId: string) => api<{ ok: boolean }>(`/api/admin/integraciones/${id}/entregas/${eventoId}/reintentar`, { method: 'POST', body: {} });
+export const probarWebhook = (id: string) => api<{ documentId: string }>(`/api/admin/integraciones/${id}/probar`, { method: 'POST', body: {} });
+
+// ── Conectores (Solo boletería: Butaca consume la API de la línea) ──────────
+export interface Conector {
+  documentId: string;
+  linea: { documentId: string; nombre: string };
+  tipo: string;
+  nombre: string;
+  activo: boolean;
+  ultimaSyncEn: string | null;
+  ultimoError: string | null;
+  creadoEn: string | null;
+}
+export interface ResultadoSync {
+  rutas: number;
+  unidades: number;
+  salidasNuevas: number;
+  salidasActualizadas: number;
+}
+export const getConectores = () => api<Conector[]>('/api/admin/conectores');
+export const crearConector = (datos: { lineaId: string; tipo: string; nombre: string; config: unknown }) =>
+  api<Conector>('/api/admin/conectores', { method: 'POST', body: datos });
+export const actualizarConector = (id: string, datos: { activo?: boolean; nombre?: string; config?: unknown }) =>
+  api<Conector>(`/api/admin/conectores/${id}`, { method: 'PUT', body: datos });
+export const sincronizarConector = (id: string) => api<ResultadoSync>(`/api/admin/conectores/${id}/sincronizar`, { method: 'POST', body: {} });

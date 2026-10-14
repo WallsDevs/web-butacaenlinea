@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { actualizarEmpresa, crearEmpresa, getAdminEmpresas, subirArchivo } from '../../lib/api/endpoints';
 import { urlMedia } from '../../lib/api/client';
@@ -17,7 +18,9 @@ interface FormEmpresa {
   razonSocial: string;
   terminalBase: string;
   telefono: string;
+  /** Contrato inicial (todos los módulos); después se gestiona en Contratos. */
   comisionPct: string;
+  montoBusUsd: string;
   adminUsername: string;
   adminPassword: string;
   adminNombre: string;
@@ -30,6 +33,7 @@ const NUEVA: FormEmpresa = {
   terminalBase: '',
   telefono: '',
   comisionPct: '5',
+  montoBusUsd: '0',
   adminUsername: '',
   adminPassword: '',
   adminNombre: '',
@@ -71,12 +75,14 @@ export default function AdminEmpresas() {
         terminalBase: f.terminalBase || undefined,
         telefono: f.telefono || undefined,
         comisionPct: Number(f.comisionPct) || 5,
+        montoBusUsd: Number(f.montoBusUsd) || 0,
         logoId,
         admin: { username: f.adminUsername, password: f.adminPassword, nombreCorto: f.adminNombre || undefined },
       });
     },
     onSuccess: (r, f) => {
       queryClient.invalidateQueries({ queryKey: ['admin-empresas'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-contratos'] });
       setFicha({
         nombre: f.nombre,
         rif: f.rif,
@@ -121,6 +127,7 @@ export default function AdminEmpresas() {
       terminalBase: e.terminalBase ?? '',
       telefono: e.telefono ?? '',
       comisionPct: String(e.comisionPct),
+      montoBusUsd: '0',
       adminUsername: '',
       adminPassword: '',
       adminNombre: '',
@@ -235,14 +242,18 @@ export default function AdminEmpresas() {
             </h3>
             <p style={{ fontSize: 13, color: 'var(--text-soft)', marginBottom: 16 }}>
               {editando
-                ? 'Datos públicos y comisión de la plataforma.'
-                : 'Se crea la empresa con su taquilla inicial y el usuario administrador con el que entran a su panel.'}
+                ? 'Datos públicos y logo. La comisión y los módulos se gestionan en Contratos.'
+                : 'Se crea la empresa con su taquilla inicial, su primer contrato (todos los módulos) y el usuario administrador con el que entran a su panel.'}
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 12 }}>
-                <Field label="Nombre comercial" value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} autoFocus={!editando} />
-                <Field label="Comisión %" type="number" value={form.comisionPct} onChange={(e) => setForm({ ...form, comisionPct: e.target.value })} />
-              </div>
+              <Field label="Nombre comercial" value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} autoFocus={!editando} />
+              {editando && (
+                <div style={{ fontSize: 13, color: 'var(--text-soft)', background: 'var(--pill-bg)', borderRadius: 12, padding: '10px 14px' }}>
+                  Comisión del contrato vigente: <strong style={{ color: 'var(--text)' }}>{editando.comisionPct}%</strong>.{' '}
+                  Se cambia con una versión nueva del contrato en{' '}
+                  <Link to="/admin/contratos" style={{ fontWeight: 600, color: 'var(--blue-700)' }}>Contratos</Link>.
+                </div>
+              )}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <Field label="RIF" value={form.rif} onChange={(e) => setForm({ ...form, rif: e.target.value })} />
                 <Field label="Razón social" value={form.razonSocial} onChange={(e) => setForm({ ...form, razonSocial: e.target.value })} />
@@ -321,6 +332,16 @@ export default function AdminEmpresas() {
               {!editando && (
                 <>
                   <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 6 }}>
+                    Contrato inicial · todos los módulos
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <Field label="Comisión por boleto %" type="number" value={form.comisionPct} onChange={(e) => setForm({ ...form, comisionPct: e.target.value })} />
+                    <Field label="Monto mensual por bus (USD)" type="number" value={form.montoBusUsd} onChange={(e) => setForm({ ...form, montoBusUsd: e.target.value })} />
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--text-faint)', marginTop: -4 }}>
+                    Qué módulos usa y a qué precio se ajusta después en Contratos, con una versión nueva.
+                  </div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 6 }}>
                     Administrador de la empresa
                   </div>
                   <Field label="Nombre (ej. Juan Pérez)" value={form.adminNombre} onChange={(e) => setForm({ ...form, adminNombre: e.target.value })} />
@@ -352,7 +373,6 @@ export default function AdminEmpresas() {
                             razonSocial: form.razonSocial,
                             terminalBase: form.terminalBase,
                             telefono: form.telefono,
-                            comisionPct: Number(form.comisionPct) || 5,
                           },
                         })
                       : crear.mutate(form)

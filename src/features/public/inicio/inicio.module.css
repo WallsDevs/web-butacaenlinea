@@ -1,0 +1,26 @@
+/* Solo lo que el diseño v5 resuelve sin media queries pero un teléfono necesita. */
+.lineasMarco { background: #fff; border: 1px solid #e6ebf4; border-radius: 22px; overflow: hidden; }
+/* Las divisiones son bordes de cada celda (no el fondo del grid): una última fila incompleta no deja hueco gris */
+.lineas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0 -1px -1px 0; }
+.lineas > div { border-right: 1px solid #e6ebf4; border-bottom: 1px solid #e6ebf4; }
+.salidaFila { width: 100%; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 16px; padding: 16px 18px; border: none; background: transparent; font-family: inherit; color: #0f172a; text-align: left; cursor: pointer; }
+.salidaFila:hover { background: #f7f9fe; }
+.navLink { color: #c7d9fb; }
+.navLink:hover { color: #fff; }
+.pieLink { color: #c7d9fb; }
+.pieLink:hover { color: #fff; }
+.chipDia:hover { border-color: #2563eb; }
+@media (max-width: 860px) {
+  .lineas { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .navHorizontal { display: none !important; }
+}
+@media (max-width: 640px) {
+  .lineas { grid-template-columns: minmax(0, 1fr); }
+  .salidaFila { grid-template-columns: minmax(0, 1fr) auto; }
+  .salidaMedio { grid-column: 1 / -1; order: 3; }
+  .kmCuerpo { padding: 26px 20px !important; }
+}
+@media (max-width: 640px) {
+  .ciudades { grid-template-columns: minmax(0, 1fr) !important; }
+  .ciudades > button { justify-self: center; transform: rotate(90deg); }
+}

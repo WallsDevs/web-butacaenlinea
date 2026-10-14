@@ -7,6 +7,7 @@ import {
   getAlertas,
   getChoferes,
   getCauchos,
+  getLineas,
   getOrdenes,
   getResumenMantenimiento,
   getSalidas,
@@ -15,6 +16,10 @@ import {
   rotarCauchos,
 } from '../../lib/api/endpoints';
 import { fechaCorta, hora } from '../../lib/time';
+import { useAuth } from '../../stores/auth';
+import { ServicioUrbanoCard } from '../urbano/ServicioUrbanoCard';
+import { useModulos } from '../../lib/useModulos';
+import { EtiquetasEquipajeCard } from './EtiquetasEquipajeCard';
 import { StatusChip } from '../../components/ui/StatusChip';
 import { Field } from '../../components/ui/Field';
 import type { CauchoDto } from '../../lib/api/types';
@@ -38,6 +43,13 @@ export default function FichaUnidad() {
   const { unidadId } = useParams<{ unidadId: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const usuario = useAuth((s) => s.usuario);
+  // Cada bloque pide su módulo: sin él el backend respondería modulo_no_contratado
+  const { tiene } = useModulos();
+  const conMant = tiene('mantenimiento');
+  const conBol = tiene('boleteria');
+  const conEq = tiene('equipaje');
+  const conUrb = tiene('urbano');
   const [cauchoSel, setCauchoSel] = useState<CauchoDto | null>(null);
   const [modoRotacion, setModoRotacion] = useState(false);
   const [rotacionOrigen, setRotacionOrigen] = useState<CauchoDto | null>(null);
@@ -45,10 +57,13 @@ export default function FichaUnidad() {
   const [modalReemplazo, setModalReemplazo] = useState(false);
 
   const { data: unidad } = useQuery({ queryKey: ['unidad', unidadId], queryFn: () => getUnidad(unidadId!) });
-  const { data: cauchos } = useQuery({ queryKey: ['cauchos', unidadId], queryFn: () => getCauchos(unidadId!) });
-  const { data: alertas } = useQuery({ queryKey: ['alertas', unidadId], queryFn: () => getAlertas(unidadId!) });
-  const { data: ordenes } = useQuery({ queryKey: ['ordenes', unidadId], queryFn: () => getOrdenes(unidadId!) });
+  const { data: cauchos } = useQuery({ queryKey: ['cauchos', unidadId], queryFn: () => getCauchos(unidadId!), enabled: conMant });
+  const { data: alertas } = useQuery({ queryKey: ['alertas', unidadId], queryFn: () => getAlertas(unidadId!), enabled: conMant });
+  const { data: ordenes } = useQuery({ queryKey: ['ordenes', unidadId], queryFn: () => getOrdenes(unidadId!), enabled: conMant });
   const { data: choferes } = useQuery({ queryKey: ['choferes'], queryFn: getChoferes });
+  // El modo de etiqueta lo fija la empresa; decide qué tarjeta de equipaje se ve
+  const { data: lineas } = useQuery({ queryKey: ['lineas'], queryFn: getLineas });
+  const miLinea = lineas?.find((l) => l.documentId === usuario?.linea?.documentId);
   const asignarChofer = useMutation({
     mutationFn: (choferId: string | null) => asignarChoferUnidad(unidadId!, choferId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['unidad', unidadId] }),
@@ -61,11 +76,12 @@ export default function FichaUnidad() {
         estados: ['programada', 'abordando', 'en_ruta', 'finalizada', 'cancelada'],
         orden: 'fechaHoraSalida:desc',
       }),
-    enabled: Boolean(unidadId),
+    enabled: Boolean(unidadId) && conBol,
   });
   const { data: resumen } = useQuery({
     queryKey: ['resumen-mant', unidadId],
     queryFn: () => getResumenMantenimiento(unidadId!),
+    enabled: conMant,
   });
 
   const cambiarEstado = useMutation({
@@ -215,25 +231,27 @@ export default function FichaUnidad() {
           </div>
         </div>
 
-        <div className={styles.tarjeta}>
-          <div className={styles.kicker}>Alertas de servicio</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 14 }}>
-            {(alertas ?? []).map((a, i) => (
-              <div
-                key={i}
-                className={`${styles.alerta} ${a.tono === 'bad' ? styles.alertaBad : a.tono === 'warn' ? styles.alertaWarn : styles.alertaOk}`}
-              >
-                <div className={styles.alertaTitulo}>{a.titulo}</div>
-                <div className={styles.alertaNota}>{a.nota}</div>
-              </div>
-            ))}
-            {!alertas?.length && (
-              <div className={styles.alertaOk} style={{ padding: '12px 14px', borderRadius: 14, fontSize: 13 }}>
-                Sin alertas activas.
-              </div>
-            )}
+        {conMant && (
+          <div className={styles.tarjeta}>
+            <div className={styles.kicker}>Alertas de servicio</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 14 }}>
+              {(alertas ?? []).map((a, i) => (
+                <div
+                  key={i}
+                  className={`${styles.alerta} ${a.tono === 'bad' ? styles.alertaBad : a.tono === 'warn' ? styles.alertaWarn : styles.alertaOk}`}
+                >
+                  <div className={styles.alertaTitulo}>{a.titulo}</div>
+                  <div className={styles.alertaNota}>{a.nota}</div>
+                </div>
+              ))}
+              {!alertas?.length && (
+                <div className={styles.alertaOk} style={{ padding: '12px 14px', borderRadius: 14, fontSize: 13 }}>
+                  Sin alertas activas.
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         <div className={styles.tarjeta}>
           <div className={styles.kicker}>Documentación y chófer</div>
@@ -247,7 +265,9 @@ export default function FichaUnidad() {
           </div>
           <div className={styles.divisor} />
           <div style={{ fontSize: 12, color: 'var(--text-faint)', marginBottom: 8 }}>
-            Conductor asignado — verá esta unidad en su módulo y podrá reportar km y novedades.
+            Conductor asignado — verá esta unidad en su app y podrá reportar km y novedades. Un
+            mismo conductor puede tener varias unidades a su cargo: escoge cuál maneja al abrir
+            su turno.
           </div>
           <select
             className={ui.fieldInput}
@@ -285,6 +305,23 @@ export default function FichaUnidad() {
           )}
         </div>
       </div>
+
+      {/* Servicio urbano: ruta, reparto y QR de la buseta */}
+      {usuario?.role?.type === 'empresa' && conUrb && (
+        <ServicioUrbanoCard
+          unidadId={unidad.documentId}
+          numeroUnidad={unidad.numero}
+          lineaNombre={usuario?.linea?.nombre ?? ''}
+        />
+      )}
+
+      {/* Talonario de etiquetas de equipaje (rutas largas) */}
+      {usuario?.role?.type === 'empresa' && conEq && (
+        <EtiquetasEquipajeCard
+          unidadId={unidad.documentId}
+          modoEmpresa={(miLinea?.modoEtiquetaEquipaje ?? 'empresa') === 'empresa'}
+        />
+      )}
 
       {/* Cauchos por posición */}
       {cauchos && cauchos.ejes.length > 0 && (
@@ -428,115 +465,119 @@ export default function FichaUnidad() {
       )}
 
       {/* Historial de mantenimiento */}
-      <div className={styles.cardHistorial}>
-        <div className={styles.historialCabecera}>
-          <div style={{ fontSize: 20, fontWeight: 700 }}>Historial de mantenimiento</div>
-          <button
-            className={ui.btnPrimary}
-            style={{ marginLeft: 'auto', fontSize: 13, padding: '11px 18px' }}
-            onClick={() => setModalOrden(true)}
-          >
-            Nueva orden de trabajo
-          </button>
+      {conMant && (
+        <div className={styles.cardHistorial}>
+          <div className={styles.historialCabecera}>
+            <div style={{ fontSize: 20, fontWeight: 700 }}>Historial de mantenimiento</div>
+            <button
+              className={ui.btnPrimary}
+              style={{ marginLeft: 'auto', fontSize: 13, padding: '11px 18px' }}
+              onClick={() => setModalOrden(true)}
+            >
+              Nueva orden de trabajo
+            </button>
+          </div>
+          <div style={{ overflowX: 'auto' }}>
+            <table className={styles.tabla}>
+              <thead>
+                <tr>
+                  <th style={{ width: 110 }}>Fecha</th>
+                  <th style={{ width: 130 }}>Tipo</th>
+                  <th>Intervención</th>
+                  <th style={{ width: 110 }}>Km</th>
+                  <th style={{ width: 150 }}>Taller</th>
+                  <th style={{ width: 120 }}>Costo</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(ordenes ?? []).map((o) => (
+                  <tr key={o.documentId}>
+                    <td>{fechaVe(o.fecha)}</td>
+                    <td>
+                      <StatusChip tono={o.tipo === 'correctivo' ? 'bad' : 'info'} size="sm">
+                        {o.tipo === 'correctivo' ? 'Correctivo' : 'Preventivo'}
+                      </StatusChip>
+                    </td>
+                    <td>{o.intervencion}</td>
+                    <td style={{ color: 'var(--text-soft)' }}>{o.km?.toLocaleString('es-VE')}</td>
+                    <td style={{ color: 'var(--text-soft)' }}>{o.taller}</td>
+                    <td style={{ fontWeight: 700 }}>
+                      $ {Number(o.costoUsd ?? 0).toLocaleString('es-VE', { minimumFractionDigits: 2 })}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className={styles.pieHistorial}>
+            <span>
+              Costo {resumen?.anio} <strong>$ {resumen?.costoAnioUsd?.toLocaleString('es-VE', { minimumFractionDigits: 2 }) ?? '—'}</strong>
+            </span>
+            <span>
+              Costo por km <strong>$ {resumen?.costoPorKmUsd != null ? String(resumen.costoPorKmUsd).replace('.', ',') : '—'}</strong>
+            </span>
+            <span className={styles.diasFuera}>
+              Días fuera de servicio <strong>{resumen?.diasFueraServicio ?? 0}</strong>
+            </span>
+          </div>
         </div>
-        <div style={{ overflowX: 'auto' }}>
-          <table className={styles.tabla}>
+      )}
+
+      {/* Historial de viajes de la unidad */}
+      {conBol && (
+        <div className={styles.tarjeta} style={{ marginTop: 20 }}>
+          <div className={styles.kicker}>Historial de viajes</div>
+          <table className={styles.tablaOrdenes ?? ''} style={{ width: '100%', marginTop: 10, borderCollapse: 'collapse' }}>
             <thead>
-              <tr>
-                <th style={{ width: 110 }}>Fecha</th>
-                <th style={{ width: 130 }}>Tipo</th>
-                <th>Intervención</th>
-                <th style={{ width: 110 }}>Km</th>
-                <th style={{ width: 150 }}>Taller</th>
-                <th style={{ width: 120 }}>Costo</th>
+              <tr style={{ textAlign: 'left', fontSize: 12, color: 'var(--text-faint)' }}>
+                <th style={{ padding: '8px 6px' }}>Fecha</th>
+                <th style={{ padding: '8px 6px' }}>Ruta</th>
+                <th style={{ padding: '8px 6px' }}>Salida</th>
+                <th style={{ padding: '8px 6px' }}>Llegada real</th>
+                <th style={{ padding: '8px 6px' }}>Pasajeros</th>
+                <th style={{ padding: '8px 6px' }}>Estado</th>
               </tr>
             </thead>
             <tbody>
-              {(ordenes ?? []).map((o) => (
-                <tr key={o.documentId}>
-                  <td>{fechaVe(o.fecha)}</td>
-                  <td>
-                    <StatusChip tono={o.tipo === 'correctivo' ? 'bad' : 'info'} size="sm">
-                      {o.tipo === 'correctivo' ? 'Correctivo' : 'Preventivo'}
-                    </StatusChip>
+              {(viajes ?? []).map((v) => (
+                <tr key={v.documentId} style={{ borderTop: '1px solid var(--border)', fontSize: 13 }}>
+                  <td style={{ padding: '10px 6px', fontWeight: 600 }}>{fechaCorta(v.fechaHoraSalida)}</td>
+                  <td style={{ padding: '10px 6px' }}>
+                    {v.ruta?.origen} → {v.ruta?.destino}
                   </td>
-                  <td>{o.intervencion}</td>
-                  <td style={{ color: 'var(--text-soft)' }}>{o.km?.toLocaleString('es-VE')}</td>
-                  <td style={{ color: 'var(--text-soft)' }}>{o.taller}</td>
-                  <td style={{ fontWeight: 700 }}>
-                    $ {Number(o.costoUsd ?? 0).toLocaleString('es-VE', { minimumFractionDigits: 2 })}
+                  <td style={{ padding: '10px 6px', color: 'var(--text-soft)' }}>{hora(v.fechaHoraSalida)}</td>
+                  <td style={{ padding: '10px 6px', color: 'var(--text-soft)' }}>
+                    {v.fechaHoraLlegadaReal ? `${fechaCorta(v.fechaHoraLlegadaReal)} ${hora(v.fechaHoraLlegadaReal)}` : '—'}
+                  </td>
+                  <td style={{ padding: '10px 6px', color: 'var(--text-soft)' }}>
+                    {v.reporteSalida?.abordados ?? '—'}
+                  </td>
+                  <td style={{ padding: '10px 6px' }}>
+                    {v.estado === 'finalizada' ? (
+                      <StatusChip tono="ok" size="sm">Finalizada</StatusChip>
+                    ) : v.estado === 'en_ruta' ? (
+                      <StatusChip tono="info" size="sm">En Ruta</StatusChip>
+                    ) : v.estado === 'cancelada' ? (
+                      <StatusChip tono="bad" size="sm">Cancelada</StatusChip>
+                    ) : v.estado === 'abordando' ? (
+                      <StatusChip tono="info" size="sm">Abordando</StatusChip>
+                    ) : (
+                      <StatusChip tono="neutral" size="sm">Programada</StatusChip>
+                    )}
                   </td>
                 </tr>
               ))}
+              {!viajes?.length && (
+                <tr>
+                  <td colSpan={6} style={{ padding: 18, textAlign: 'center', color: 'var(--text-soft)', fontSize: 13 }}>
+                    Esta unidad aún no tiene viajes.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
-        <div className={styles.pieHistorial}>
-          <span>
-            Costo {resumen?.anio} <strong>$ {resumen?.costoAnioUsd?.toLocaleString('es-VE', { minimumFractionDigits: 2 }) ?? '—'}</strong>
-          </span>
-          <span>
-            Costo por km <strong>$ {resumen?.costoPorKmUsd != null ? String(resumen.costoPorKmUsd).replace('.', ',') : '—'}</strong>
-          </span>
-          <span className={styles.diasFuera}>
-            Días fuera de servicio <strong>{resumen?.diasFueraServicio ?? 0}</strong>
-          </span>
-        </div>
-      </div>
-
-      {/* Historial de viajes de la unidad */}
-      <div className={styles.tarjeta} style={{ marginTop: 20 }}>
-        <div className={styles.kicker}>Historial de viajes</div>
-        <table className={styles.tablaOrdenes ?? ''} style={{ width: '100%', marginTop: 10, borderCollapse: 'collapse' }}>
-          <thead>
-            <tr style={{ textAlign: 'left', fontSize: 12, color: 'var(--text-faint)' }}>
-              <th style={{ padding: '8px 6px' }}>Fecha</th>
-              <th style={{ padding: '8px 6px' }}>Ruta</th>
-              <th style={{ padding: '8px 6px' }}>Salida</th>
-              <th style={{ padding: '8px 6px' }}>Llegada real</th>
-              <th style={{ padding: '8px 6px' }}>Pasajeros</th>
-              <th style={{ padding: '8px 6px' }}>Estado</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(viajes ?? []).map((v) => (
-              <tr key={v.documentId} style={{ borderTop: '1px solid var(--border)', fontSize: 13 }}>
-                <td style={{ padding: '10px 6px', fontWeight: 600 }}>{fechaCorta(v.fechaHoraSalida)}</td>
-                <td style={{ padding: '10px 6px' }}>
-                  {v.ruta?.origen} → {v.ruta?.destino}
-                </td>
-                <td style={{ padding: '10px 6px', color: 'var(--text-soft)' }}>{hora(v.fechaHoraSalida)}</td>
-                <td style={{ padding: '10px 6px', color: 'var(--text-soft)' }}>
-                  {v.fechaHoraLlegadaReal ? `${fechaCorta(v.fechaHoraLlegadaReal)} ${hora(v.fechaHoraLlegadaReal)}` : '—'}
-                </td>
-                <td style={{ padding: '10px 6px', color: 'var(--text-soft)' }}>
-                  {v.reporteSalida?.abordados ?? '—'}
-                </td>
-                <td style={{ padding: '10px 6px' }}>
-                  {v.estado === 'finalizada' ? (
-                    <StatusChip tono="ok" size="sm">Finalizada</StatusChip>
-                  ) : v.estado === 'en_ruta' ? (
-                    <StatusChip tono="info" size="sm">En Ruta</StatusChip>
-                  ) : v.estado === 'cancelada' ? (
-                    <StatusChip tono="bad" size="sm">Cancelada</StatusChip>
-                  ) : v.estado === 'abordando' ? (
-                    <StatusChip tono="info" size="sm">Abordando</StatusChip>
-                  ) : (
-                    <StatusChip tono="neutral" size="sm">Programada</StatusChip>
-                  )}
-                </td>
-              </tr>
-            ))}
-            {!viajes?.length && (
-              <tr>
-                <td colSpan={6} style={{ padding: 18, textAlign: 'center', color: 'var(--text-soft)', fontSize: 13 }}>
-                  Esta unidad aún no tiene viajes.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      )}
 
       {modalOrden && (
         <ModalNuevaOrden

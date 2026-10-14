@@ -1,5 +1,5 @@
 /**
- * Cliente HTTP hacia Strapi. Adjunta el JWT si hay sesión y normaliza errores
+ * Cliente HTTP hacia el backend (api/). Adjunta el JWT si hay sesión y normaliza errores
  * (incluye el `code` de negocio que devuelven los endpoints custom).
  */
 import { useAuth } from '../../stores/auth';

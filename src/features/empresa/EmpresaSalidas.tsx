@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { useModulos } from '../../lib/useModulos';
+import { AvisoIntegracion } from '../../components/ui/AvisoIntegracion';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   cancelarSalida,
@@ -26,6 +28,7 @@ export default function EmpresaSalidas() {
   const [modo, setModo] = useState<ModoFiltro>('todas');
   const [fecha, setFecha] = useState(hoyISO());
   const [rango, setRango] = useState({ desde: hoyISO(), hasta: hoyISO() });
+  const { integracionActiva } = useModulos();
   const [form, setForm] = useState({ rutaId: '', unidadId: '', choferId: '', fecha: hoyISO(), hora: '20:30', rampa: 'Rampa 03' });
   const [mensaje, setMensaje] = useState<string | null>(null);
 
@@ -37,7 +40,12 @@ export default function EmpresaSalidas() {
         : {};
   const { data: salidas } = useQuery({
     queryKey: ['empresa-salidas', slug, modo, fecha, rango.desde, rango.hasta],
-    queryFn: () => getSalidas({ ...filtro, lineaSlug: slug }),
+    queryFn: () =>
+      getSalidas({
+        ...filtro,
+        lineaSlug: slug,
+        estados: ['programada', 'abordando', 'en_ruta', 'finalizada', 'cancelada'],
+      }),
   });
   const conFecha = modo !== 'dia';
   const { data: rutas } = useQuery({ queryKey: ['rutas', slug], queryFn: () => getRutas(slug) });
@@ -195,21 +203,29 @@ export default function EmpresaSalidas() {
                   <td>
                     {s.estado === 'abordando' ? (
                       <StatusChip tono="info" size="sm">Abordando</StatusChip>
+                    ) : s.estado === 'en_ruta' ? (
+                      <StatusChip tono="info" size="sm">En Ruta</StatusChip>
+                    ) : s.estado === 'finalizada' ? (
+                      <StatusChip tono="ok" size="sm">Finalizada</StatusChip>
+                    ) : s.estado === 'cancelada' ? (
+                      <StatusChip tono="bad" size="sm">Cancelada</StatusChip>
                     ) : (
                       <StatusChip tono="neutral" size="sm">Programada</StatusChip>
                     )}
                   </td>
                   <td style={{ textAlign: 'right' }}>
-                    <button
-                      style={{ fontSize: 12, fontWeight: 600, color: 'var(--bad-text)' }}
-                      onClick={() => {
-                        if (confirm(`¿Cancelar la salida de ${hora(s.fechaHoraSalida)} a ${s.ruta?.destino}?`)) {
-                          cancelar.mutate({ id: s.documentId });
-                        }
-                      }}
-                    >
-                      Cancelar
-                    </button>
+                    {['programada', 'abordando'].includes(s.estado) && (
+                      <button
+                        style={{ fontSize: 12, fontWeight: 600, color: 'var(--bad-text)' }}
+                        onClick={() => {
+                          if (confirm(`¿Cancelar la salida de ${hora(s.fechaHoraSalida)} a ${s.ruta?.destino}?`)) {
+                            cancelar.mutate({ id: s.documentId });
+                          }
+                        }}
+                      >
+                        Cancelar
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -225,6 +241,9 @@ export default function EmpresaSalidas() {
         </div>
 
         {/* Programar */}
+        {integracionActiva ? (
+          <AvisoIntegracion que="salidas" />
+        ) : (
         <div className={ui.card} style={{ padding: 20 }}>
           <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 14 }}>Programar salida</div>
           {mensaje && (
@@ -296,6 +315,7 @@ export default function EmpresaSalidas() {
             </div>
           </div>
         </div>
+        )}
       </div>
     </div>
   );

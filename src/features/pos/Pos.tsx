@@ -3,10 +3,13 @@ import { useNavigate } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   abrirTurno,
+  cancelarCobroTaquilla,
+  crearCobroTaquilla,
   crearReserva,
   emitirBoletos,
   getArqueo,
   getBoletosPorVerificar,
+  getCobroTaquilla,
   getMapaAsientos,
   getRutas,
   getSalidas,
@@ -14,6 +17,7 @@ import {
   getTurnoActual,
   liberarReserva,
 } from '../../lib/api/endpoints';
+import { QRCodeSVG } from 'qrcode.react';
 import { ApiError } from '../../lib/api/client';
 import { hora, hoyISO, rangoDia } from '../../lib/time';
 import { useAuth } from '../../stores/auth';
@@ -23,7 +27,7 @@ import { PillTabs } from '../../components/ui/PillTabs';
 import { ReservationTimer } from '../../components/ui/ReservationTimer';
 import { SeatMap } from '../../components/seat-map/SeatMap';
 import { TicketCard } from '../../components/ticket/TicketCard';
-import { LogoMark } from '../../components/brand/LogoMark';
+import { Isotipo } from '../../components/brand/LogoMark';
 import { fechaCorta } from '../../lib/time';
 import type { BoletoEmitido, MetodoPago } from '../../lib/api/types';
 import ui from '../../components/ui/ui.module.css';
@@ -37,6 +41,7 @@ const METODOS: { id: MetodoPago; moneda: 'BS' | 'USD' | 'COP'; label: string; su
   { id: 'transferencia', moneda: 'BS', label: 'Transferencia', sub: 'Verificar referencia' },
   { id: 'punto_venta', moneda: 'BS', label: 'Punto de venta', sub: 'Débito Bs' },
   { id: 'tarjeta_cop', moneda: 'COP', label: 'Pesos COP', sub: 'Tarjeta' },
+  { id: 'wallet', moneda: 'BS', label: 'Wallet QR', sub: 'QR de caja' },
 ];
 
 interface PasajeroPos {
@@ -59,6 +64,9 @@ export default function Pos() {
   const [metodo, setMetodo] = useState<MetodoPago>('efectivo_bs');
   const [error, setError] = useState<string | null>(null);
   const [emitidos, setEmitidos] = useState<BoletoEmitido[] | null>(null);
+  // Cobro wallet publicado en el QR fijo de la caja (esperando al pasajero)
+  const [cobro, setCobro] = useState<{ documentId: string; totalBs: number; expiraEn: string } | null>(null);
+  const [qrCajaAbierto, setQrCajaAbierto] = useState(false);
   const buscarRef = useRef<HTMLInputElement>(null);
 
   // Turno abierto del cajero
@@ -224,8 +232,66 @@ export default function Pos() {
     },
   });
 
+  // Wallet QR: en vez de emitir, publica el cobro en el QR fijo de la caja
+  // y espera a que el pasajero lo pague desde su teléfono
+  const esWallet = metodo === 'wallet';
+  const publicarCobro = useMutation({
+    mutationFn: () =>
+      crearCobroTaquilla({
+        reservaToken: reserva!.token,
+        pasajeros: pasajeros.map((p) => ({ asientoId: p.asientoId, nombre: p.nombre, documento: p.documento })),
+        turnoId: turno!.documentId,
+      }),
+    onSuccess: (r) => {
+      setError(null);
+      setCobro({ documentId: r.documentId, totalBs: r.totalBs, expiraEn: r.expiraEn });
+    },
+    onError: (e) => {
+      if (e instanceof ApiError && e.code === 'reserva_invalida') {
+        setError('La reserva expiró: los puestos se liberaron.');
+        setReserva(null);
+      } else setError('No se pudo publicar el cobro. Verifica turno y datos.');
+    },
+  });
+  const { data: cobroEstado } = useQuery({
+    queryKey: ['cobro-pos', cobro?.documentId],
+    queryFn: () => getCobroTaquilla(cobro!.documentId),
+    enabled: Boolean(cobro),
+    refetchInterval: 2500,
+  });
+  useEffect(() => {
+    if (!cobro || !cobroEstado) return;
+    if (cobroEstado.estado === 'pagado' && cobroEstado.resultado) {
+      setEmitidos(cobroEstado.resultado.boletos as BoletoEmitido[]);
+      setCobro(null);
+      setPasajeros([]);
+      setReserva(null);
+      queryClient.invalidateQueries({ queryKey: ['mapa', salidaId] });
+      queryClient.invalidateQueries({ queryKey: ['arqueo'] });
+    } else if (cobroEstado.estado === 'expirado' || cobroEstado.estado === 'cancelado') {
+      setCobro(null);
+      setError(
+        cobroEstado.estado === 'expirado'
+          ? 'El cobro expiró sin pagarse: los puestos se liberaron.'
+          : 'El cobro fue cancelado.'
+      );
+      setReserva(null);
+      setPasajeros([]);
+      queryClient.invalidateQueries({ queryKey: ['mapa', salidaId] });
+    }
+  }, [cobroEstado]); // eslint-disable-line react-hooks/exhaustive-deps
+  const cancelarCobro = useMutation({
+    mutationFn: () => cancelarCobroTaquilla(cobro!.documentId),
+    onSettled: () => setCobro(null),
+  });
+
+  const taquillaCajaId = turno?.taquilla?.documentId ?? usuario?.taquilla?.documentId ?? null;
+
   const datosCompletos = pasajeros.length > 0 && pasajeros.every((p) => p.nombre.trim().length > 2);
-  const puedeEmitir = Boolean(reserva && turno && datosCompletos && !emitir.isPending);
+  const puedeEmitir = Boolean(
+    reserva && turno && datosCompletos && !emitir.isPending && !publicarCobro.isPending && !cobro
+  );
+  const accionPrincipal = () => (esWallet ? publicarCobro.mutate() : emitir.mutate());
 
   // Atajos F2 / F9
   useEffect(() => {
@@ -236,12 +302,12 @@ export default function Pos() {
       }
       if (e.key === 'F9' && puedeEmitir) {
         e.preventDefault();
-        emitir.mutate();
+        accionPrincipal();
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [puedeEmitir]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [puedeEmitir, esWallet]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const salida = salidas?.find((s) => s.documentId === salidaId);
   const piso = mapa?.pisos.find((p) => p.numero === pisoActivo) ?? mapa?.pisos[0];
@@ -277,7 +343,7 @@ export default function Pos() {
         {/* Cabecera navy */}
         <div className={styles.cabecera}>
           <span className={styles.cabeceraIso} style={{ color: '#fff' }}>
-            <LogoMark size={18} />
+            <Isotipo size={20} fondo="navy" />
           </span>
           <span className={styles.cabeceraTitulo}>
             Taquilla · {turno?.taquilla?.terminal || usuario?.linea?.nombre || 'Taquilla'}
@@ -529,13 +595,24 @@ export default function Pos() {
                 <Money usd={total} className={styles.cobrarValor} />
               </div>
               <MoneyAlt usd={total} />
-              <button className={styles.btnEmitir} disabled={!puedeEmitir} onClick={() => emitir.mutate()}>
-                {emitir.isPending ? 'Emitiendo…' : 'Emitir e imprimir · F9'}
+              <button className={styles.btnEmitir} disabled={!puedeEmitir} onClick={accionPrincipal}>
+                {esWallet
+                  ? publicarCobro.isPending
+                    ? 'Publicando…'
+                    : 'Publicar cobro en el QR · F9'
+                  : emitir.isPending
+                    ? 'Emitiendo…'
+                    : 'Emitir e imprimir · F9'}
               </button>
               <div className={styles.secundarios}>
                 <button className={styles.btnSec} onClick={liberarTodo}>
                   Liberar puestos
                 </button>
+                {taquillaCajaId && (
+                  <button className={styles.btnSec} onClick={() => setQrCajaAbierto(true)}>
+                    QR de mi caja
+                  </button>
+                )}
                 <button
                   className={styles.btnSec}
                   style={porVerificar?.length ? { borderColor: 'var(--warn-border)', color: 'var(--warn-text)' } : undefined}
@@ -567,6 +644,78 @@ export default function Pos() {
         </div>
       </div>
 
+      {/* Modal de espera: cobro publicado en el QR de la caja */}
+      {cobro && (
+        <div className={styles.velo}>
+          <div
+            className={styles.modal}
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: 420, textAlign: 'center', background: '#fff', borderRadius: 20, padding: 24 }}
+          >
+            <div style={{ fontSize: 13, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-faint)', fontWeight: 700 }}>
+              Cobro publicado en el QR de la caja
+            </div>
+            <div style={{ fontSize: 42, fontWeight: 700, letterSpacing: '-0.02em', margin: '10px 0 2px' }}>
+              Bs {cobro.totalBs.toLocaleString('es-VE', { minimumFractionDigits: 2 })}
+            </div>
+            <div style={{ fontSize: 14, color: 'var(--text-soft)', marginBottom: 14 }}>
+              {cobroEstado?.estado === 'pagando'
+                ? 'El pasajero está pagando…'
+                : 'Pídele al pasajero que escanee el QR de la caja y confirme el pago en su teléfono.'}
+            </div>
+            <ReservationTimer
+              expiraEn={cobro.expiraEn}
+              serverOffsetMs={reserva?.serverOffsetMs ?? 0}
+            />
+            <button
+              className={ui.btnSecondary}
+              style={{ width: '100%', marginTop: 16 }}
+              disabled={cancelarCobro.isPending}
+              onClick={() => cancelarCobro.mutate()}
+            >
+              Cancelar cobro
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal QR fijo de la caja (imprimible una sola vez, se pega en la taquilla) */}
+      {qrCajaAbierto && taquillaCajaId && (
+        <div className={styles.velo} onClick={() => setQrCajaAbierto(false)}>
+          <div
+            className={styles.modal}
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: 420, background: '#fff', borderRadius: 20, padding: 24 }}
+          >
+            <div className="ficha-imprimible" style={{ textAlign: 'center', padding: '10px 0', background: '#fff' }}>
+              <div style={{ fontSize: 13, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-faint)' }}>
+                Paga tu boleto aquí
+              </div>
+              <div style={{ fontSize: 24, fontWeight: 700, margin: '6px 0 2px' }}>{usuario?.linea?.nombre}</div>
+              <div style={{ fontSize: 15, color: 'var(--text-soft)', marginBottom: 14 }}>
+                {turno?.taquilla?.nombre ?? usuario?.taquilla?.nombre}
+                {turno?.taquilla?.terminal ? ` · ${turno.taquilla.terminal}` : ''}
+              </div>
+              <div style={{ background: '#fff', display: 'inline-block', padding: 16, borderRadius: 16, border: '1px solid var(--border)' }}>
+                <QRCodeSVG value={`${window.location.origin}/caja/${taquillaCajaId}`} size={220} level="M" />
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--text-soft)', marginTop: 12 }}>
+                Escanea con la cámara de tu teléfono y paga con tu wallet de Butaca En Línea.
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text-faint)', marginTop: 4 }}>butacaenlinea.com</div>
+            </div>
+            <div className="no-print" style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 16 }}>
+              <button className={ui.btnSecondary} onClick={() => setQrCajaAbierto(false)}>
+                Cerrar
+              </button>
+              <button className={ui.btnPrimary} onClick={() => window.print()}>
+                Imprimir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal de boletos emitidos */}
       {emitidos && salida && (
         <div className={styles.velo} onClick={() => setEmitidos(null)}>
@@ -577,7 +726,7 @@ export default function Pos() {
                 folio: emitidos[0].folio,
                 codigo: emitidos[0].qrId.slice(0, 8).toUpperCase(),
                 qrValue: emitidos[0].qr,
-                lineaNombre: 'Expresos Táchira',
+                lineaNombre: usuario?.linea?.nombre ?? '',
                 origen: salida.ruta?.origen ?? '',
                 destino: salida.ruta?.destino ?? '',
                 fecha: fechaCorta(salida.fechaHoraSalida),

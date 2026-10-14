@@ -6,13 +6,16 @@ import { useSettings } from '../stores/settings';
 import { useAuth } from '../stores/auth';
 import { useTasasSync } from '../lib/useTasas';
 import { formatearTasaBcv, type Moneda } from '../lib/money';
+import { useModulos } from '../lib/useModulos';
 import {
   SECCIONES_ADMIN,
   SECCIONES_CHOFER,
+  SECCIONES_COLECTOR,
   SECCIONES_CUENTA,
   SECCIONES_EMPRESA,
   SECCIONES_POS,
   seccionDe,
+  seccionesVisibles,
 } from './navegacion';
 import styles from './AppChrome.module.css';
 
@@ -51,6 +54,14 @@ export function AppChrome() {
   const usuario = useAuth((s) => s.usuario);
   const cerrarSesion = useAuth((s) => s.cerrarSesion);
   const [menuAbierto, setMenuAbierto] = useState(false);
+  // Las secciones de la empresa dependen de lo que contrató su línea
+  const { modulos, tiene, contrato, vencido } = useModulos();
+  // Aviso del contrato: vencido, o a punto de vencer (lo ve todo el personal de la línea)
+  const avisoContrato = vencido
+    ? `El contrato de la línea venció${contrato?.venceEn ? ` el ${new Date(`${contrato.venceEn}T12:00:00`).toLocaleDateString('es-VE')}` : ''}: los módulos y la venta de sus salidas están cerrados hasta renovarlo.`
+    : contrato?.estado === 'por_vencer'
+      ? `El contrato de la línea vence en ${contrato.diasRestantes} ${contrato.diasRestantes === 1 ? 'día' : 'días'}.`
+      : null;
   // En las páginas de acceso el chrome es mínimo: solo la marca
   const esPaginaAcceso = ['/ingresar', '/registro', '/plataforma'].includes(location.pathname);
   // Un solo patrón para todos los roles: las secciones del módulo viven en esta barra
@@ -60,14 +71,20 @@ export function AppChrome() {
     rol === 'superadmin' && path.startsWith('/admin')
       ? { secciones: SECCIONES_ADMIN, tagline: 'Plataforma', home: '/admin' }
       : rol === 'empresa' && (path.startsWith('/empresa') || path.startsWith('/flota'))
-        ? { secciones: SECCIONES_EMPRESA, tagline: usuario?.linea?.nombre ?? 'Mi empresa', home: '/empresa' }
+        ? {
+            secciones: seccionesVisibles(SECCIONES_EMPRESA, modulos),
+            tagline: usuario?.linea?.nombre ?? 'Mi empresa',
+            home: '/empresa',
+          }
         : (rol === 'cajero' || rol === 'empresa') && path.startsWith('/pos')
           ? { secciones: SECCIONES_POS, tagline: usuario?.linea?.nombre ?? 'Punto de venta', home: '/pos' }
           : rol === 'chofer' && path.startsWith('/chofer')
             ? { secciones: SECCIONES_CHOFER, tagline: usuario?.linea?.nombre ?? 'Conductor', home: '/chofer' }
-            : rol === 'cliente' && path.startsWith('/cuenta')
-              ? { secciones: SECCIONES_CUENTA, tagline: 'Mi cuenta', home: '/' }
-              : null;
+            : rol === 'colector' && path.startsWith('/colector')
+              ? { secciones: SECCIONES_COLECTOR, tagline: usuario?.linea?.nombre ?? 'Colector', home: '/colector' }
+              : rol === 'cliente' && path.startsWith('/cuenta')
+                ? { secciones: SECCIONES_CUENTA, tagline: 'Mi cuenta', home: '/' }
+                : null;
 
   const iniciales = usuario?.nombreCorto
     ? usuario.nombreCorto
@@ -79,7 +96,11 @@ export function AppChrome() {
         .toUpperCase()
     : 'BE';
 
+  // La página principal trae su propia cabecera (diseño «Sitio Público v5»)
+  if (location.pathname === '/') return null;
+
   return (
+    <>
     <header className={`${styles.chrome} no-print`}>
       <button
         className={styles.brandZone}
@@ -199,12 +220,16 @@ export function AppChrome() {
                       <button className={styles.menuItem} onClick={() => navigate('/empresa')}>
                         Panel de mi empresa
                       </button>
-                      <button className={styles.menuItem} onClick={() => navigate('/pos')}>
-                        Punto de venta
-                      </button>
-                      <button className={styles.menuItem} onClick={() => navigate('/chofer')}>
-                        Escáner de abordaje
-                      </button>
+                      {tiene('taquilla') && (
+                        <button className={styles.menuItem} onClick={() => navigate('/pos')}>
+                          Punto de venta
+                        </button>
+                      )}
+                      {tiene('boleteria') && (
+                        <button className={styles.menuItem} onClick={() => navigate('/chofer')}>
+                          Escáner de abordaje
+                        </button>
+                      )}
                     </>
                   )}
                   {usuario.role?.type === 'cajero' && (
@@ -243,5 +268,22 @@ export function AppChrome() {
       </span>
       )}
     </header>
+    {avisoContrato && !esPaginaAcceso && (
+      <div
+        className="no-print"
+        role="status"
+        style={{
+          background: vencido ? 'var(--bad-bg, #FEF2F2)' : 'var(--warn-bg, #FFFBEB)',
+          color: vencido ? 'var(--bad-text, #991B1B)' : 'var(--warn-text, #92400E)',
+          fontSize: 13,
+          fontWeight: 600,
+          padding: '8px 16px',
+          textAlign: 'center',
+        }}
+      >
+        {avisoContrato}
+      </div>
+    )}
+    </>
   );
 }

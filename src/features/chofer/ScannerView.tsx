@@ -10,9 +10,11 @@ import styles from './chofer.module.css';
 export function ScannerView({
   onDecode,
   pausado,
+  hint = 'Enfoca el código del pasajero',
 }: {
   onDecode: (raw: string) => void;
   pausado: boolean;
+  hint?: string;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const controlsRef = useRef<IScannerControls | null>(null);
@@ -49,7 +51,7 @@ export function ScannerView({
         <div className={styles.lineaEscaneo} />
       </div>
       <div className={styles.visorHint}>
-        {sinCamara ? 'Sin cámara disponible · usa el modo manual' : 'Enfoca el código del pasajero'}
+        {sinCamara ? 'Sin cámara disponible · usa el modo manual' : hint}
       </div>
     </div>
   );

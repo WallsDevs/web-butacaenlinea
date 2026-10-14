@@ -16,7 +16,7 @@ import { StatusChip } from '../../components/ui/StatusChip';
 import ui from '../../components/ui/ui.module.css';
 import styles from '../flota/flota.module.css';
 
-const NOMBRE_ROL: Record<string, string> = { cajero: 'Cajero', chofer: 'Conductor', empresa: 'Administrador' };
+const NOMBRE_ROL: Record<string, string> = { cajero: 'Cajero', chofer: 'Conductor', colector: 'Colector', empresa: 'Administrador' };
 
 /** Personal de la empresa: cajeros, conductores y administradores. */
 export default function EmpresaPersonal() {
@@ -30,7 +30,7 @@ export default function EmpresaPersonal() {
     nombreCorto: '',
     username: '',
     password: '',
-    rol: 'cajero' as 'cajero' | 'chofer' | 'empresa',
+    rol: 'cajero' as 'cajero' | 'chofer' | 'colector' | 'empresa',
     taquillaId: '',
     cedula: '',
   });
@@ -44,7 +44,7 @@ export default function EmpresaPersonal() {
       nombreCorto: u.nombreCorto ?? '',
       username: u.username,
       password: '',
-      rol: (u.rol as 'cajero' | 'chofer' | 'empresa') ?? 'cajero',
+      rol: (u.rol as 'cajero' | 'chofer' | 'colector' | 'empresa') ?? 'cajero',
       taquillaId: u.taquillaId ?? '',
       cedula: u.cedula ?? '',
     });
@@ -78,9 +78,11 @@ export default function EmpresaPersonal() {
       setError(
         code === 'no_puedes_cambiar_tu_rol'
           ? 'No puedes quitarte a ti mismo el rol de Administrador.'
-          : code === 'password_corta'
-            ? 'La contraseña debe tener al menos 6 caracteres.'
-            : 'No se pudo guardar los cambios.'
+          : code === 'pin_invalido'
+            ? 'La clave del personal a bordo son exactamente 6 dígitos.'
+            : code === 'password_corta'
+              ? 'La contraseña debe tener al menos 6 caracteres.'
+              : 'No se pudo guardar los cambios.'
       );
     },
   });
@@ -100,7 +102,12 @@ export default function EmpresaPersonal() {
       queryClient.invalidateQueries({ queryKey: ['choferes'] });
       cerrarModal();
     },
-    onError: () => setError('No se pudo crear. ¿El usuario ya existe?'),
+    onError: (e) =>
+      setError(
+        (e as { code?: string }).code === 'pin_invalido'
+          ? 'La clave del personal a bordo son exactamente 6 dígitos.'
+          : 'No se pudo crear. ¿El usuario ya existe?'
+      ),
   });
 
   const crearCaja = useMutation({
@@ -122,6 +129,16 @@ export default function EmpresaPersonal() {
     mutationFn: ({ id, bloqueado }: { id: number; bloqueado: boolean }) => bloquearUsuarioEmpresa(id, bloqueado),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['empresa-usuarios'] }),
   });
+
+  /**
+   * El personal a bordo entra a la app del conductor con una CLAVE DE 6
+   * DÍGITOS, no con contraseña de texto: es un teclado numérico dentro de una
+   * buseta. Cajero y administrador siguen con contraseña normal, porque entran
+   * por la web.
+   */
+  const usaPin = form.rol === 'chofer' || form.rol === 'colector';
+  const claveOk = usaPin ? /^\d{6}$/.test(form.password) : form.password.length >= 6;
+  const claveOkAlEditar = form.password.length === 0 || claveOk;
 
   return (
     <div className={styles.contenido}>
@@ -190,12 +207,14 @@ export default function EmpresaPersonal() {
             </h3>
             <p style={{ fontSize: 13, color: 'var(--text-soft)', marginBottom: 16 }}>
               {editando
-                ? 'Cambia el rol, la taquilla o el nombre. Deja la contraseña en blanco para no cambiarla.'
-                : 'El usuario queda vinculado a tu empresa y entra con su clave en butacaenlinea.com. El rol Administrador tiene acceso completo al panel de tu empresa (igual que tú).'}
+                ? 'Cambia el rol, la taquilla o el nombre. Deja la clave en blanco para no cambiarla.'
+                : usaPin
+                  ? 'Conductor y colector trabajan en la app del teléfono: entran con su usuario y una clave de 6 dígitos que tú le asignas aquí.'
+                  : 'El usuario queda vinculado a tu empresa y entra con su clave en butacaenlinea.com. El rol Administrador tiene acceso completo al panel de tu empresa (igual que tú).'}
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div className={ui.pillGroup} style={{ alignSelf: 'flex-start' }}>
-                {(['cajero', 'chofer', 'empresa'] as const).map((r) => (
+                {(['cajero', 'chofer', 'colector', 'empresa'] as const).map((r) => (
                   <button key={r} className={`${ui.pill} ${form.rol === r ? ui.pillActive : ''}`} onClick={() => setForm({ ...form, rol: r })}>
                     {NOMBRE_ROL[r]}
                   </button>
@@ -205,12 +224,35 @@ export default function EmpresaPersonal() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <Field label="Usuario" value={form.username} disabled={Boolean(editando)} onChange={(e) => setForm({ ...form, username: e.target.value })} />
                 <Field
-                  label={editando ? 'Nueva contraseña (opcional)' : 'Contraseña'}
+                  label={
+                    usaPin
+                      ? editando
+                        ? 'Nueva clave de 6 dígitos (opcional)'
+                        : 'Clave de 6 dígitos'
+                      : editando
+                        ? 'Nueva contraseña (opcional)'
+                        : 'Contraseña'
+                  }
                   type="password"
                   value={form.password}
-                  onChange={(e) => setForm({ ...form, password: e.target.value })}
+                  inputMode={usaPin ? 'numeric' : undefined}
+                  maxLength={usaPin ? 6 : undefined}
+                  placeholder={usaPin ? '••••••' : undefined}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      password: usaPin
+                        ? e.target.value.replace(/\D/g, '').slice(0, 6)
+                        : e.target.value,
+                    })
+                  }
                 />
               </div>
+              {usaPin && (
+                <div style={{ fontSize: 13, color: 'var(--text-soft)', marginTop: -4 }}>
+                  Con estos 6 dígitos entra a la app en su teléfono. Solo números.
+                </div>
+              )}
               {form.rol === 'cajero' && (
                 <label className={ui.field}>
                   <span className={ui.fieldLabel}>Taquilla</span>
@@ -276,8 +318,8 @@ export default function EmpresaPersonal() {
                   className={ui.btnPrimary}
                   disabled={
                     editando
-                      ? !form.nombreCorto || (form.password.length > 0 && form.password.length < 6) || actualizar.isPending
-                      : !form.username || form.password.length < 6 || !form.nombreCorto || crear.isPending
+                      ? !form.nombreCorto || !claveOkAlEditar || actualizar.isPending
+                      : !form.username || !claveOk || !form.nombreCorto || crear.isPending
                   }
                   onClick={() => (editando ? actualizar.mutate() : crear.mutate())}
                 >
@@ -323,14 +365,31 @@ function ModalHistorial({ usuario, onCerrar }: { usuario: UsuarioEmpresa; onCerr
         ) : (
           <>
             <div style={{ fontSize: 14, margin: '10px 0 14px' }}>
-              Unidad fija:{' '}
-              {data.unidadFija ? (
-                <strong>
-                  {data.unidadFija.numero} · {data.unidadFija.marcaModelo}
-                </strong>
+              {data.unidadesACargo.length > 0 ? (
+                <>
+                  <span>
+                    {data.unidadesACargo.length === 1 ? 'Unidad a su cargo: ' : 'Unidades a su cargo: '}
+                  </span>
+                  {data.unidadesACargo.map((u, i) => (
+                    <span key={u.numero}>
+                      {i > 0 && ', '}
+                      <strong>
+                        {u.numero} · {u.marcaModelo}
+                      </strong>
+                      {u.estado === 'en_mantenimiento' && (
+                        <span style={{ color: 'var(--warn-text)' }}> (en taller)</span>
+                      )}
+                    </span>
+                  ))}
+                  {data.unidadesACargo.length > 1 && (
+                    <div style={{ color: 'var(--text-soft)', marginTop: 4 }}>
+                      Escoge cuál maneja al abrir su turno en la app.
+                    </div>
+                  )}
+                </>
               ) : (
                 <span style={{ color: 'var(--text-soft)' }}>
-                  sin unidad fija (opera la unidad de cada viaje) — asígnala en Unidades → ficha
+                  Sin unidad a su cargo (opera la unidad de cada viaje) — asígnala en Unidades → ficha
                 </span>
               )}
             </div>
