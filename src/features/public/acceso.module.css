@@ -1,0 +1,17 @@
+/* Pantalla de acceso (diseño «Ingresar»): lo que el HTML resolvía con style-focus / style-hover y flex-wrap. */
+.pagina { min-height: 100vh; display: flex; flex-wrap: wrap; }
+.campo { height: 54px; padding: 0 16px; border: 1.5px solid #e2e8f2; border-radius: 14px; font: inherit; font-size: 16px; color: #0f172a; outline: none; background: #fff; width: 100%; box-sizing: border-box; }
+.campo::placeholder { color: #a3b1c6; }
+.campo:focus { border-color: #2563eb; box-shadow: 0 0 0 4px #e3ecff; }
+.campoError { border-color: #dc2626; }
+.ojo:hover { background: #f4f7fc; }
+.cta { transition: background 0.12s; }
+.cta:enabled:hover { background: #1d4ed8 !important; }
+.enlace:hover { color: #1d4ed8; }
+.marcaMovil { display: none; }
+/* Con poco ancho el panel azul sobra: el formulario va primero y la marca encima */
+@media (max-width: 900px) {
+  .aside { display: none !important; }
+  .marcaMovil { display: flex; }
+  .main { padding: 24px 20px 32px !important; }
+}

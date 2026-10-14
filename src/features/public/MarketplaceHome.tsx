@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { getLineas, getOcupacionSalidas, getRutas, getSalidas } from '../../lib/api/endpoints';
@@ -12,6 +12,8 @@ import { Promociones } from './inicio/Promociones';
 import { Kilometros } from './inicio/Kilometros';
 import { Destinos } from './inicio/Destinos';
 import { H2 } from './inicio/piezas';
+import { Letras, TableroMuestra, casillas } from './inicio/Tablero';
+import { PanelAsientos } from './inicio/PanelAsientos';
 import { useInstalar } from './inicio/useInstalar';
 import css from './inicio/inicio.module.css';
 
@@ -56,6 +58,7 @@ export default function MarketplaceHome() {
   const usuario = useAuth((s) => s.usuario);
   const instalar = useInstalar();
   const { criterios, setCriterios } = useBooking();
+  const [abierta, setAbierta] = useState<string | null>(null);
 
   const { data: lineas } = useQuery({ queryKey: ['lineas'], queryFn: getLineas });
   const { data: rutas, isError: rutasError } = useQuery({ queryKey: ['rutas-publicas'], queryFn: () => getRutas() });
@@ -108,6 +111,9 @@ export default function MarketplaceHome() {
   const precioMin = (s: { preciosUsd?: Record<string, number> }) => Math.min(...Object.values(s.preciosUsd ?? { x: 0 }));
   const lista = (salidas ?? []).filter((s) => !ocupacion || libresDe(s) >= pax);
 
+  // Otra ruta o fecha: se cierra el mapa abierto
+  useEffect(() => setAbierta(null), [origen, destino, fecha]);
+
   // Desde el pie o los destinos se vuelve al buscador
   useEffect(() => {
     const h = window.location.hash;
@@ -118,7 +124,7 @@ export default function MarketplaceHome() {
   const home = usuario?.role?.type ? HOME_POR_ROL[usuario.role.type] ?? '/cuenta' : '/cuenta';
   const sel = { appearance: 'none', WebkitAppearance: 'none', border: 'none', background: 'transparent', font: 'inherit', fontSize: 24, fontWeight: 700, color: '#0F172A', padding: 0, outline: 'none', cursor: 'pointer', width: '100%' } as const;
   const cajaCiudad = { display: 'flex', alignItems: 'center', gap: 12, padding: '16px 20px', border: '1.5px solid #E2E8F2', borderRadius: 16, cursor: 'pointer' } as const;
-  const vacio = (txt: string) => <span style={{ fontSize: 24, fontWeight: 700, color: '#A3AEC2', lineHeight: '31px' }}>{txt}</span>;
+  const vacio = (txt: string) => <span style={{ fontSize: 24, fontWeight: 700, color: '#94A3B8', lineHeight: '31px' }}>{txt}</span>;
   const enlacePie = (txt: string, href: string) => <a key={txt} className={css.pieLink} href={href}>{txt}</a>;
 
   return (
@@ -259,7 +265,7 @@ export default function MarketplaceHome() {
                       className={sinRutas ? undefined : css.chipDia}
                       disabled={sinRutas}
                       onClick={() => setCriterios({ fecha: d.fecha })}
-                      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, minWidth: 62, padding: '8px 12px', borderRadius: 12, border: sinRutas ? '1.5px dashed #D3DAE8' : `1.5px solid ${on ? '#2563EB' : '#E2E8F2'}`, background: sinRutas ? '#FBFCFE' : on ? '#2563EB' : '#FFFFFF', color: sinRutas ? '#A3AEC2' : on ? '#FFFFFF' : '#0F172A', fontFamily: 'inherit', cursor: sinRutas ? 'default' : 'pointer' }}
+                      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, minWidth: 62, padding: '8px 12px', borderRadius: 12, border: sinRutas ? '1.5px dashed #D5DEEB' : `1.5px solid ${on ? '#2563EB' : '#E2E8F2'}`, background: sinRutas ? '#F9FBFE' : on ? '#2563EB' : '#FFFFFF', color: sinRutas ? '#A3B1C6' : on ? '#FFFFFF' : '#0F172A', fontFamily: 'inherit', cursor: sinRutas ? 'default' : 'pointer' }}
                     >
                       <span style={{ fontSize: 12, fontWeight: 500 }}>{d.dia}</span>
                       <span style={{ fontSize: 18, fontWeight: 700 }}>{d.num}</span>
@@ -271,13 +277,13 @@ export default function MarketplaceHome() {
                 <span style={{ fontSize: 14, color: '#475569' }}>Pasajeros</span>
                 <div style={{ display: 'flex', alignItems: 'center', border: '1.5px solid #E2E8F2', borderRadius: 12 }}>
                   <button onClick={() => setCriterios({ pasajeros: Math.max(1, pax - 1) })} disabled={sinRutas} aria-label="Menos" style={{ width: 44, height: 44, border: 'none', background: 'transparent', fontSize: 20, color: sinRutas ? '#C3CBD8' : '#2563EB', cursor: sinRutas ? 'default' : 'pointer', fontFamily: 'inherit' }}>−</button>
-                  <span style={{ minWidth: 22, textAlign: 'center', fontSize: 18, fontWeight: 700, color: sinRutas ? '#A3AEC2' : undefined }}>{pax}</span>
+                  <span style={{ minWidth: 22, textAlign: 'center', fontSize: 18, fontWeight: 700, color: sinRutas ? '#A3B1C6' : undefined }}>{pax}</span>
                   <button onClick={() => setCriterios({ pasajeros: Math.min(6, pax + 1) })} disabled={sinRutas} aria-label="Más" style={{ width: 44, height: 44, border: 'none', background: 'transparent', fontSize: 20, color: sinRutas ? '#C3CBD8' : '#2563EB', cursor: sinRutas ? 'default' : 'pointer', fontFamily: 'inherit' }}>+</button>
                 </div>
               </div>
             </div>
             {sinRutas && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px 18px', padding: '16px 24px', background: '#F7F9FE', borderTop: '1px solid #EEF2F9', margin: '0 -28px -28px', fontSize: 15, color: '#475569' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px 18px', padding: '18px 28px', background: '#F9FBFE', borderTop: '1px solid #EEF2F9', margin: '0 -28px -28px', fontSize: 15, color: '#475569' }}>
                 <svg viewBox="0 0 64 64" width="44" height="44" aria-hidden="true" style={{ flex: 'none' }}>
                   <g fill="none" stroke="#C3CBD8" strokeWidth="5">
                     <rect x="6" y="6" width="22" height="22" rx="6" />
@@ -289,65 +295,94 @@ export default function MarketplaceHome() {
                 <span style={{ flex: '1 1 320px', minWidth: 0 }}>
                   Aún no hay rutas publicadas. Las fechas y ciudades se activan apenas una línea afiliada cargue sus horarios.
                 </span>
-                <a
-                  href={`https://wa.me/${WHATSAPP}?text=${encodeURIComponent('Hola, avísame cuando haya salidas disponibles')}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ fontSize: 15, fontWeight: 700, whiteSpace: 'nowrap' }}
-                >
-                  Avísame →
-                </a>
+                <a href="#salidas" style={{ fontSize: 15, fontWeight: 700, whiteSpace: 'nowrap' }}>Avísame →</a>
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Salidas */}
-      <div style={{ position: 'relative', maxWidth: 1440, margin: '0 auto', padding: sinRutas ? '0 28px 24px' : '0 28px 80px' }}>
-        {!sinRutas && <section id="salidas" style={{ background: '#FFFFFF', borderRadius: 22, boxShadow: '0 12px 40px rgba(11,42,107,.08)', border: '1px solid #E6EBF4', padding: '24px 24px 26px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, paddingBottom: 4 }}>
-            <h2 style={{ margin: 0, fontSize: 24, fontWeight: 700, letterSpacing: '-0.03em' }}>{lista.length} salida{lista.length === 1 ? '' : 's'} · {diaTxt}</h2>
-            <span style={{ fontSize: 13, color: '#7C8AA5' }}>Precio por pasajero</span>
+      {/* Salidas: tablero de terminal */}
+      <div style={{ position: 'relative', maxWidth: 1440, margin: '0 auto', padding: '0 28px 80px' }}>
+        <section id="salidas" style={{ background: '#081F52', borderRadius: 24, boxShadow: '0 24px 60px rgba(11,42,107,.22)', padding: '26px 26px 28px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px 14px', paddingBottom: 8 }}>
+            <Isotipo size={24} trazo={5} contorno="#FFFFFF" acento="#60A5FA" />
+            <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, letterSpacing: '0.14em', color: '#FFFFFF' }}>SALIDAS</h2>
+            <span style={{ fontSize: 15, fontWeight: 600, color: '#C7D9FB' }}>{lista.length ? `${lista.length} salida${lista.length === 1 ? '' : 's'} · ${diaTxt}` : `Salidas · ${diaTxt}`}</span>
+            <span style={{ marginLeft: 'auto', fontSize: 13, color: '#9FC0FF' }}>Precio por pasajero</span>
           </div>
-          {lista.map((s) => {
-            const libres = libresDe(s);
-            const pocas = ocupacion != null && libres <= 5;
-            return (
-              <div key={s.documentId} style={{ border: '1.5px solid #E6EBF4', borderRadius: 16, overflow: 'hidden', background: '#FFFFFF' }}>
-                <button
-                  className={css.salidaFila}
-                  onClick={() => navigate(`/salidas/${s.documentId}/asientos`)}
-                >
-                  <span style={{ display: 'flex', alignItems: 'baseline', gap: 8, whiteSpace: 'nowrap' }}>
-                    <span style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-0.03em' }}>{hora(s.fechaHoraSalida)}</span>
-                    <span style={{ fontSize: 14, color: '#7C8AA5' }}>→ {hora(s.fechaHoraLlegada)}</span>
-                  </span>
-                  <span className={css.salidaMedio} style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
-                    <span style={{ fontSize: 15, fontWeight: 600 }}>{s.unidad?.marcaModelo ?? s.linea?.nombre}</span>
-                    <span style={{ fontSize: 13, color: '#7C8AA5' }}>
-                      {s.ruta ? `${duracion(s.ruta.duracionMin)} · ` : ''}{s.linea?.nombre}{s.unidad?.numero ? ` · Unidad ${s.unidad.numero}` : ''}
-                    </span>
-                  </span>
-                  <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3 }}>
-                    <Money usd={precioMin(s)} style={{ fontSize: 19, fontWeight: 700, whiteSpace: 'nowrap' }} />
-                    {ocupacion != null && (
-                      <span style={{ fontSize: 13, fontWeight: 600, color: pocas ? '#B45309' : '#475569', whiteSpace: 'nowrap' }}>
-                        {pocas ? `Quedan ${libres}` : `${libres} libres`}
-                      </span>
-                    )}
-                  </span>
-                </button>
+          {lista.length > 0 && (
+            <div style={{ overflowX: 'auto', margin: '0 -4px', padding: '0 4px' }}>
+              <div style={{ minWidth: 900, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '118px 210px 44px minmax(180px,1fr) 120px 110px', gap: 16, padding: '0 16px', fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', color: '#7C8AA5' }}>
+                  <span>HORA</span><span>DESTINO</span><span>LÍNEA</span><span>SERVICIO</span><span style={{ textAlign: 'right' }}>PRECIO</span><span style={{ textAlign: 'right' }}>ESTADO</span>
+                </div>
+                {lista.map((s) => {
+                  const libres = libresDe(s);
+                  const pocas = ocupacion != null && libres <= 5;
+                  const elegida = abierta === s.documentId;
+                  const estado = elegida ? 'ELEGIDA' : pocas ? `QUEDAN ${libres}` : s.estado === 'abordando' ? 'ABORDANDO' : 'A TIEMPO';
+                  const colorEstado = elegida ? '#60A5FA' : pocas ? '#FBBF24' : s.estado === 'abordando' ? '#60A5FA' : '#9FC0FF';
+                  const iniciales = (s.linea?.nombre ?? '').split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase();
+                  return (
+                    <div key={s.documentId} style={{ border: `1.5px solid ${elegida ? '#60A5FA' : 'rgba(159,192,255,.14)'}`, borderRadius: 16, overflow: 'hidden', background: elegida ? 'rgba(37,99,235,.22)' : 'rgba(159,192,255,.04)' }}>
+                      <button className={css.salidaFila} aria-expanded={elegida} onClick={() => setAbierta(elegida ? null : s.documentId)}>
+                        <Letras texto={hora(s.fechaHoraSalida)} />
+                        <Letras texto={casillas(s.ruta?.destino ?? '', 9)} />
+                        <span style={{ width: 34, height: 30, borderRadius: 8, background: 'rgba(159,192,255,.14)', color: '#C7D9FB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700 }}>{iniciales}</span>
+                        <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+                          <span style={{ fontSize: 14, fontWeight: 600, color: '#FFFFFF', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.unidad?.marcaModelo ?? s.linea?.nombre}</span>
+                          <span style={{ fontSize: 12, color: '#9FC0FF', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            Llega {hora(s.fechaHoraLlegada)}{s.ruta ? ` · ${duracion(s.ruta.duracionMin)}` : ''}{s.unidad?.numero ? ` · Unidad ${s.unidad.numero}` : ''}
+                          </span>
+                        </span>
+                        <Money usd={precioMin(s)} style={{ fontSize: 18, fontWeight: 700, textAlign: 'right', whiteSpace: 'nowrap', color: '#FFFFFF' }} />
+                        <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textAlign: 'right', whiteSpace: 'nowrap', color: colorEstado }}>{estado}</span>
+                      </button>
+                      {elegida && <PanelAsientos salidaId={s.documentId} pax={pax} />}
+                    </div>
+                  );
+                })}
               </div>
-            );
-          })}
-          {!distintas && <div style={{ padding: '20px 4px', fontSize: 15, color: '#475569' }}>{rutas && !origenes.length ? 'Todavía no hay rutas con salidas a la venta.' : rutas ? 'Elige ciudades distintas para ver las salidas.' : rutasError ? 'No se pudieron cargar las salidas. Revisa tu conexión e inténtalo de nuevo.' : 'Cargando salidas…'}</div>}
-          {distintas && salidas && !lista.length && (
-            <div style={{ padding: '20px 4px', fontSize: 15, color: '#475569' }}>
-              No hay salidas de {origen} a {destino} con {pax} puesto{pax === 1 ? '' : 's'} libres ese día. Prueba otra fecha o menos pasajeros.
             </div>
           )}
-        </section>}
+          {origen && destino && origen === destino && <div style={{ padding: '20px 4px', fontSize: 15, color: '#C7D9FB' }}>Elige ciudades distintas para ver las salidas.</div>}
+          {!sinRutas && distintas && !salidas && <div style={{ padding: '20px 4px', fontSize: 15, color: '#C7D9FB' }}>{rutasError ? 'No se pudieron cargar las salidas. Revisa tu conexión e inténtalo de nuevo.' : 'Cargando salidas…'}</div>}
+          {(sinRutas || (distintas && salidas && !lista.length)) && (
+            <div style={{ border: '1.5px dashed #CBD5E1', borderRadius: 20, background: '#F9FBFE', padding: '44px 28px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 22, textAlign: 'center' }}>
+              <svg viewBox="0 0 64 64" width="84" height="84" aria-hidden="true">
+                <g fill="none" stroke="#CBD5E1" strokeWidth="4">
+                  <rect x="6" y="6" width="22" height="22" rx="6" />
+                  <rect x="6" y="36" width="22" height="22" rx="6" />
+                  <rect x="36" y="36" width="22" height="22" rx="6" />
+                  <rect x="36" y="6" width="22" height="22" rx="6" strokeDasharray="4 4" stroke="#9FC0FF" />
+                </g>
+              </svg>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 520 }}>
+                <h3 style={{ margin: 0, fontSize: 26, fontWeight: 700, letterSpacing: '-0.03em', lineHeight: 1.15, textWrap: 'balance' }}>
+                  {sinRutas ? 'Todavía no hay rutas publicadas' : salidas?.length ? `Ya no quedan ${pax} puestos libres ese día` : `Todavía no hay salidas de ${origen} a ${destino}`}
+                </h3>
+                <p style={{ margin: 0, fontSize: 15, lineHeight: 1.6, color: '#475569', textWrap: 'pretty' }}>
+                  {salidas?.length
+                    ? 'Prueba otra fecha o con menos pasajeros.'
+                    : 'Las líneas afiliadas publican sus horarios con anticipación. Escríbenos por WhatsApp y te avisamos apenas haya puestos.'}
+                </p>
+              </div>
+              <a
+                href={`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(sinRutas ? 'Hola, avísame cuando haya salidas disponibles' : `Hola, avísame cuando haya salidas de ${origen} a ${destino}`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ height: 52, padding: '0 24px', borderRadius: 14, background: '#2563EB', color: '#FFFFFF', fontSize: 15, fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}
+              >
+                Avísame por WhatsApp
+              </a>
+              <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '8px 18px', fontSize: 14, color: '#475569' }}>
+                <span>¿Viajas pronto?</span>
+                <a href="#lineas" style={{ fontWeight: 600 }}>Ver líneas afiliadas</a>
+              </div>
+            </div>
+          )}
+        </section>
       </div>
 
       {/* Secciones */}
@@ -405,9 +440,7 @@ export default function MarketplaceHome() {
               ))}
             </div>
           </div>
-          <div style={{ flex: '1 1 380px', minWidth: 0, minHeight: 340, borderRadius: 24, background: 'repeating-linear-gradient(135deg,#EAF0FA 0 12px,#F2F6FC 12px 24px)', border: '1px solid #E6EBF4', display: 'flex', alignItems: 'flex-end', padding: 18, boxSizing: 'border-box' }}>
-            <span style={{ fontSize: 12, color: '#7C8AA5', fontFamily: 'ui-monospace,monospace' }}>foto · equipo Butaca En Línea en el terminal</span>
-          </div>
+          <TableroMuestra />
         </section>
       </div>
 
