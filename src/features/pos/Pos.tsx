@@ -27,7 +27,7 @@ import { PillTabs } from '../../components/ui/PillTabs';
 import { ReservationTimer } from '../../components/ui/ReservationTimer';
 import { SeatMap } from '../../components/seat-map/SeatMap';
 import { TicketCard } from '../../components/ticket/TicketCard';
-import { LogoMark } from '../../components/brand/LogoMark';
+import { Isotipo } from '../../components/brand/LogoMark';
 import { fechaCorta } from '../../lib/time';
 import type { BoletoEmitido, MetodoPago } from '../../lib/api/types';
 import ui from '../../components/ui/ui.module.css';
@@ -343,7 +343,7 @@ export default function Pos() {
         {/* Cabecera navy */}
         <div className={styles.cabecera}>
           <span className={styles.cabeceraIso} style={{ color: '#fff' }}>
-            <LogoMark size={18} />
+            <Isotipo size={20} fondo="navy" />
           </span>
           <span className={styles.cabeceraTitulo}>
             Taquilla · {turno?.taquilla?.terminal || usuario?.linea?.nombre || 'Taquilla'}

@@ -96,6 +96,9 @@ export function AppChrome() {
         .toUpperCase()
     : 'BE';
 
+  // La página principal trae su propia cabecera (diseño «Sitio Público v5»)
+  if (location.pathname === '/') return null;
+
   return (
     <>
     <header className={`${styles.chrome} no-print`}>

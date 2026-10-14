@@ -1,95 +1,26 @@
-/* Secciones de la página principal (diseño Sitio Público v5). Solo tokens de styles/tokens.css. */
-.seccion { padding-top: 72px; }
-.seccionCab { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 24px; }
-.h2 { font-size: clamp(30px, 3.6vw, 44px); font-weight: 700; letter-spacing: -0.04em; line-height: 1; }
-.nota { font-size: 14px; color: var(--text-muted); }
-
-/* Navegación por secciones dentro del hero */
-.navSecciones { max-width: var(--content-max); margin: 0 auto; padding: 22px 32px 0; position: relative; display: flex; gap: 26px; font-size: 14px; font-weight: 500; flex-wrap: wrap; }
-.navSecciones a { color: var(--blue-150); }
-.navSecciones a:hover { color: #fff; }
-
-/* Etiqueta de lo que todavía es demostración */
-.demo { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 4px 9px; border-radius: 6px; background: var(--tint-50); color: var(--blue-700); border: 1px solid var(--tint-300); }
-.demoOscuro { background: rgba(159, 192, 255, 0.14); color: var(--blue-200); border-color: rgba(159, 192, 255, 0.35); }
-.pieDemo { font-size: 12px; color: var(--text-faint); margin-top: 14px; }
-
-/* Promociones */
-.promos { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; }
-.promo { position: relative; text-align: left; border-radius: 22px; padding: 24px; min-height: 220px; display: flex; flex-direction: column; justify-content: space-between; gap: 20px; overflow: hidden; border: 2px solid transparent; }
-.promoBlob { position: absolute; right: -50px; bottom: -60px; width: 180px; height: 180px; border-radius: 50%; }
-.promoCuerpo { position: relative; display: flex; flex-direction: column; gap: 8px; }
-.promoBig { font-size: 52px; font-weight: 700; letter-spacing: -0.04em; line-height: 0.9; }
-.promoTitulo { font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
-.promoDesc { font-size: 14px; line-height: 1.5; opacity: 0.85; }
-.promoPie { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.promoCodigo { font-size: 13px; font-weight: 700; letter-spacing: 0.08em; padding: 6px 10px; border-radius: 8px; border: 1.5px dashed; }
-.promoCta { font-size: 14px; font-weight: 700; }
-
-/* Kilómetros */
-.km { background: var(--navy); border-radius: 28px; padding: 40px; display: flex; flex-wrap: wrap; gap: 40px; color: #fff; overflow: hidden; position: relative; }
-.kmBlob { position: absolute; left: -80px; bottom: -120px; width: 320px; height: 320px; border-radius: 50%; background: rgba(96, 165, 250, 0.1); }
-.kmTexto { position: relative; flex: 1 1 360px; min-width: 0; display: flex; flex-direction: column; gap: 18px; }
-.kmParrafo { font-size: 16px; line-height: 1.6; color: var(--blue-150); max-width: 460px; }
-.niveles { display: flex; flex-direction: column; gap: 14px; margin-top: 8px; }
-.nivel { display: flex; align-items: center; gap: 14px; }
-.nivelPunto { width: 14px; height: 14px; border-radius: 50%; flex: none; border: 3px solid var(--blue-400); }
-.nivelNombre { font-size: 16px; font-weight: 700; width: 120px; flex: none; }
-.nivelDesc { font-size: 14px; color: var(--blue-150); }
-.kmTarjeta { position: relative; flex: 1 1 380px; min-width: 0; background: var(--surface); color: var(--text); border-radius: 22px; padding: 26px; display: flex; flex-direction: column; gap: 20px; }
-.kmPerfil { display: flex; align-items: center; gap: 12px; }
-.kmAvatar { width: 44px; height: 44px; border-radius: 50%; background: var(--tint-50); color: var(--blue-700); display: grid; place-items: center; font-weight: 700; }
-.kmCifra { display: flex; align-items: baseline; gap: 10px; }
-.kmCifraN { font-size: 48px; font-weight: 700; letter-spacing: -0.04em; line-height: 1; }
-.kmSuma { margin-left: auto; font-size: 14px; font-weight: 700; color: var(--blue-600); white-space: nowrap; }
-.barra { position: relative; height: 12px; border-radius: 999px; background: var(--divider); overflow: hidden; }
-.barraNueva, .barraActual { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; }
-.barraNueva { background: var(--blue-200); }
-.barraActual { background: var(--blue-600); }
-.barraEscala { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-faint); margin-top: 8px; }
-.kmMeta { padding: 14px 16px; border-radius: 14px; background: var(--tint-50); color: var(--blue-700); font-size: 14px; font-weight: 600; line-height: 1.45; }
-.premios { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-.premio { border: 1.5px solid var(--border); border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 4px; }
-.premioN { font-size: 13px; font-weight: 700; }
-.premioKm { font-size: 12px; color: var(--text-faint); }
-
-/* Destinos */
-.destinos { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
-.destino { text-align: left; background: var(--surface); border: 1.5px solid var(--border); border-radius: 20px; overflow: hidden; display: flex; flex-direction: column; }
-.destino:hover { border-color: var(--blue-600); }
-.destinoFoto { height: 110px; background: repeating-linear-gradient(135deg, #eaf0fa 0 10px, #f2f6fc 10px 20px); display: flex; align-items: flex-end; padding: 12px; }
-.destinoFoto span { font-size: 11px; color: var(--text-faint); font-family: ui-monospace, monospace; }
-.destinoCuerpo { padding: 16px 18px; display: flex; flex-direction: column; gap: 6px; }
-.destinoNombre { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
-.destinoInfo { font-size: 13px; color: var(--text-faint); }
-.destinoDesde { font-size: 15px; font-weight: 700; color: var(--blue-600); margin-top: 4px; }
-
-/* Afiliar + Quiénes somos */
-.afiliar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; padding: 22px 26px; border-radius: 20px; background: var(--tint-50); margin-top: 20px; }
-.afiliarTxt { font-size: 16px; font-weight: 600; color: var(--navy); }
-.afiliarLink { font-size: 15px; font-weight: 700; }
-.nosotros { display: flex; flex-wrap: wrap; gap: 40px; align-items: stretch; }
-.nosotrosTxt { flex: 1 1 380px; min-width: 0; display: flex; flex-direction: column; gap: 18px; }
-.nosotrosP { font-size: 17px; line-height: 1.65; color: #334155; }
-.pilares { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-top: 6px; }
-.pilar { padding-top: 12px; display: flex; flex-direction: column; gap: 4px; border-top: 3px solid var(--blue-600); }
-.pilar b { font-size: 16px; }
-.pilar span { font-size: 14px; line-height: 1.5; color: var(--text-muted); }
-.nosotrosFoto { flex: 1 1 380px; min-width: 0; min-height: 320px; border-radius: 24px; background: repeating-linear-gradient(135deg, #eaf0fa 0 12px, #f2f6fc 12px 24px); border: 1px solid var(--border); display: flex; align-items: flex-end; padding: 18px; }
-.nosotrosFoto span { font-size: 12px; color: var(--text-faint); font-family: ui-monospace, monospace; }
-
-/* Pie ampliado */
-.pieColumnas { max-width: var(--content-max); margin: 0 auto; padding: 44px 32px 8px; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 32px; }
-.pieCol { display: flex; flex-direction: column; gap: 12px; font-size: 14px; }
-.pieCol b { color: #fff; font-size: 15px; }
-.pieCol a { color: var(--blue-150); }
-.pieCol a:hover { color: #fff; }
-.instalar { height: 52px; padding: 0 24px; border-radius: 14px; background: var(--blue-600); color: #fff; font-size: 15px; font-weight: 700; display: inline-flex; align-items: center; }
-.instalar:hover { background: var(--blue-700); }
-.whatsapp { position: fixed; right: 24px; bottom: 24px; z-index: 50; width: 60px; height: 60px; border-radius: 50%; background: #25d366; display: grid; place-items: center; box-shadow: 0 10px 28px rgba(18, 140, 74, 0.35); }
-
-@media (max-width: 700px) {
-  .km { padding: 26px 20px; }
-  .navSecciones { gap: 18px; padding: 16px 20px 0; }
-  .premios { grid-template-columns: 1fr; }
+/* Solo lo que el diseño v5 resuelve sin media queries pero un teléfono necesita. */
+.lineasMarco { background: #fff; border: 1px solid #e6ebf4; border-radius: 22px; overflow: hidden; }
+/* Las divisiones son bordes de cada celda (no el fondo del grid): una última fila incompleta no deja hueco gris */
+.lineas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0 -1px -1px 0; }
+.lineas > div { border-right: 1px solid #e6ebf4; border-bottom: 1px solid #e6ebf4; }
+.salidaFila { width: 100%; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 16px; padding: 16px 18px; border: none; background: transparent; font-family: inherit; color: #0f172a; text-align: left; cursor: pointer; }
+.salidaFila:hover { background: #f7f9fe; }
+.navLink { color: #c7d9fb; }
+.navLink:hover { color: #fff; }
+.pieLink { color: #c7d9fb; }
+.pieLink:hover { color: #fff; }
+.chipDia:hover { border-color: #2563eb; }
+@media (max-width: 860px) {
+  .lineas { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .navHorizontal { display: none !important; }
+}
+@media (max-width: 640px) {
+  .lineas { grid-template-columns: minmax(0, 1fr); }
+  .salidaFila { grid-template-columns: minmax(0, 1fr) auto; }
+  .salidaMedio { grid-column: 1 / -1; order: 3; }
+  .kmCuerpo { padding: 26px 20px !important; }
+}
+@media (max-width: 640px) {
+  .ciudades { grid-template-columns: minmax(0, 1fr) !important; }
+  .ciudades > button { justify-self: center; transform: rotate(90deg); }
 }
