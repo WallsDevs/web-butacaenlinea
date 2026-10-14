@@ -8,8 +8,7 @@ const Salidas = lazy(() => import('../features/public/Salidas'));
 const Asientos = lazy(() => import('../features/public/Asientos'));
 const Checkout = lazy(() => import('../features/public/Checkout'));
 const Boleto = lazy(() => import('../features/public/Boleto'));
-const Ingresar = lazy(() => import('../features/public/Ingresar'));
-const Registro = lazy(() => import('../features/cuenta/Registro'));
+const Acceso = lazy(() => import('../features/public/Acceso'));
 const MisBoletos = lazy(() => import('../features/cuenta/MisBoletos'));
 const MetodosPago = lazy(() => import('../features/cuenta/MetodosPago'));
 const MiWallet = lazy(() => import('../features/cuenta/MiWallet'));
@@ -83,9 +82,9 @@ export const router = createBrowserRouter([
       { path: '/salidas/:id/asientos', element: <Asientos /> },
       { path: '/checkout', element: <Checkout /> },
       { path: '/boleto/:codigo', element: <Boleto /> },
-      { path: '/ingresar', element: <Ingresar /> },
+      { path: '/ingresar', element: <Acceso modo="login" /> },
       { path: '/plataforma', element: <AccesoPlataforma /> },
-      { path: '/registro', element: <Registro /> },
+      { path: '/registro', element: <Acceso modo="registro" /> },
       // Pasaje urbano: escáner del pasajero + la página del QR pegado en la buseta
       { path: '/pagar', element: <EscanerPago /> },
       { path: '/pagar/:unidadId', element: <PagoUrbano /> },
