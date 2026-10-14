@@ -86,6 +86,8 @@ export default function MarketplaceHome() {
   const pax = Math.max(1, Math.min(6, criterios.pasajeros));
   const diaTxt = fechaCorta(`${fecha}T12:00:00`);
 
+  // Sin ninguna ruta publicada el buscador se queda en reposo y avisa por qué
+  const sinRutas = Boolean(rutas) && !origenes.length;
   const distintas = Boolean(origen && destino && origen !== destino);
   const { data: salidas } = useQuery({
     queryKey: ['salidas-home', origen, destino, fecha],
@@ -219,30 +221,31 @@ export default function MarketplaceHome() {
           <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 20 }}>
             <div className={css.ciudades} style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 48px minmax(0,1fr)', alignItems: 'center', gap: 10 }}>
               <label style={cajaCiudad}>
-                <span style={{ width: 12, height: 12, borderRadius: '50%', border: '3px solid #2563EB', boxSizing: 'border-box', flex: 'none' }} />
+                <span style={{ width: 12, height: 12, borderRadius: '50%', border: `3px solid ${sinRutas ? '#C3CBD8' : '#2563EB'}`, boxSizing: 'border-box', flex: 'none' }} />
                 <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0, flex: 1 }}>
                   <span style={{ fontSize: 12, color: '#7C8AA5' }}>Desde</span>
                   {origenes.length ? (
                     <select value={origen} onChange={(e) => setCriterios({ origen: e.target.value, destino: '' })} style={sel}>
                       {origenes.map((o) => <option key={o}>{o}</option>)}
                     </select>
-                  ) : vacio(rutasError ? 'Sin conexión' : rutas ? 'Sin rutas' : 'Cargando…')}
+                  ) : vacio(rutasError ? 'Sin conexión' : rutas ? 'Elige tu ciudad' : 'Cargando…')}
                 </span>
               </label>
               <button
                 onClick={() => setCriterios({ origen: destino, destino: origen })}
+                disabled={sinRutas}
                 aria-label="Invertir"
-                style={{ width: 44, height: 44, borderRadius: '50%', border: '1.5px solid #E2E8F2', background: '#FFFFFF', color: '#2563EB', fontSize: 18, cursor: 'pointer', fontFamily: 'inherit' }}
+                style={{ width: 44, height: 44, borderRadius: '50%', border: '1.5px solid #E2E8F2', background: '#FFFFFF', color: sinRutas ? '#C3CBD8' : '#2563EB', fontSize: 18, cursor: sinRutas ? 'default' : 'pointer', fontFamily: 'inherit' }}
               >⇄</button>
               <label style={cajaCiudad}>
-                <span style={{ width: 12, height: 12, borderRadius: '50%', background: '#2563EB', flex: 'none' }} />
+                <span style={{ width: 12, height: 12, borderRadius: '50%', background: sinRutas ? '#CBD5E1' : '#2563EB', flex: 'none' }} />
                 <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0, flex: 1 }}>
                   <span style={{ fontSize: 12, color: '#7C8AA5' }}>Hasta</span>
                   {destinos.length ? (
                     <select value={destino} onChange={(e) => setCriterios({ destino: e.target.value })} style={sel}>
                       {destinos.map((d) => <option key={d}>{d}</option>)}
                     </select>
-                  ) : vacio(rutasError ? 'Sin conexión' : rutas ? 'Sin destinos' : 'Cargando…')}
+                  ) : vacio(rutasError ? 'Sin conexión' : rutas ? 'Sin destinos aún' : 'Cargando…')}
                 </span>
               </label>
             </div>
@@ -253,9 +256,10 @@ export default function MarketplaceHome() {
                   return (
                     <button
                       key={d.fecha}
-                      className={css.chipDia}
+                      className={sinRutas ? undefined : css.chipDia}
+                      disabled={sinRutas}
                       onClick={() => setCriterios({ fecha: d.fecha })}
-                      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, minWidth: 62, padding: '8px 12px', borderRadius: 12, border: `1.5px solid ${on ? '#2563EB' : '#E2E8F2'}`, background: on ? '#2563EB' : '#FFFFFF', color: on ? '#FFFFFF' : '#0F172A', fontFamily: 'inherit', cursor: 'pointer' }}
+                      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, minWidth: 62, padding: '8px 12px', borderRadius: 12, border: sinRutas ? '1.5px dashed #D3DAE8' : `1.5px solid ${on ? '#2563EB' : '#E2E8F2'}`, background: sinRutas ? '#FBFCFE' : on ? '#2563EB' : '#FFFFFF', color: sinRutas ? '#A3AEC2' : on ? '#FFFFFF' : '#0F172A', fontFamily: 'inherit', cursor: sinRutas ? 'default' : 'pointer' }}
                     >
                       <span style={{ fontSize: 12, fontWeight: 500 }}>{d.dia}</span>
                       <span style={{ fontSize: 18, fontWeight: 700 }}>{d.num}</span>
@@ -266,19 +270,42 @@ export default function MarketplaceHome() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <span style={{ fontSize: 14, color: '#475569' }}>Pasajeros</span>
                 <div style={{ display: 'flex', alignItems: 'center', border: '1.5px solid #E2E8F2', borderRadius: 12 }}>
-                  <button onClick={() => setCriterios({ pasajeros: Math.max(1, pax - 1) })} aria-label="Menos" style={{ width: 44, height: 44, border: 'none', background: 'transparent', fontSize: 20, color: '#2563EB', cursor: 'pointer', fontFamily: 'inherit' }}>−</button>
-                  <span style={{ minWidth: 22, textAlign: 'center', fontSize: 18, fontWeight: 700 }}>{pax}</span>
-                  <button onClick={() => setCriterios({ pasajeros: Math.min(6, pax + 1) })} aria-label="Más" style={{ width: 44, height: 44, border: 'none', background: 'transparent', fontSize: 20, color: '#2563EB', cursor: 'pointer', fontFamily: 'inherit' }}>+</button>
+                  <button onClick={() => setCriterios({ pasajeros: Math.max(1, pax - 1) })} disabled={sinRutas} aria-label="Menos" style={{ width: 44, height: 44, border: 'none', background: 'transparent', fontSize: 20, color: sinRutas ? '#C3CBD8' : '#2563EB', cursor: sinRutas ? 'default' : 'pointer', fontFamily: 'inherit' }}>−</button>
+                  <span style={{ minWidth: 22, textAlign: 'center', fontSize: 18, fontWeight: 700, color: sinRutas ? '#A3AEC2' : undefined }}>{pax}</span>
+                  <button onClick={() => setCriterios({ pasajeros: Math.min(6, pax + 1) })} disabled={sinRutas} aria-label="Más" style={{ width: 44, height: 44, border: 'none', background: 'transparent', fontSize: 20, color: sinRutas ? '#C3CBD8' : '#2563EB', cursor: sinRutas ? 'default' : 'pointer', fontFamily: 'inherit' }}>+</button>
                 </div>
               </div>
             </div>
+            {sinRutas && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px 18px', padding: '16px 24px', background: '#F7F9FE', borderTop: '1px solid #EEF2F9', margin: '0 -28px -28px', fontSize: 15, color: '#475569' }}>
+                <svg viewBox="0 0 64 64" width="44" height="44" aria-hidden="true" style={{ flex: 'none' }}>
+                  <g fill="none" stroke="#C3CBD8" strokeWidth="5">
+                    <rect x="6" y="6" width="22" height="22" rx="6" />
+                    <rect x="6" y="36" width="22" height="22" rx="6" />
+                    <rect x="36" y="36" width="22" height="22" rx="6" />
+                  </g>
+                  <rect x="34" y="4" width="26" height="26" rx="7" fill="none" stroke="#9FC0FF" strokeWidth="4" strokeDasharray="4 5" />
+                </svg>
+                <span style={{ flex: '1 1 320px', minWidth: 0 }}>
+                  Aún no hay rutas publicadas. Las fechas y ciudades se activan apenas una línea afiliada cargue sus horarios.
+                </span>
+                <a
+                  href={`https://wa.me/${WHATSAPP}?text=${encodeURIComponent('Hola, avísame cuando haya salidas disponibles')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ fontSize: 15, fontWeight: 700, whiteSpace: 'nowrap' }}
+                >
+                  Avísame →
+                </a>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
       {/* Salidas */}
-      <div style={{ position: 'relative', maxWidth: 1440, margin: '0 auto', padding: '0 28px 80px' }}>
-        <section id="salidas" style={{ background: '#FFFFFF', borderRadius: 22, boxShadow: '0 12px 40px rgba(11,42,107,.08)', border: '1px solid #E6EBF4', padding: '24px 24px 26px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ position: 'relative', maxWidth: 1440, margin: '0 auto', padding: sinRutas ? '0 28px 24px' : '0 28px 80px' }}>
+        {!sinRutas && <section id="salidas" style={{ background: '#FFFFFF', borderRadius: 22, boxShadow: '0 12px 40px rgba(11,42,107,.08)', border: '1px solid #E6EBF4', padding: '24px 24px 26px', display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, paddingBottom: 4 }}>
             <h2 style={{ margin: 0, fontSize: 24, fontWeight: 700, letterSpacing: '-0.03em' }}>{lista.length} salida{lista.length === 1 ? '' : 's'} · {diaTxt}</h2>
             <span style={{ fontSize: 13, color: '#7C8AA5' }}>Precio por pasajero</span>
@@ -320,7 +347,7 @@ export default function MarketplaceHome() {
               No hay salidas de {origen} a {destino} con {pax} puesto{pax === 1 ? '' : 's'} libres ese día. Prueba otra fecha o menos pasajeros.
             </div>
           )}
-        </section>
+        </section>}
       </div>
 
       {/* Secciones */}
