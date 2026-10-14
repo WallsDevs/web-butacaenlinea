@@ -260,9 +260,6 @@ export default function Acceso({ modo }: { modo: 'login' | 'registro' }) {
               </a>
             </div>
 
-            <div style={{ borderTop: '1px solid #EEF2F9', paddingTop: 18, fontSize: 13, lineHeight: 1.55, color: '#7C8AA5', textAlign: 'center', textWrap: 'pretty' }}>
-              ¿Trabajas en una línea? Cajeros, choferes y administradores entran con su usuario aquí mismo.
-            </div>
           </form>
         </div>
       </main>
