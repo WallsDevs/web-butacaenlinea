@@ -919,6 +919,8 @@ export interface UnidadEnVivo {
   chofer: string | null;
   posicion: { lat: number; lng: number; hora: string | null; haceSeg: number | null; viva: boolean } | null;
   jornada: { modo: 'urbano' | 'largo' | 'jornada'; abiertoEn: string | null } | null;
+  /** La ruta urbana que hace (o la primera de su catálogo), para dibujarla de fondo. */
+  ruta: { documentId: string; nombre: string } | null;
 }
 export interface Recorrido {
   unidad: string;

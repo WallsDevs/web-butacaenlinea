@@ -16,6 +16,10 @@ export interface BusEnMapa {
   numero: string;
   lat: number;
   lng: number;
+  /** Sin señal reciente: se pinta en gris, en su última posición conocida. */
+  apagado?: boolean;
+  /** La que el usuario eligió: más grande y por encima de las demás. */
+  resaltado?: boolean;
 }
 
 /**
@@ -32,6 +36,9 @@ export function MapaRecorrido({
   miUbicacion = null,
   centrarEnMi = 0,
   alto = 320,
+  rutaFondo = [],
+  enfocar = null,
+  ajustarCada = '',
 }: {
   puntos: [number, number][];
   onChange?: (puntos: [number, number][]) => void;
@@ -43,10 +50,17 @@ export function MapaRecorrido({
   /** Cambia este número para pedirle al mapa que centre en el usuario. */
   centrarEnMi?: number;
   alto?: number;
+  /** Otra línea, más clara y debajo: la ruta planificada cuando `puntos` es lo recorrido de verdad. */
+  rutaFondo?: [number, number][];
+  /** Centrar aquí (zoom 15) cada vez que cambie `clave`. */
+  enfocar?: { lat: number; lng: number; clave: string } | null;
+  /** Cuando cambie, encuadra todo lo dibujado (ruta, trazo, buses). Para cambiar de unidad o de ruta. */
+  ajustarCada?: string;
 }) {
   const divRef = useRef<HTMLDivElement>(null);
   const mapaRef = useRef<L.Map | null>(null);
   const lineaRef = useRef<L.Polyline | null>(null);
+  const fondoRef = useRef<L.Polyline | null>(null);
   const capaBusesRef = useRef<L.LayerGroup | null>(null);
   const capaParadasRef = useRef<L.LayerGroup | null>(null);
   const capaYoRef = useRef<L.LayerGroup | null>(null);
@@ -66,6 +80,7 @@ export function MapaRecorrido({
       maxZoom: 19,
       attribution: '© OpenStreetMap',
     }).addTo(mapa);
+    fondoRef.current = L.polyline([], { color: '#9fc0ff', weight: 7, opacity: 0.9 }).addTo(mapa);
     lineaRef.current = L.polyline(puntosRef.current, {
       color: '#1d4ed8',
       weight: 5,
@@ -175,20 +190,47 @@ export function MapaRecorrido({
     }
   }, [puntos]);
 
-  // Buses en vivo
+  // La ruta planificada, debajo de todo
+  useEffect(() => {
+    fondoRef.current?.setLatLngs(rutaFondo);
+  }, [rutaFondo]);
+
+  // Centrar en un punto cuando lo piden (la unidad elegida)
+  useEffect(() => {
+    if (!enfocar || !mapaRef.current) return;
+    mapaRef.current.setView([enfocar.lat, enfocar.lng], Math.max(mapaRef.current.getZoom(), 15), { animate: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enfocar?.clave]);
+
+  // Encuadrar todo lo que hay cuando cambia de qué se trata (otra unidad, otra ruta)
+  useEffect(() => {
+    if (!ajustarCada || !mapaRef.current) return;
+    const todo: [number, number][] = [...puntos, ...rutaFondo, ...buses.filter((b) => b.resaltado).map((b) => [b.lat, b.lng] as [number, number])];
+    if (todo.length > 1) mapaRef.current.fitBounds(L.latLngBounds(todo), { padding: [30, 30] });
+    else if (todo.length === 1) mapaRef.current.setView(todo[0], 15);
+    ajustado.current = true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ajustarCada, puntos.length, rutaFondo.length]);
+
+  // Buses: azul con señal, gris en su última posición conocida; la elegida resaltada
   useEffect(() => {
     const capa = capaBusesRef.current;
     if (!capa) return;
     capa.clearLayers();
     for (const b of buses) {
+      const fondo = b.apagado ? '#94a3b8' : '#0f2557';
+      const borde = b.resaltado ? 'border:2px solid #fff;box-shadow:0 0 0 3px #2563EB,0 2px 8px rgba(0,0,0,.35)' : 'box-shadow:0 2px 8px rgba(0,0,0,.35)';
       L.marker([b.lat, b.lng], {
         icon: L.divIcon({
           className: '',
-          html: `<div style="background:#0f2557;color:#fff;border-radius:12px;padding:3px 8px;font:700 12px system-ui;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.35)">🚌 ${b.numero}</div>`,
+          html: `<div style="background:${fondo};color:#fff;border-radius:12px;padding:3px 8px;font:700 ${b.resaltado ? 13 : 12}px system-ui;white-space:nowrap;${borde}">🚌 ${b.numero}</div>`,
           iconSize: [0, 0],
           iconAnchor: [24, 12],
         }),
-      }).addTo(capa);
+        zIndexOffset: b.resaltado ? 1000 : b.apagado ? 0 : 100,
+      })
+        .bindTooltip(b.apagado ? `Unidad ${b.numero} · última posición conocida` : `Unidad ${b.numero}`, { direction: 'top', offset: [0, -14] })
+        .addTo(capa);
     }
   }, [buses]);
 

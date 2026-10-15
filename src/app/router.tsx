@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { createBrowserRouter, Navigate, Outlet } from 'react-router';
 import { AppChrome } from './AppChrome';
+import { ErrorPantalla } from '../features/public/NoEncontrada';
 import { RequireAuth } from './RequireAuth';
 
 const MarketplaceHome = lazy(() => import('../features/public/MarketplaceHome'));
@@ -9,6 +10,7 @@ const Asientos = lazy(() => import('../features/public/Asientos'));
 const Checkout = lazy(() => import('../features/public/Checkout'));
 const Boleto = lazy(() => import('../features/public/Boleto'));
 const Acceso = lazy(() => import('../features/public/Acceso'));
+const NoEncontrada = lazy(() => import('../features/public/NoEncontrada'));
 const MisBoletos = lazy(() => import('../features/cuenta/MisBoletos'));
 const MetodosPago = lazy(() => import('../features/cuenta/MetodosPago'));
 const MiWallet = lazy(() => import('../features/cuenta/MiWallet'));
@@ -74,6 +76,7 @@ function AppLayout() {
 export const router = createBrowserRouter([
   {
     element: <AppLayout />,
+    errorElement: <ErrorPantalla />,
     children: [
       { path: '/', element: <MarketplaceHome /> },
       // Compra global (marketplace: todas las empresas)
@@ -245,7 +248,7 @@ export const router = createBrowserRouter([
       { path: '/flota', element: <Navigate to="/empresa/unidades" replace /> },
       { path: '/flota/:unidadId', element: <Navigate to="/empresa/unidades" replace /> },
       // Sin rutas huérfanas: cualquier URL desconocida vuelve al marketplace
-      { path: '*', element: <Navigate to="/" replace /> },
+      { path: '*', element: <NoEncontrada /> },
     ],
   },
 ]);
