@@ -423,12 +423,9 @@ export const crearEmpresa = (datos: {
   razonSocial?: string;
   terminalBase?: string;
   telefono?: string;
-  /** Contrato inicial (todos los módulos): comisión por boleto y monto mensual por bus. */
-  comisionPct?: number;
-  montoBusUsd?: number;
   logoId?: number;
   admin: { username: string; password: string; nombreCorto?: string };
-}) => api<{ documentId: string; slug: string }>('/api/admin/empresas', { method: 'POST', body: datos });
+}) => api<{ documentId: string; slug: string; contrato: null }>('/api/admin/empresas', { method: 'POST', body: datos });
 export const actualizarEmpresa = (documentId: string, datos: Record<string, unknown>) =>
   api<{ actualizada: boolean }>(`/api/admin/empresas/${documentId}`, { method: 'PUT', body: datos });
 export const getAdminLiquidaciones = (estado: string) =>
@@ -540,7 +537,8 @@ export const getConciliacion = () => api<Conciliacion>('/api/admin/wallet/concil
 export interface UnidadUrbana {
   unidad: { documentId: string; numero: string };
   linea: { nombre: string };
-  ruta: { documentId?: string; nombre: string; tarifaBs: number };
+  /** `null` = la unidad no tiene ruta urbana guardada: no cobra. */
+  ruta: { documentId?: string; nombre: string; tarifaBs: number } | null;
   enServicio: boolean;
 }
 export const getUnidadUrbana = (documentId: string) =>
@@ -834,7 +832,7 @@ export interface ResumenContratoLinea {
   linea: { documentId: string; nombre: string; slug: string; activa: boolean };
   contrato: Contrato | null;
 }
-/** Lo que ve el personal de una línea: `sinContrato` = todo abierto (transición); `vencido` = nada abierto. */
+/** Lo que ve el personal de una línea: `sinContrato` y `vencido` = nada abierto. */
 export interface MiContrato {
   sinContrato: boolean;
   /** La boletería de la línea carga rutas y salidas por la API: el panel queda en solo lectura. */
