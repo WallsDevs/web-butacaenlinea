@@ -180,7 +180,7 @@ export default function MiWallet() {
       </div>
 
       {retirando && (
-        <div className={styles.velo} onClick={() => setRetirando(false)}>
+        <div className={styles.velo}>
           <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
             <h3 style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>Retirar saldo</h3>
             <p style={{ fontSize: 13, color: 'var(--text-soft)', marginBottom: 14 }}>
@@ -220,7 +220,7 @@ export default function MiWallet() {
       )}
 
       {recargando && (
-        <div className={styles.velo} onClick={() => setRecargando(false)}>
+        <div className={styles.velo}>
           <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
             <h3 style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>Recargar wallet</h3>
             <p style={{ fontSize: 13, color: 'var(--text-soft)', marginBottom: 14 }}>

@@ -186,7 +186,7 @@ export function ServicioUrbanoCard({
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {(rutas ?? []).length === 0 && (
             <div style={{ fontSize: 13, color: 'var(--text-faint)' }}>
-              Esta empresa todavía no tiene rutas urbanas. Créalas en Rutas.
+              Esta empresa todavía no tiene rutas urbanas. Créalas en Salidas y rutas.
             </div>
           )}
           {(rutas ?? []).map((r) => {
@@ -271,7 +271,7 @@ export function ServicioUrbanoCard({
       )}
 
       {modalQr && (
-        <div className={styles.velo} onClick={() => setModalQr(false)}>
+        <div className={styles.velo}>
           <div className={styles.modal} onClick={(e) => e.stopPropagation()} style={{ maxWidth: 420 }}>
             <div className="ficha-imprimible" style={{ textAlign: 'center', padding: '10px 0', background: '#fff' }}>
               <div style={{ fontSize: 13, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-faint)' }}>

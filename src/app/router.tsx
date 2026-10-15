@@ -21,8 +21,7 @@ const TasasPos = lazy(() => import('../features/pos/TasasPos'));
 const MiUnidad = lazy(() => import('../features/chofer/MiUnidad'));
 const EmpresaLayout = lazy(() => import('../features/empresa/EmpresaLayout'));
 const EmpresaDashboard = lazy(() => import('../features/empresa/EmpresaDashboard'));
-const EmpresaSalidas = lazy(() => import('../features/empresa/EmpresaSalidas'));
-const EmpresaRutas = lazy(() => import('../features/empresa/EmpresaRutas'));
+const EmpresaProgramacion = lazy(() => import('../features/empresa/EmpresaProgramacion'));
 const EmpresaPersonal = lazy(() => import('../features/empresa/EmpresaPersonal'));
 const EmpresaBoletos = lazy(() => import('../features/empresa/EmpresaBoletos'));
 const EmpresaReportes = lazy(() => import('../features/empresa/EmpresaReportes'));
@@ -229,8 +228,8 @@ export const router = createBrowserRouter([
         ),
         children: [
           { index: true, element: <EmpresaDashboard /> },
-          { path: 'salidas', element: <EmpresaSalidas /> },
-          { path: 'rutas', element: <EmpresaRutas /> },
+          { path: 'salidas', element: <EmpresaProgramacion /> },
+          { path: 'rutas', element: <Navigate to="/empresa/salidas?tab=rutas" replace /> },
           { path: 'unidades', element: <FlotaLista /> },
           { path: 'unidades/:unidadId', element: <FichaUnidad /> },
           { path: 'personal', element: <EmpresaPersonal /> },

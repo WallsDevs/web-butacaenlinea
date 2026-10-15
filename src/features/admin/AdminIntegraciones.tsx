@@ -175,7 +175,7 @@ function NuevaIntegracion({ onCerrar, onCreada }: { onCerrar: () => void; onCrea
     onError: (e) => setError(e instanceof ApiError ? (MENSAJES[e.code] ?? e.code) : 'No se pudo crear.'),
   });
   return (
-    <div className={styles.velo} onClick={onCerrar}>
+    <div className={styles.velo}>
       <div className={styles.modal} style={{ maxWidth: 520 }} onClick={(e) => e.stopPropagation()}>
         <h3 style={{ fontSize: 20, fontWeight: 700, marginBottom: 14 }}>Nueva integración</h3>
         <label className={ui.field}>

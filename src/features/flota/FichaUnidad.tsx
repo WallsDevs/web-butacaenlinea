@@ -650,7 +650,7 @@ function ModalNuevaOrden({
   };
 
   return (
-    <div className={styles.velo} onClick={() => onCerrar(false)}>
+    <div className={styles.velo}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <h3 style={{ fontSize: 20, fontWeight: 700 }}>Nueva orden de trabajo</h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 18 }}>
@@ -696,7 +696,7 @@ function ModalReemplazo({ caucho, onCerrar }: { caucho: CauchoDto; onCerrar: (he
   };
 
   return (
-    <div className={styles.velo} onClick={() => onCerrar(false)}>
+    <div className={styles.velo}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <h3 style={{ fontSize: 20, fontWeight: 700 }}>Reemplazo en {caucho.posicion}</h3>
         <p style={{ fontSize: 13, color: 'var(--text-soft)', marginTop: 4 }}>

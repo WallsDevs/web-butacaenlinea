@@ -161,7 +161,7 @@ function FormularioConector({ conector, onCerrar, onListo }: { conector?: Conect
   });
 
   return (
-    <div className={styles.velo} onClick={onCerrar}>
+    <div className={styles.velo}>
       <div className={styles.modal} style={{ maxWidth: 620 }} onClick={(e) => e.stopPropagation()}>
         <h3 style={{ fontSize: 20, fontWeight: 700, marginBottom: 14 }}>{conector ? `Configuración · ${conector.linea.nombre}` : 'Nuevo conector'}</h3>
         {!conector && (
