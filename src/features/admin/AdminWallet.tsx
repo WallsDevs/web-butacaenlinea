@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  fijarPagoMovilPlataforma,
+  getPagoMovilPlataforma,
+  type PagoMovilPlataforma,
   getConciliacion,
   getRecargasPendientes,
   getRetirosPendientes,
@@ -71,6 +74,8 @@ export default function AdminWallet() {
       <h2 style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 16 }}>
         Wallet de la plataforma
       </h2>
+
+      <PagoMovilCard />
 
       {/* Conciliación: el espejo del banco */}
       <div className={ui.card} style={{ padding: 20, marginBottom: 18 }}>
@@ -220,6 +225,70 @@ export default function AdminWallet() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+/** La cuenta a la que recargan los pasajeros: sin esto, el modal de recarga de la PWA no sabe a dónde mandar el pago. */
+function PagoMovilCard() {
+  const queryClient = useQueryClient();
+  const { data: actual, isLoading } = useQuery({ queryKey: ['pago-movil-plataforma'], queryFn: getPagoMovilPlataforma });
+  const [form, setForm] = useState<{ banco: string; telefono: string; documento: string; titular: string; nota: string } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const guardar = useMutation({
+    mutationFn: () => fijarPagoMovilPlataforma({ banco: form!.banco.trim(), telefono: form!.telefono.trim(), documento: form!.documento.trim(), titular: form!.titular.trim() || undefined, nota: form!.nota.trim() || undefined }),
+    onSuccess: (r: PagoMovilPlataforma) => {
+      queryClient.setQueryData(['pago-movil-plataforma'], r);
+      setForm(null);
+      setError(null);
+    },
+    onError: () => setError('No se pudo guardar. Banco, teléfono y cédula/RIF son obligatorios.'),
+  });
+  const abrir = () => setForm({ banco: actual?.banco ?? '', telefono: actual?.telefono ?? '', documento: actual?.documento ?? '', titular: actual?.titular ?? '', nota: actual?.nota ?? '' });
+  const campo = (etiqueta: string, clave: 'banco' | 'telefono' | 'documento' | 'titular' | 'nota', placeholder: string) => (
+    <label className={ui.field}>
+      <span className={ui.fieldLabel}>{etiqueta}</span>
+      <input className={ui.fieldInput} value={form![clave]} placeholder={placeholder} onChange={(e) => setForm({ ...form!, [clave]: e.target.value })} />
+    </label>
+  );
+  return (
+    <div className={ui.card} style={{ padding: 20, marginBottom: 18 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ flex: 1, minWidth: 240 }}>
+          <div style={{ fontSize: 12, color: 'var(--text-faint)' }}>Datos de pago móvil de Butaca (los ve el pasajero al recargar)</div>
+          {isLoading ? (
+            <div style={{ fontSize: 14, color: 'var(--text-soft)', marginTop: 4 }}>Cargando…</div>
+          ) : actual ? (
+            <div style={{ fontSize: 15, fontWeight: 600, marginTop: 4 }}>
+              {actual.banco} · {actual.telefono} · {actual.documento}
+              {actual.titular ? <span style={{ fontWeight: 400, color: 'var(--text-soft)' }}> · {actual.titular}</span> : null}
+            </div>
+          ) : (
+            <div style={{ fontSize: 14, color: 'var(--bad-text)', marginTop: 4 }}>Sin publicar: los pasajeros no saben a dónde pagar su recarga.</div>
+          )}
+        </div>
+        {!form && (
+          <button className={ui.btnSecondary} style={{ fontSize: 14 }} onClick={abrir}>
+            {actual ? 'Editar' : 'Publicar datos'}
+          </button>
+        )}
+      </div>
+      {form && (
+        <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
+          {campo('Banco', 'banco', 'Banesco')}
+          {campo('Teléfono', 'telefono', '0412-0000000')}
+          {campo('Cédula o RIF', 'documento', 'J-12345678-9')}
+          {campo('Titular (opcional)', 'titular', 'Butaca En Línea C.A.')}
+          {campo('Nota (opcional)', 'nota', 'Pon tu nombre en el concepto')}
+          <div style={{ gridColumn: '1 / -1', display: 'flex', gap: 10, justifyContent: 'flex-end', alignItems: 'center' }}>
+            {error && <span style={{ fontSize: 13, color: 'var(--bad-text)', marginRight: 'auto' }}>{error}</span>}
+            <button className={ui.btnSecondary} onClick={() => setForm(null)}>Cancelar</button>
+            <button className={ui.btnPrimary} disabled={!form.banco.trim() || !form.telefono.trim() || !form.documento.trim() || guardar.isPending} onClick={() => guardar.mutate()}>
+              Guardar
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

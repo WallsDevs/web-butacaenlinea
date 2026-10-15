@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { getWallet, reportarRecarga, solicitarRetiro } from '../../lib/api/endpoints';
+import { getPagoMovilPlataforma, getWallet, reportarRecarga, solicitarRetiro } from '../../lib/api/endpoints';
 import { ApiError } from '../../lib/api/client';
 import { fechaCorta, hora } from '../../lib/time';
 import { Field } from '../../components/ui/Field';
@@ -20,6 +20,13 @@ const NOMBRE_MOV: Record<string, string> = {
 };
 
 const bs = (n: number) => `Bs ${n.toLocaleString('es-VE', { minimumFractionDigits: 2 })}`;
+/** «100,50» y «1.250,00» (como se escribe aquí) valen igual que «100.50». */
+const montoDe = (texto: string): number => {
+  const limpio = texto.trim().replace(/\s/g, '');
+  const normal = /,\d{1,2}$/.test(limpio) ? limpio.replace(/\./g, '').replace(',', '.') : limpio.replace(/,/g, '');
+  const n = Number(normal);
+  return Number.isFinite(n) ? n : 0;
+};
 
 /**
  * Wallet del pasajero (PWA): recarga por pago móvil reportada con referencia
@@ -39,6 +46,9 @@ export default function MiWallet() {
     queryFn: getWallet,
     refetchInterval: 20_000,
   });
+  const { data: pagoMovil, isLoading: cargandoPagoMovil } = useQuery({ queryKey: ['pago-movil-plataforma'], queryFn: getPagoMovilPlataforma, staleTime: 300_000 });
+  const recargasPendientes = (wallet?.movimientos ?? []).filter((m) => m.tipo === 'recarga' && m.estado === 'pendiente');
+  const copiar = (t: string) => void navigator.clipboard?.writeText(t).catch(() => {});
 
   const [retirando, setRetirando] = useState(false);
   const [formRetiro, setFormRetiro] = useState({ montoBs: '', datosPago: '' });
@@ -62,7 +72,7 @@ export default function MiWallet() {
   });
 
   const reportar = useMutation({
-    mutationFn: () => reportarRecarga(Number(form.montoBs), form.referencia, form.banco || undefined),
+    mutationFn: () => reportarRecarga(montoDe(form.montoBs), form.referencia.trim(), form.banco || undefined),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wallet'] });
       setRecargando(false);
@@ -76,8 +86,12 @@ export default function MiWallet() {
         code === 'referencia_duplicada'
           ? 'Esa referencia ya fue reportada.'
           : code === 'monto_invalido'
-            ? 'Revisa el monto.'
-            : 'No se pudo reportar la recarga.'
+            ? 'Revisa el monto: debe ser mayor que cero.'
+            : code === 'referencia_requerida'
+              ? 'Escribe la referencia del pago móvil.'
+              : code === 'solo_pasajero'
+                ? 'Solo las cuentas de pasajero recargan wallet. Entra con tu cuenta de pasajero.'
+                : 'No se pudo reportar la recarga. Revisa tu conexión e inténtalo de nuevo.'
       );
     },
   });
@@ -89,6 +103,13 @@ export default function MiWallet() {
         <div style={{ fontSize: 40, fontWeight: 700, letterSpacing: '-0.02em', margin: '6px 0 14px' }}>
           {isLoading ? '…' : bs(wallet?.saldoBs ?? 0)}
         </div>
+        {recargasPendientes.length > 0 && (
+          <div style={{ marginBottom: 12 }}>
+            <StatusChip tono="warn" size="sm">
+              {recargasPendientes.length === 1 ? 'Recarga' : `${recargasPendientes.length} recargas`} de {bs(recargasPendientes.reduce((s, m) => s + m.montoBs, 0))} por confirmar
+            </StatusChip>
+          </div>
+        )}
         <button
           className={`${ui.btnPrimary} ${ui.btnPrimaryLg}`}
           style={{ width: '100%' }}
@@ -223,14 +244,32 @@ export default function MiWallet() {
         <div className={styles.velo}>
           <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
             <h3 style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>Recargar wallet</h3>
-            <p style={{ fontSize: 13, color: 'var(--text-soft)', marginBottom: 14 }}>
-              1) Haz el pago móvil a la cuenta de Butaca En Línea · 2) Reporta aquí el monto y la
-              referencia · 3) Tu saldo se acredita al confirmarse el pago.
+            <p style={{ fontSize: 13, color: 'var(--text-soft)', marginBottom: 12 }}>
+              1) Haz el pago móvil a esta cuenta · 2) Reporta aquí el monto y la referencia · 3) Tu
+              saldo se acredita cuando la plataforma confirme el pago.
             </p>
+            {cargandoPagoMovil ? (
+              <div style={{ fontSize: 13, color: 'var(--text-faint)', marginBottom: 12 }}>Cargando los datos de pago…</div>
+            ) : pagoMovil ? (
+              <div style={{ background: 'var(--tint-50)', borderRadius: 'var(--r-14)', padding: '12px 14px', marginBottom: 14, display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: '6px 12px', alignItems: 'center', fontSize: 14 }}>
+                <span style={{ color: 'var(--text-faint)' }}>Banco</span><strong>{pagoMovil.banco}</strong><span />
+                <span style={{ color: 'var(--text-faint)' }}>Teléfono</span><strong>{pagoMovil.telefono}</strong>
+                <button className={ui.btnGhost} style={{ fontSize: 12 }} onClick={() => copiar(pagoMovil.telefono)}>Copiar</button>
+                <span style={{ color: 'var(--text-faint)' }}>Cédula/RIF</span><strong>{pagoMovil.documento}</strong>
+                <button className={ui.btnGhost} style={{ fontSize: 12 }} onClick={() => copiar(pagoMovil.documento)}>Copiar</button>
+                {pagoMovil.titular && (<><span style={{ color: 'var(--text-faint)' }}>Titular</span><span>{pagoMovil.titular}</span><span /></>)}
+                {pagoMovil.nota && <div style={{ gridColumn: '1 / -1', fontSize: 12, color: 'var(--text-soft)' }}>{pagoMovil.nota}</div>}
+              </div>
+            ) : (
+              <div style={{ background: 'var(--warn-bg)', color: 'var(--warn-text-alert)', borderRadius: 'var(--r-14)', padding: '12px 14px', marginBottom: 14, fontSize: 13 }}>
+                La plataforma todavía no publicó sus datos de pago móvil. Escríbenos por WhatsApp para recargar.
+              </div>
+            )}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <Field
                 label="Monto (Bs)"
-                type="number"
+                inputMode="decimal"
+                placeholder="100,00"
                 value={form.montoBs}
                 onChange={(e) => setForm({ ...form, montoBs: e.target.value })}
                 autoFocus
@@ -244,13 +283,18 @@ export default function MiWallet() {
                 <Field label="Banco (opcional)" value={form.banco} onChange={(e) => setForm({ ...form, banco: e.target.value })} />
               </div>
               {error && <div style={{ fontSize: 13, color: 'var(--bad-text)' }}>{error}</div>}
+              {!error && (!(montoDe(form.montoBs) > 0) || !form.referencia.trim()) && (
+                <div style={{ fontSize: 12, color: 'var(--text-faint)' }}>
+                  {!(montoDe(form.montoBs) > 0) ? 'Escribe el monto que pagaste (en bolívares).' : 'Falta la referencia del pago móvil.'}
+                </div>
+              )}
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
                 <button className={ui.btnSecondary} onClick={() => setRecargando(false)}>
                   Cancelar
                 </button>
                 <button
                   className={ui.btnPrimary}
-                  disabled={!(Number(form.montoBs) > 0) || !form.referencia.trim() || reportar.isPending}
+                  disabled={!(montoDe(form.montoBs) > 0) || !form.referencia.trim() || reportar.isPending}
                   onClick={() => reportar.mutate()}
                 >
                   {reportar.isPending ? 'Reportando…' : 'Reportar recarga'}

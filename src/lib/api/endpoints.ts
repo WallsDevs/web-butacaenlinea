@@ -508,6 +508,17 @@ export const reportarRecarga = (montoBs: number, referencia: string, banco?: str
     method: 'POST',
     body: { montoBs, referencia, banco },
   });
+/** A dónde transfiere el pasajero para recargar: lo fija el superadmin; `null` si aún no lo publicó. */
+export interface PagoMovilPlataforma {
+  banco: string;
+  telefono: string;
+  documento: string;
+  titular: string | null;
+  nota: string | null;
+}
+export const getPagoMovilPlataforma = () => api<PagoMovilPlataforma | null>('/api/ajustes/pago-movil', { auth: false });
+export const fijarPagoMovilPlataforma = (datos: { banco: string; telefono: string; documento: string; titular?: string; nota?: string }) =>
+  api<PagoMovilPlataforma>('/api/admin/ajustes/pago-movil', { method: 'PUT', body: datos });
 
 export interface RecargaPendiente {
   documentId: string;
