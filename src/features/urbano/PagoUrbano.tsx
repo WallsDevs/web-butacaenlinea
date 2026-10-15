@@ -125,7 +125,7 @@ export default function PagoUrbano() {
 
   // Jornada no iniciada: el QR no cobra (estilo Uber — el conductor debe
   // "Iniciar ruta" en su app). El refetch de 10 s lo despierta solo.
-  if (!info.enServicio) {
+  if (!info.enServicio || !info.ruta) {
     return (
       <div style={{ maxWidth: 430, margin: '0 auto', padding: '32px 16px' }}>
         <div className={ui.card} style={{ padding: 30, textAlign: 'center' }}>
@@ -134,18 +134,19 @@ export default function PagoUrbano() {
             Esta buseta no está en servicio en este momento
           </div>
           <div style={{ fontSize: 14, color: 'var(--text-soft)', marginTop: 8 }}>
-            {info.linea.nombre} · Unidad {info.unidad.numero} · {info.ruta.nombre}
+            {info.linea.nombre} · Unidad {info.unidad.numero}{info.ruta ? ` · ${info.ruta.nombre}` : ''}
           </div>
           <div style={{ fontSize: 13, color: 'var(--text-faint)', marginTop: 14, lineHeight: 1.5 }}>
-            El cobro se activa cuando el conductor inicia su ruta. Si estás a bordo,
-            avísale al colector. Esta pantalla se actualiza sola.
+            {info.ruta
+              ? 'El cobro se activa cuando el conductor inicia su ruta. Si estás a bordo, avísale al colector. Esta pantalla se actualiza sola.'
+              : 'Esta buseta todavía no tiene una ruta de cobro configurada por su línea.'}
           </div>
         </div>
-        {info.ruta.documentId && (
+        {info.ruta?.documentId && (
           <button
             className={ui.btnSecondary}
             style={{ width: '100%', marginTop: 12 }}
-            onClick={() => navigate(`/mapa/${info.ruta.documentId}`)}
+            onClick={() => navigate(`/mapa/${info.ruta?.documentId}`)}
           >
             🗺 Ver la ruta en el mapa
           </button>
@@ -197,11 +198,11 @@ export default function PagoUrbano() {
           </>
         )}
       </div>
-      {info.ruta.documentId && (
+      {info.ruta?.documentId && (
         <button
           className={ui.btnSecondary}
           style={{ width: '100%', marginTop: 12 }}
-          onClick={() => navigate(`/mapa/${info.ruta.documentId}`)}
+          onClick={() => navigate(`/mapa/${info.ruta?.documentId}`)}
         >
           🗺 Ver la ruta y las busetas en el mapa
         </button>

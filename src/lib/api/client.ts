@@ -4,7 +4,9 @@
  */
 import { useAuth } from '../../stores/auth';
 
-export const API_URL: string = import.meta.env.VITE_API_URL ?? 'http://localhost:1337';
+export const API_URL: string = import.meta.env.VITE_API_URL ?? 'http://localhost:1340';
+/** URL pública de esta web: va dentro de los QR impresos (nunca la del equipo donde se imprimió). */
+export const WEB_URL: string = (import.meta.env.VITE_WEB_URL as string | undefined)?.replace(/\/$/, '') || window.location.origin;
 
 export class ApiError extends Error {
   status: number;

@@ -6,7 +6,7 @@ import { router } from './app/router';
 import { ApiError } from './lib/api/client';
 import './styles/base.css';
 
-const esDeContrato = (e: unknown) => e instanceof ApiError && (e.code === 'modulo_no_contratado' || e.code === 'contrato_vencido' || e.code === 'modulo_suspendido_por_pago');
+const esDeContrato = (e: unknown) => e instanceof ApiError && (e.code === 'modulo_no_contratado' || e.code === 'contrato_vencido' || e.code === 'sin_contrato' || e.code === 'modulo_suspendido_por_pago');
 
 const queryClient: QueryClient = new QueryClient({
   // La compuerta del backend manda: si negó por contrato, el contrato que la web

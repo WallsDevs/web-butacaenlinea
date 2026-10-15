@@ -9,6 +9,7 @@ import {
   guardarServicioUrbano,
 } from '../../lib/api/endpoints';
 import { StatusChip } from '../../components/ui/StatusChip';
+import { WEB_URL } from '../../lib/api/client';
 import ui from '../../components/ui/ui.module.css';
 import styles from '../flota/flota.module.css';
 
@@ -83,8 +84,9 @@ export function ServicioUrbanoCard({
   const suma = (Number(form.lineaPct) || 0) + (Number(form.propietarioPct) || 0) + (Number(form.conductorPct) || 0);
   const sumaOk = Math.round(suma * 100) / 100 === 100;
   const necesitaProp = (Number(form.propietarioPct) || 0) > 0;
-  const urlPago = `${window.location.origin}/pagar/${unidadId}`;
-  const tieneRutas = form.rutasUrbanaIds.length > 0;
+  const urlPago = `${WEB_URL}/pagar/${unidadId}`;
+  // El QR solo sirve con la ruta GUARDADA: marcarla en el formulario sin guardar no activa nada
+  const tieneRutas = (config?.rutasUrbanaIds?.length ?? 0) > 0;
   // Para el QR impreso: la que está haciendo ahora, o la única del catálogo
   const rutaSel =
     (rutas ?? []).find((r) => r.documentId === config?.turnoEnCurso?.rutaId) ??
