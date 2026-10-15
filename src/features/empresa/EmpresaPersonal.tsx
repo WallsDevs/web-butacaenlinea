@@ -140,6 +140,25 @@ export default function EmpresaPersonal() {
   const claveOk = usaPin ? /^\d{6}$/.test(form.password) : form.password.length >= 6;
   const claveOkAlEditar = form.password.length === 0 || claveOk;
 
+  // Conductor/colector usan PIN de 6 dígitos y el resto contraseña: al cambiar de tipo
+  // la clave escrita deja de valer (y el campo la oculta), así que se limpia.
+  const cambiarRol = (rol: typeof form.rol) => {
+    const pinNuevo = rol === 'chofer' || rol === 'colector';
+    setForm({ ...form, rol, password: pinNuevo !== usaPin ? '' : form.password });
+  };
+  // Qué falta para habilitar el botón (se muestra bajo el campo, no solo se deshabilita)
+  const falta = editando
+    ? null
+    : !form.nombreCorto.trim()
+      ? 'Falta el nombre.'
+      : !form.username.trim()
+        ? 'Falta el usuario.'
+        : !claveOk
+          ? usaPin
+            ? 'La clave debe tener exactamente 6 dígitos.'
+            : 'La contraseña debe tener al menos 6 caracteres.'
+          : null;
+
   return (
     <div className={styles.contenido}>
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: 16 }}>
@@ -215,7 +234,7 @@ export default function EmpresaPersonal() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div className={ui.pillGroup} style={{ alignSelf: 'flex-start' }}>
                 {(['cajero', 'chofer', 'colector', 'empresa'] as const).map((r) => (
-                  <button key={r} className={`${ui.pill} ${form.rol === r ? ui.pillActive : ''}`} onClick={() => setForm({ ...form, rol: r })}>
+                  <button key={r} className={`${ui.pill} ${form.rol === r ? ui.pillActive : ''}`} onClick={() => cambiarRol(r)}>
                     {NOMBRE_ROL[r]}
                   </button>
                 ))}
@@ -310,6 +329,7 @@ export default function EmpresaPersonal() {
                 <Field label="Cédula del conductor" value={form.cedula} onChange={(e) => setForm({ ...form, cedula: e.target.value })} />
               )}
               {error && <div style={{ fontSize: 13, color: 'var(--bad-text)' }}>{error}</div>}
+              {falta && !error && <div style={{ fontSize: 13, color: 'var(--text-soft)' }}>{falta}</div>}
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
                 <button className={ui.btnSecondary} onClick={cerrarModal}>
                   Cancelar
@@ -319,7 +339,7 @@ export default function EmpresaPersonal() {
                   disabled={
                     editando
                       ? !form.nombreCorto || !claveOkAlEditar || actualizar.isPending
-                      : !form.username || !claveOk || !form.nombreCorto || crear.isPending
+                      : Boolean(falta) || crear.isPending
                   }
                   onClick={() => (editando ? actualizar.mutate() : crear.mutate())}
                 >
