@@ -16,32 +16,78 @@ export interface SeccionModulo {
   modulos?: ClaveModulo[];
 }
 
-export const SECCIONES_ADMIN: SeccionModulo[] = [
-  { id: 'dashboard', label: 'Dashboard', ruta: '/admin' },
-  { id: 'empresas', label: 'Empresas', ruta: '/admin/empresas' },
-  { id: 'contratos', label: 'Contratos', ruta: '/admin/contratos' },
-  { id: 'integraciones', label: 'Integraciones', ruta: '/admin/integraciones' },
-  { id: 'conectores', label: 'Conectores', ruta: '/admin/conectores' },
-  { id: 'liquidaciones', label: 'Liquidaciones', ruta: '/admin/liquidaciones' },
-  { id: 'facturas', label: 'Facturas', ruta: '/admin/facturas' },
-  { id: 'tasas', label: 'Tasas', ruta: '/admin/tasas' },
-  { id: 'auditoria', label: 'Auditoría', ruta: '/admin/auditoria' },
-  { id: 'wallet', label: 'Wallet', ruta: '/admin/wallet' },
-  { id: 'seguridad', label: 'Seguridad', ruta: '/admin/seguridad' },
+/** Varias secciones bajo una sola etiqueta: se despliega como un submenú. */
+export interface GrupoNav {
+  id: string;
+  label: string;
+  items: SeccionModulo[];
+}
+export type EntradaNav = SeccionModulo | GrupoNav;
+export const esGrupo = (e: EntradaNav): e is GrupoNav => 'items' in e;
+
+const sec = (label: string, ruta: string, modulos?: ClaveModulo[]): SeccionModulo => ({ id: ruta, label, ruta, modulos });
+
+/** Superadmin: UN solo menú. 11 secciones agrupadas por lo que el dueño hace con ellas. */
+export const MENU_ADMIN: EntradaNav[] = [
+  sec('Dashboard', '/admin'),
+  {
+    id: 'clientes',
+    label: 'Clientes',
+    items: [sec('Empresas', '/admin/empresas'), sec('Contratos', '/admin/contratos'), sec('Integraciones', '/admin/integraciones'), sec('Conectores', '/admin/conectores')],
+  },
+  {
+    id: 'finanzas',
+    label: 'Finanzas',
+    items: [sec('Liquidaciones', '/admin/liquidaciones'), sec('Facturas', '/admin/facturas'), sec('Tasas', '/admin/tasas'), sec('Wallet', '/admin/wallet')],
+  },
+  { id: 'sistema', label: 'Sistema', items: [sec('Auditoría', '/admin/auditoria'), sec('Seguridad', '/admin/seguridad')] },
 ];
 
-export const SECCIONES_EMPRESA: SeccionModulo[] = [
-  { id: 'dashboard', label: 'Dashboard', ruta: '/empresa' },
-  { id: 'salidas', label: 'Salidas y rutas', ruta: '/empresa/salidas', modulos: ['boleteria', 'urbano'] },
-  { id: 'unidades', label: 'Unidades', ruta: '/empresa/unidades' },
-  { id: 'flota-vivo', label: 'Flota en vivo', ruta: '/empresa/flota-en-vivo', modulos: ['mantenimiento', 'urbano'] },
-  { id: 'personal', label: 'Personal', ruta: '/empresa/personal' },
-  { id: 'pagos', label: 'Pagos', ruta: '/empresa/pagos', modulos: ['boleteria'] },
-  { id: 'boletos', label: 'Boletos', ruta: '/empresa/boletos', modulos: ['boleteria'] },
-  { id: 'reportes', label: 'Reportes', ruta: '/empresa/reportes', modulos: ['boleteria', 'urbano'] },
-  { id: 'facturas', label: 'Facturas', ruta: '/empresa/facturas' },
-  { id: 'configuracion', label: 'Configuración', ruta: '/empresa/configuracion' },
+/**
+ * Empresa: UN solo menú para todo lo que su administrador puede hacer —gestión,
+ * taquilla y abordaje—. Antes eran tres barras distintas y el cambio entre
+ * ellas se escondía en el menú del avatar.
+ */
+export const MENU_EMPRESA: EntradaNav[] = [
+  sec('Dashboard', '/empresa'),
+  {
+    id: 'flota',
+    label: 'Flota',
+    items: [sec('Unidades', '/empresa/unidades', ['flota']), sec('Flota en vivo', '/empresa/flota-en-vivo', ['mantenimiento', 'urbano']), sec('Personal', '/empresa/personal', ['flota'])],
+  },
+  {
+    id: 'ventas',
+    label: 'Ventas',
+    items: [
+      sec('Salidas', '/empresa/salidas', ['boleteria']),
+      sec('Rutas', '/empresa/rutas', ['boleteria', 'urbano']),
+      sec('Boletos', '/empresa/boletos', ['boleteria']),
+      sec('Pagos', '/empresa/pagos', ['boleteria']),
+      sec('Reportes', '/empresa/reportes', ['boleteria', 'urbano']),
+    ],
+  },
+  {
+    id: 'taquilla',
+    label: 'Taquilla',
+    items: [
+      sec('Vender', '/pos', ['taquilla']),
+      sec('Mis ventas', '/pos/ventas', ['taquilla']),
+      sec('Pagos web', '/pos/pagos', ['taquilla']),
+      sec('Tasas', '/pos/tasas', ['taquilla']),
+      sec('Reportes de turno', '/pos/reportes', ['taquilla']),
+      sec('Cierre de turno', '/pos/cierre', ['taquilla']),
+    ],
+  },
+  {
+    id: 'abordaje',
+    label: 'Abordaje',
+    items: [sec('Escáner', '/chofer', ['boleteria']), sec('Manifiesto', '/chofer/manifiesto', ['boleteria']), sec('Mi unidad', '/chofer/unidad', ['mantenimiento']), sec('Cobros urbanos', '/colector', ['urbano'])],
+  },
+  { id: 'cuenta', label: 'Administración', items: [sec('Facturas', '/empresa/facturas'), sec('Configuración', '/empresa/configuracion')] },
 ];
+
+/** Rutas donde el administrador de la empresa ve su menú completo. */
+export const AREAS_EMPRESA = ['/empresa', '/flota', '/pos', '/chofer', '/colector'];
 
 export const SECCIONES_POS: SeccionModulo[] = [
   { id: 'vender', label: 'Vender', ruta: '/pos' },
@@ -74,9 +120,26 @@ export function seccionesVisibles(secciones: SeccionModulo[], modulos: ClaveModu
   return secciones.filter((s) => !s.modulos || s.modulos.some((m) => modulos.includes(m)));
 }
 
+/** Lo mismo sobre un menú con grupos: los grupos que se quedan sin secciones desaparecen. */
+export function menuVisible(menu: EntradaNav[], modulos: ClaveModulo[] | null): EntradaNav[] {
+  const salida: EntradaNav[] = [];
+  for (const e of menu) {
+    if (!esGrupo(e)) {
+      if (seccionesVisibles([e], modulos).length) salida.push(e);
+      continue;
+    }
+    const items = seccionesVisibles(e.items, modulos);
+    if (items.length) salida.push({ ...e, items });
+  }
+  return salida;
+}
+
+export const planoDe = (menu: EntradaNav[]): SeccionModulo[] => menu.flatMap((e) => (esGrupo(e) ? e.items : [e]));
+
+/** La sección que corresponde a la URL: la ruta más específica que la contiene. */
 export function seccionDe(secciones: SeccionModulo[], pathname: string): string {
   const encontrada = [...secciones]
     .sort((a, b) => b.ruta.length - a.ruta.length)
-    .find((s) => pathname.startsWith(s.ruta));
-  return encontrada?.id ?? secciones[0].id;
+    .find((s) => pathname === s.ruta || pathname.startsWith(s.ruta + '/'));
+  return encontrada?.id ?? secciones[0]?.id ?? '';
 }

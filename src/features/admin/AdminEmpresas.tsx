@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { actualizarEmpresa, crearEmpresa, getAdminEmpresas, subirArchivo } from '../../lib/api/endpoints';
+import { actualizarEmpresa, crearEmpresa, getAdminContratos, getAdminEmpresas, subirArchivo } from '../../lib/api/endpoints';
 import { urlMedia } from '../../lib/api/client';
 import { LogoLockup } from '../../components/brand/LogoMark';
 import type { AdminEmpresa } from '../../lib/api/endpoints';
@@ -18,9 +18,6 @@ interface FormEmpresa {
   razonSocial: string;
   terminalBase: string;
   telefono: string;
-  /** Contrato inicial (todos los módulos); después se gestiona en Contratos. */
-  comisionPct: string;
-  montoBusUsd: string;
   adminUsername: string;
   adminPassword: string;
   adminNombre: string;
@@ -32,8 +29,6 @@ const NUEVA: FormEmpresa = {
   razonSocial: '',
   terminalBase: '',
   telefono: '',
-  comisionPct: '5',
-  montoBusUsd: '0',
   adminUsername: '',
   adminPassword: '',
   adminNombre: '',
@@ -57,6 +52,8 @@ export default function AdminEmpresas() {
   } | null>(null);
 
   const { data: empresas, isLoading } = useQuery({ queryKey: ['admin-empresas'], queryFn: getAdminEmpresas });
+  const { data: contratos } = useQuery({ queryKey: ['admin-contratos'], queryFn: getAdminContratos });
+  const contratoDe = new Map((contratos ?? []).map((l) => [l.linea.documentId, l.contrato]));
 
   const cerrar = () => {
     setForm(null);
@@ -74,8 +71,6 @@ export default function AdminEmpresas() {
         razonSocial: f.razonSocial || undefined,
         terminalBase: f.terminalBase || undefined,
         telefono: f.telefono || undefined,
-        comisionPct: Number(f.comisionPct) || 5,
-        montoBusUsd: Number(f.montoBusUsd) || 0,
         logoId,
         admin: { username: f.adminUsername, password: f.adminPassword, nombreCorto: f.adminNombre || undefined },
       });
@@ -126,8 +121,6 @@ export default function AdminEmpresas() {
       razonSocial: e.razonSocial ?? '',
       terminalBase: e.terminalBase ?? '',
       telefono: e.telefono ?? '',
-      comisionPct: String(e.comisionPct),
-      montoBusUsd: '0',
       adminUsername: '',
       adminPassword: '',
       adminNombre: '',
@@ -162,7 +155,7 @@ export default function AdminEmpresas() {
               <th>Empresa</th>
               <th>RIF</th>
               <th>Terminal</th>
-              <th>Comisión</th>
+              <th>Contrato</th>
               <th>Personas</th>
               <th>Alta</th>
               <th>Estado</th>
@@ -195,7 +188,17 @@ export default function AdminEmpresas() {
                 </td>
                 <td style={{ color: 'var(--text-soft)' }}>{e.rif || '—'}</td>
                 <td style={{ color: 'var(--text-soft)' }}>{e.terminalBase || '—'}</td>
-                <td style={{ fontWeight: 600 }}>{e.comisionPct}%</td>
+                <td>
+                  {contratoDe.get(e.documentId) ? (
+                    <Link to="/admin/contratos" style={{ textDecoration: 'none' }}>
+                      <StatusChip tono="ok" size="sm">{contratoDe.get(e.documentId)!.comisionPct}% · v{contratoDe.get(e.documentId)!.version}</StatusChip>
+                    </Link>
+                  ) : (
+                    <Link to="/admin/contratos" style={{ textDecoration: 'none' }}>
+                      <StatusChip tono="bad" size="sm">Sin contrato</StatusChip>
+                    </Link>
+                  )}
+                </td>
                 <td style={{ color: 'var(--text-soft)' }}>{e.usuarios}</td>
                 <td style={{ color: 'var(--text-soft)' }}>{fechaCorta(e.creadaEn)}</td>
                 <td>
@@ -243,7 +246,7 @@ export default function AdminEmpresas() {
             <p style={{ fontSize: 13, color: 'var(--text-soft)', marginBottom: 16 }}>
               {editando
                 ? 'Datos públicos y logo. La comisión y los módulos se gestionan en Contratos.'
-                : 'Se crea la empresa con su taquilla inicial, su primer contrato (todos los módulos) y el usuario administrador con el que entran a su panel.'}
+                : 'Se crea la empresa con su taquilla inicial, y el usuario administrador. Nace SIN contrato: no tendrá ningún módulo hasta que se lo crees en Contratos.'}
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <Field label="Nombre comercial" value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} autoFocus={!editando} />
@@ -331,16 +334,6 @@ export default function AdminEmpresas() {
               </div>
               {!editando && (
                 <>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 6 }}>
-                    Contrato inicial · todos los módulos
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                    <Field label="Comisión por boleto %" type="number" value={form.comisionPct} onChange={(e) => setForm({ ...form, comisionPct: e.target.value })} />
-                    <Field label="Monto mensual por bus (USD)" type="number" value={form.montoBusUsd} onChange={(e) => setForm({ ...form, montoBusUsd: e.target.value })} />
-                  </div>
-                  <div style={{ fontSize: 12, color: 'var(--text-faint)', marginTop: -4 }}>
-                    Qué módulos usa y a qué precio se ajusta después en Contratos, con una versión nueva.
-                  </div>
                   <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 6 }}>
                     Administrador de la empresa
                   </div>

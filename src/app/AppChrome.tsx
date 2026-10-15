@@ -2,24 +2,36 @@ import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { LogoLockup } from '../components/brand/LogoMark';
 import { PillTabs } from '../components/ui/PillTabs';
+import { NavPrincipal } from './NavPrincipal';
 import { useSettings } from '../stores/settings';
 import { useAuth } from '../stores/auth';
 import { useTasasSync } from '../lib/useTasas';
 import { formatearTasaBcv, type Moneda } from '../lib/money';
 import { useModulos } from '../lib/useModulos';
 import {
-  SECCIONES_ADMIN,
+  AREAS_EMPRESA,
+  MENU_ADMIN,
+  MENU_EMPRESA,
   SECCIONES_CHOFER,
   SECCIONES_COLECTOR,
   SECCIONES_CUENTA,
-  SECCIONES_EMPRESA,
   SECCIONES_POS,
-  seccionDe,
-  seccionesVisibles,
+  menuVisible,
+  type EntradaNav,
 } from './navegacion';
 import styles from './AppChrome.module.css';
 
 export const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
+
+/** A dónde lleva «Mi panel» desde las páginas públicas. */
+const HOGAR_POR_ROL: Record<string, string> = {
+  superadmin: '/admin',
+  empresa: '/empresa',
+  cajero: '/pos',
+  chofer: '/chofer',
+  colector: '/colector',
+  cliente: '/cuenta',
+};
 
 type ModuloId = 'web' | 'pos' | 'chofer' | 'empresa';
 
@@ -55,9 +67,11 @@ export function AppChrome() {
   const cerrarSesion = useAuth((s) => s.cerrarSesion);
   const [menuAbierto, setMenuAbierto] = useState(false);
   // Las secciones de la empresa dependen de lo que contrató su línea
-  const { modulos, tiene, contrato, vencido } = useModulos();
+  const { modulos, contrato, vencido, sinContrato } = useModulos();
   // Aviso del contrato: vencido, o a punto de vencer (lo ve todo el personal de la línea)
-  const avisoContrato = vencido
+  const avisoContrato = sinContrato
+    ? 'Tu empresa todavía no tiene un contrato activo, así que ningún módulo está habilitado. Contacta a Butaca En Línea para activarlo.'
+    : vencido
     ? `El contrato de la línea venció${contrato?.venceEn ? ` el ${new Date(`${contrato.venceEn}T12:00:00`).toLocaleDateString('es-VE')}` : ''}: los módulos y la venta de sus salidas están cerrados hasta renovarlo.`
     : contrato?.estado === 'por_vencer'
       ? `El contrato de la línea vence en ${contrato.diasRestantes} ${contrato.diasRestantes === 1 ? 'día' : 'días'}.`
@@ -67,24 +81,22 @@ export function AppChrome() {
   // Un solo patrón para todos los roles: las secciones del módulo viven en esta barra
   const rol = usuario?.role?.type;
   const path = location.pathname;
-  const nav =
+  const enAreaEmpresa = AREAS_EMPRESA.some((a) => path === a || path.startsWith(a + '/'));
+  const nav: { menu: EntradaNav[]; tagline: string; home: string } | null =
     rol === 'superadmin' && path.startsWith('/admin')
-      ? { secciones: SECCIONES_ADMIN, tagline: 'Plataforma', home: '/admin' }
-      : rol === 'empresa' && (path.startsWith('/empresa') || path.startsWith('/flota'))
-        ? {
-            secciones: seccionesVisibles(SECCIONES_EMPRESA, modulos),
-            tagline: usuario?.linea?.nombre ?? 'Mi empresa',
-            home: '/empresa',
-          }
-        : (rol === 'cajero' || rol === 'empresa') && path.startsWith('/pos')
-          ? { secciones: SECCIONES_POS, tagline: usuario?.linea?.nombre ?? 'Punto de venta', home: '/pos' }
+      ? { menu: MENU_ADMIN, tagline: 'Plataforma', home: '/admin' }
+      : rol === 'empresa' && enAreaEmpresa
+        ? { menu: menuVisible(MENU_EMPRESA, modulos), tagline: usuario?.linea?.nombre ?? 'Mi empresa', home: '/empresa' }
+        : rol === 'cajero' && path.startsWith('/pos')
+          ? { menu: SECCIONES_POS, tagline: usuario?.linea?.nombre ?? 'Punto de venta', home: '/pos' }
           : rol === 'chofer' && path.startsWith('/chofer')
-            ? { secciones: SECCIONES_CHOFER, tagline: usuario?.linea?.nombre ?? 'Conductor', home: '/chofer' }
+            ? { menu: SECCIONES_CHOFER, tagline: usuario?.linea?.nombre ?? 'Conductor', home: '/chofer' }
             : rol === 'colector' && path.startsWith('/colector')
-              ? { secciones: SECCIONES_COLECTOR, tagline: usuario?.linea?.nombre ?? 'Colector', home: '/colector' }
+              ? { menu: SECCIONES_COLECTOR, tagline: usuario?.linea?.nombre ?? 'Colector', home: '/colector' }
               : rol === 'cliente' && path.startsWith('/cuenta')
-                ? { secciones: SECCIONES_CUENTA, tagline: 'Mi cuenta', home: '/' }
+                ? { menu: SECCIONES_CUENTA, tagline: 'Mi cuenta', home: '/' }
                 : null;
+  const hogarDelRol = rol ? HOGAR_POR_ROL[rol] : undefined;
 
   const iniciales = usuario?.nombreCorto
     ? usuario.nombreCorto
@@ -114,14 +126,9 @@ export function AppChrome() {
       </button>
 
       {nav && (
-        <nav className={styles.moduleNav}>
-          <PillTabs
-            variant="loose"
-            items={nav.secciones.map((x) => ({ id: x.id, label: x.label }))}
-            value={seccionDe(nav.secciones, location.pathname)}
-            onChange={(id) => navigate(nav.secciones.find((x) => x.id === id)!.ruta)}
-          />
-        </nav>
+        <div className={styles.moduleNav}>
+          <NavPrincipal menu={nav.menu} pathname={location.pathname} />
+        </div>
       )}
 
       {DEMO_MODE && (
@@ -201,48 +208,12 @@ export function AppChrome() {
                   <div style={{ padding: '8px 12px', fontSize: 12, color: 'var(--text-faint)' }}>
                     {usuario.nombreCorto ?? usuario.username} · {usuario.role?.name ?? ''}
                   </div>
-                  {usuario.role?.type === 'cliente' && (
-                    <>
-                      <button className={styles.menuItem} onClick={() => navigate('/cuenta')}>
-                        Mis boletos
-                      </button>
-                      <button className={styles.menuItem} onClick={() => navigate('/cuenta/metodos')}>
-                        Métodos de pago
-                      </button>
-                    </>
-                  )}
-                  {usuario.role?.type === 'superadmin' && (
-                    <button className={styles.menuItem} onClick={() => navigate('/admin')}>
-                      Panel de la plataforma
+                  {hogarDelRol && !nav && (
+                    <button className={styles.menuItem} onClick={() => navigate(hogarDelRol)}>
+                      {rol === 'cliente' ? 'Mi cuenta' : 'Ir a mi panel'}
                     </button>
                   )}
-                  {usuario.role?.type === 'empresa' && (
-                    <>
-                      <button className={styles.menuItem} onClick={() => navigate('/empresa')}>
-                        Panel de mi empresa
-                      </button>
-                      {tiene('taquilla') && (
-                        <button className={styles.menuItem} onClick={() => navigate('/pos')}>
-                          Punto de venta
-                        </button>
-                      )}
-                      {tiene('boleteria') && (
-                        <button className={styles.menuItem} onClick={() => navigate('/chofer')}>
-                          Escáner de abordaje
-                        </button>
-                      )}
-                    </>
-                  )}
-                  {usuario.role?.type === 'cajero' && (
-                    <button className={styles.menuItem} onClick={() => navigate('/pos')}>
-                      Punto de venta
-                    </button>
-                  )}
-                  {usuario.role?.type === 'chofer' && (
-                    <button className={styles.menuItem} onClick={() => navigate('/chofer')}>
-                      Escáner de abordaje
-                    </button>
-                  )}
+                  <div className={styles.menuDivisor} />
                   <button
                     className={styles.menuItem}
                     onClick={() => {
