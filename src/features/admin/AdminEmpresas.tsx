@@ -235,7 +235,7 @@ export default function AdminEmpresas() {
       </div>
 
       {form && (
-        <div className={styles.velo} onClick={cerrar}>
+        <div className={styles.velo}>
           <div className={styles.modal} onClick={(ev) => ev.stopPropagation()}>
             <h3 style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>
               {editando ? `Editar ${editando.nombre}` : 'Nueva empresa'}
@@ -388,7 +388,7 @@ export default function AdminEmpresas() {
         </div>
       )}
       {ficha && (
-        <div className={styles.velo} onClick={() => setFicha(null)}>
+        <div className={styles.velo}>
           <div className={`${styles.modal} ficha-imprimible`} style={{ maxWidth: 560 }} onClick={(e) => e.stopPropagation()}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
               <LogoLockup />

@@ -329,7 +329,7 @@ function EditorContrato({
   });
 
   return (
-    <div className={styles.velo} onClick={onCerrar}>
+    <div className={styles.velo}>
       <div className={styles.modal} style={{ maxWidth: 720 }} onClick={(e) => e.stopPropagation()}>
         <div style={{ fontSize: 12, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
           {!base ? 'Primer contrato' : renovando ? `Renovación · v${base.version + 1}` : `Nueva versión · v${base.version + 1}`}

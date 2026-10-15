@@ -200,7 +200,7 @@ export default function EmpresaPersonal() {
       </div>
 
       {(creando || editando) && (
-        <div className={styles.velo} onClick={cerrarModal}>
+        <div className={styles.velo}>
           <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
             <h3 style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>
               {editando ? `Editar a ${editando.nombreCorto ?? editando.username}` : 'Agregar persona'}
@@ -357,7 +357,7 @@ function ModalHistorial({ usuario, onCerrar }: { usuario: UsuarioEmpresa; onCerr
     new Date(iso).toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit', hour12: false });
 
   return (
-    <div className={styles.velo} onClick={onCerrar}>
+    <div className={styles.velo}>
       <div className={styles.modal} style={{ maxWidth: 640 }} onClick={(e) => e.stopPropagation()}>
         <h3 style={{ fontSize: 20, fontWeight: 700 }}>Asignaciones de {usuario.nombreCorto ?? usuario.username}</h3>
         {isLoading || !data ? (

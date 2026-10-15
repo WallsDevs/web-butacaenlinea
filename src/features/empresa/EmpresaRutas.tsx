@@ -231,7 +231,7 @@ export default function EmpresaRutas() {
       )}
 
       {form && (
-        <div className={styles.velo} onClick={() => setForm(null)}>
+        <div className={styles.velo}>
           <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
             <h3 style={{ fontSize: 20, fontWeight: 700, marginBottom: 16 }}>
               {form.documentId ? 'Editar ruta' : 'Nueva ruta'}

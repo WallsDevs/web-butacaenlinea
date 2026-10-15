@@ -75,7 +75,7 @@ export function NuevaUnidad({ onCerrar }: { onCerrar: (creada: boolean) => void 
     setPisos((ps) => ps.map((p, j) => (j === i ? { ...p, ...cambios } : p)));
 
   return (
-    <div className={styles.velo} onClick={() => onCerrar(false)}>
+    <div className={styles.velo}>
       <div
         className={styles.modal}
         style={{ width: 940, display: 'grid', gridTemplateColumns: '1fr 340px', gap: 24 }}

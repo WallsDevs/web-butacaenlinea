@@ -112,7 +112,7 @@ export default function EmpresaBoletos() {
       </div>
 
       {anulando && (
-        <div className={styles.velo} onClick={() => setAnulando(null)}>
+        <div className={styles.velo}>
           <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
             <h3 style={{ fontSize: 20, fontWeight: 700 }}>Anular boleto</h3>
             <p style={{ fontSize: 13, color: 'var(--text-soft)', marginTop: 4 }}>

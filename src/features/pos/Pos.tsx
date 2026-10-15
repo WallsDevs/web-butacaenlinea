@@ -681,7 +681,7 @@ export default function Pos() {
 
       {/* Modal QR fijo de la caja (imprimible una sola vez, se pega en la taquilla) */}
       {qrCajaAbierto && taquillaCajaId && (
-        <div className={styles.velo} onClick={() => setQrCajaAbierto(false)}>
+        <div className={styles.velo}>
           <div
             className={styles.modal}
             onClick={(e) => e.stopPropagation()}
@@ -718,7 +718,7 @@ export default function Pos() {
 
       {/* Modal de boletos emitidos */}
       {emitidos && salida && (
-        <div className={styles.velo} onClick={() => setEmitidos(null)}>
+        <div className={styles.velo}>
           <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
             <TicketCard
               variant="movil"

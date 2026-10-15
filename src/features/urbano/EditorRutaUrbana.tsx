@@ -125,7 +125,7 @@ export function EditorRutaUrbana({
   const listo = form.nombre.trim().length > 0 && Number(form.tarifaBs) > 0 && paradas.length >= 2;
 
   return (
-    <div className={ui.velo ?? ''} style={estilos.velo} onClick={onCancelar}>
+    <div className={ui.velo ?? ''} style={estilos.velo}>
       <div style={estilos.panel} onClick={(e) => e.stopPropagation()}>
         <div style={estilos.cabecera}>
           <div>
