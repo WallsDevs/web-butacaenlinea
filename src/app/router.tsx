@@ -101,7 +101,7 @@ export const router = createBrowserRouter([
       {
         path: '/colector',
         element: (
-          <RequireAuth roles={['colector', 'chofer', 'empresa']}>
+          <RequireAuth roles={['colector', 'chofer']}>
             <Colector />
           </RequireAuth>
         ),
@@ -155,7 +155,7 @@ export const router = createBrowserRouter([
       {
         path: '/pos',
         element: (
-          <RequireAuth roles={['cajero', 'empresa']}>
+          <RequireAuth roles={['cajero']}>
             <Pos />
           </RequireAuth>
         ),
@@ -163,7 +163,7 @@ export const router = createBrowserRouter([
       {
         path: '/pos/cierre',
         element: (
-          <RequireAuth roles={['cajero', 'empresa']}>
+          <RequireAuth roles={['cajero']}>
             <CierreTurno />
           </RequireAuth>
         ),
@@ -171,7 +171,7 @@ export const router = createBrowserRouter([
       {
         path: '/pos/pagos',
         element: (
-          <RequireAuth roles={['cajero', 'empresa']}>
+          <RequireAuth roles={['cajero']}>
             <VerificacionPagos />
           </RequireAuth>
         ),
@@ -179,7 +179,7 @@ export const router = createBrowserRouter([
       {
         path: '/pos/ventas',
         element: (
-          <RequireAuth roles={['cajero', 'empresa']}>
+          <RequireAuth roles={['cajero']}>
             <MisVentas />
           </RequireAuth>
         ),
@@ -187,7 +187,7 @@ export const router = createBrowserRouter([
       {
         path: '/pos/reportes',
         element: (
-          <RequireAuth roles={['cajero', 'empresa']}>
+          <RequireAuth roles={['cajero']}>
             <ReportesTurnos />
           </RequireAuth>
         ),
@@ -195,7 +195,7 @@ export const router = createBrowserRouter([
       {
         path: '/pos/tasas',
         element: (
-          <RequireAuth roles={['cajero', 'empresa']}>
+          <RequireAuth roles={['cajero']}>
             <TasasPos />
           </RequireAuth>
         ),
@@ -203,7 +203,7 @@ export const router = createBrowserRouter([
       {
         path: '/chofer/unidad',
         element: (
-          <RequireAuth roles={['chofer', 'empresa']}>
+          <RequireAuth roles={['chofer']}>
             <MiUnidad />
           </RequireAuth>
         ),
@@ -211,7 +211,7 @@ export const router = createBrowserRouter([
       {
         path: '/chofer',
         element: (
-          <RequireAuth roles={['chofer', 'empresa']}>
+          <RequireAuth roles={['chofer']}>
             <Escaner />
           </RequireAuth>
         ),
@@ -219,7 +219,7 @@ export const router = createBrowserRouter([
       {
         path: '/chofer/manifiesto',
         element: (
-          <RequireAuth roles={['chofer', 'empresa']}>
+          <RequireAuth roles={['chofer']}>
             <ManifiestoPage />
           </RequireAuth>
         ),

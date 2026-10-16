@@ -63,28 +63,15 @@ export const MENU_EMPRESA: EntradaNav[] = [
       sec('Reportes', '/empresa/reportes', ['boleteria', 'urbano']),
     ],
   },
-  {
-    id: 'taquilla',
-    label: 'Taquilla',
-    items: [
-      sec('Vender', '/pos', ['taquilla']),
-      sec('Mis ventas', '/pos/ventas', ['taquilla']),
-      sec('Pagos web', '/pos/pagos', ['taquilla']),
-      sec('Tasas', '/pos/tasas', ['taquilla']),
-      sec('Reportes de turno', '/pos/reportes', ['taquilla']),
-      sec('Cierre de turno', '/pos/cierre', ['taquilla']),
-    ],
-  },
-  {
-    id: 'abordaje',
-    label: 'Abordaje',
-    items: [sec('Escáner', '/chofer', ['boleteria']), sec('Manifiesto', '/chofer/manifiesto', ['boleteria']), sec('Mi unidad', '/chofer/unidad', ['mantenimiento']), sec('Cobros urbanos', '/colector', ['urbano'])],
-  },
   { id: 'cuenta', label: 'Administración', items: [sec('Personal', '/empresa/personal', ['flota']), sec('Facturas', '/empresa/facturas'), sec('Configuración', '/empresa/configuracion')] },
 ];
 
-/** Rutas donde el administrador de la empresa ve su menú completo. */
-export const AREAS_EMPRESA = ['/empresa', '/flota', '/pos', '/chofer', '/colector'];
+/**
+ * Rutas donde el administrador de la empresa ve su menú. El administrador
+ * gestiona y delega: no vende en taquilla, no escanea ni cobra a bordo; eso
+ * es del cajero, el conductor y el colector, con sus propios accesos.
+ */
+export const AREAS_EMPRESA = ['/empresa', '/flota'];
 
 export const SECCIONES_POS: SeccionModulo[] = [
   { id: 'vender', label: 'Vender', ruta: '/pos' },
@@ -179,23 +166,7 @@ export const LATERAL_EMPRESA: SeccionLateral[] = [
   {
     id: 'operacion',
     label: 'Operación',
-    items: [
-      item('Flota', '/empresa/flota', 'flota', ['flota', 'mantenimiento', 'urbano']),
-      item('Taquilla', '/pos', 'taquilla', ['taquilla'], [
-        sec('Vender', '/pos', ['taquilla']),
-        sec('Mis ventas', '/pos/ventas', ['taquilla']),
-        sec('Pagos web', '/pos/pagos', ['taquilla']),
-        sec('Tasas', '/pos/tasas', ['taquilla']),
-        sec('Reportes de turno', '/pos/reportes', ['taquilla']),
-        sec('Cierre de turno', '/pos/cierre', ['taquilla']),
-      ]),
-      item('Abordaje', '/chofer', 'abordaje', ['boleteria', 'mantenimiento', 'urbano'], [
-        sec('Escáner', '/chofer', ['boleteria']),
-        sec('Manifiesto', '/chofer/manifiesto', ['boleteria']),
-        sec('Mi unidad', '/chofer/unidad', ['mantenimiento']),
-        sec('Cobros urbanos', '/colector', ['urbano']),
-      ]),
-    ],
+    items: [item('Flota', '/empresa/flota', 'flota', ['flota', 'mantenimiento', 'urbano'])],
   },
   {
     id: 'administracion',
