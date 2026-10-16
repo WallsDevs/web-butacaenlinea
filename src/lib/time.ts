@@ -23,6 +23,11 @@ export function fechaCorta(isoDate: string): string {
 }
 
 /** "Viernes 21 de agosto" */
+/** «Vie 15 oct 2027»: para fechas que pueden quedar a más de un año (contratos, facturas). */
+export function fechaConAnio(isoDate: string): string {
+  return `${fechaCorta(isoDate)} ${new Date(isoDate).getFullYear()}`;
+}
+
 export function fechaLarga(isoDate: string): string {
   const d = new Date(isoDate);
   return `${cap(DIAS_LARGO[d.getDay()])} ${d.getDate()} de ${MESES_LARGO[d.getMonth()]}`;

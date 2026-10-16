@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getMisFacturas, reportarPagoFactura, type Factura } from '../../lib/api/endpoints';
 import { ApiError } from '../../lib/api/client';
 import { useModulos } from '../../lib/useModulos';
-import { fechaCorta } from '../../lib/time';
+import { fechaConAnio, fechaCorta } from '../../lib/time';
 import { StatusChip } from '../../components/ui/StatusChip';
 import ui from '../../components/ui/ui.module.css';
 import styles from '../flota/flota.module.css';
@@ -11,7 +11,7 @@ import { CHIP_ESTADO, nombreDePeriodo } from '../../lib/facturas';
 
 const usd = (n: number) => `$ ${n.toLocaleString('es-VE', { minimumFractionDigits: 2 })}`;
 const bs = (n: number) => `Bs ${n.toLocaleString('es-VE', { maximumFractionDigits: 2 })}`;
-const dia = (iso: string) => fechaCorta(`${iso}T12:00:00`);
+const dia = (iso: string) => fechaConAnio(`${iso}T12:00:00`);
 const NOMBRE_PLAN = { mantenimiento: 'Mantenimiento', venta: 'Solo boletería', completo: 'Full', personalizado: 'Personalizado' } as const;
 const NOMBRE_MODULO: Record<string, string> = { flota: 'Flota y personal', mantenimiento: 'Mantenimiento', boleteria: 'Boletería', taquilla: 'Taquilla', equipaje: 'Equipaje', urbano: 'Urbano por QR' };
 
@@ -134,7 +134,7 @@ export default function EmpresaFacturas() {
                     </div>
                   </td>
                   <td style={{ color: f.estado === 'vencida' ? 'var(--red-600, #DC2626)' : 'var(--text-soft)' }}>
-                    {fechaCorta(`${f.venceEn}T12:00:00`)}
+                    {fechaConAnio(`${f.venceEn}T12:00:00`)}
                   </td>
                   <td>
                     <StatusChip tono={chip.tono} size="sm">{chip.texto}</StatusChip>
