@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router';
 import { LogoLockup } from '../components/brand/LogoMark';
 import { PillTabs } from '../components/ui/PillTabs';
 import { NavPrincipal } from './NavPrincipal';
+import { BarraInferior } from './BarraInferior';
 import { useSettings } from '../stores/settings';
 import { useAuth } from '../stores/auth';
 import { useTasasSync } from '../lib/useTasas';
@@ -208,18 +209,14 @@ export function AppChrome() {
                   <div style={{ padding: '8px 12px', fontSize: 12, color: 'var(--text-faint)' }}>
                     {usuario.nombreCorto ?? usuario.username} · {usuario.role?.name ?? ''}
                   </div>
-                  {rol === 'cliente' ? (
-                    <>
-                      <button className={styles.menuItem} onClick={() => navigate('/cuenta/wallet')}>Mi wallet</button>
-                      <button className={styles.menuItem} onClick={() => navigate('/cuenta')}>Mis boletos</button>
-                      <button className={styles.menuItem} onClick={() => navigate('/busetas')}>¿Por dónde viene mi buseta?</button>
-                    </>
-                  ) : (
-                    hogarDelRol && !nav && (
-                      <button className={styles.menuItem} onClick={() => navigate(hogarDelRol)}>
-                        Ir a mi panel
-                      </button>
-                    )
+                  {hogarDelRol && !nav && (
+                    <button className={styles.menuItem} onClick={() => navigate(hogarDelRol)}>
+                      {rol === 'cliente' ? 'Mi cuenta' : 'Ir a mi panel'}
+                    </button>
+                  )}
+                  <button className={styles.menuItem} onClick={() => navigate('/perfil')}>Mi perfil</button>
+                  {rol === 'cliente' && (
+                    <button className={styles.menuItem} onClick={() => navigate('/busetas')}>¿Por dónde viene mi buseta?</button>
                   )}
                   <div className={styles.menuDivisor} />
                   <button
@@ -248,6 +245,7 @@ export function AppChrome() {
       </span>
       )}
     </header>
+    {nav && !esPaginaAcceso && <BarraInferior menu={nav.menu} pathname={location.pathname} />}
     {avisoContrato && !esPaginaAcceso && (
       <div
         className="no-print"
