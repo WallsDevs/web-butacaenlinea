@@ -9,6 +9,7 @@ import ui from '../../components/ui/ui.module.css';
 import styles from './flota.module.css';
 
 const CLASES = [
+  { valor: 'estandar', nombre: 'Estándar' },
   { valor: 'semicama', nombre: 'Semicama' },
   { valor: 'vip', nombre: 'VIP Cama' },
   { valor: 'cama_ejecutivo', nombre: 'Cama Ejecutivo' },
@@ -16,14 +17,37 @@ const CLASES = [
 
 const AMENIDADES = ['Wi-Fi', 'A/A', 'Baño', 'Pantallas', 'USB'];
 
+/**
+ * Dos realidades: el autobús de ruta (clases, pisos, amenidades) y la buseta
+ * urbana —la Encava de toda la vida—: un piso, puestos sencillos, sin Wi-Fi ni
+ * baño. La buseta se registra en tres datos y queda lista para la ruta por QR.
+ */
+type TipoUnidad = 'ruta' | 'urbana';
+
 const PISO_DEFECTO: PisoBuilder = { nombre: 'Semicama', claseServicio: 'semicama', layout: '2+2', filas: 10 };
+const PISO_BUSETA: PisoBuilder = { nombre: 'Estándar', claseServicio: 'estandar', layout: '2+2', filas: 8 };
 
 /** Alta de unidad con armador de asientos y vista previa en vivo del mapa. */
 export function NuevaUnidad({ onCerrar }: { onCerrar: (creada: boolean) => void }) {
   const queryClient = useQueryClient();
+  const [tipo, setTipo] = useState<TipoUnidad>('ruta');
   const [datos, setDatos] = useState({ numero: '', placa: '', marcaModelo: '', anio: '', kilometraje: '' });
   const [pisos, setPisos] = useState<PisoBuilder[]>([{ ...PISO_DEFECTO }]);
   const [amenidades, setAmenidades] = useState<string[]>(['Wi-Fi', 'A/A', 'Baño']);
+  const esBuseta = tipo === 'urbana';
+  const cambiarTipo = (t: TipoUnidad) => {
+    setTipo(t);
+    setPisoPreview(0);
+    if (t === 'urbana') {
+      setPisos([{ ...PISO_BUSETA }]);
+      setAmenidades([]);
+      if (!datos.marcaModelo.trim()) setDatos((d) => ({ ...d, marcaModelo: 'Encava' }));
+    } else {
+      setPisos([{ ...PISO_DEFECTO }]);
+      setAmenidades(['Wi-Fi', 'A/A', 'Baño']);
+      if (datos.marcaModelo.trim() === 'Encava') setDatos((d) => ({ ...d, marcaModelo: '' }));
+    }
+  };
   const [pisoPreview, setPisoPreview] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
@@ -82,15 +106,29 @@ export function NuevaUnidad({ onCerrar }: { onCerrar: (creada: boolean) => void 
         onClick={(e) => e.stopPropagation()}
       >
         <div>
-          <h3 style={{ fontSize: 20, fontWeight: 700 }}>Nueva unidad</h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <h3 style={{ fontSize: 20, fontWeight: 700 }}>Nueva unidad</h3>
+            <div style={{ marginLeft: 'auto' }}>
+              <PillTabs<TipoUnidad>
+                items={[
+                  { id: 'ruta', label: 'Autobús de ruta' },
+                  { id: 'urbana', label: 'Buseta urbana' },
+                ]}
+                value={tipo}
+                onChange={cambiarTipo}
+              />
+            </div>
+          </div>
           <p style={{ fontSize: 13, color: 'var(--text-soft)', marginTop: 4, marginBottom: 16 }}>
-            El mapa de asientos de la venta se genera solo desde esta configuración.
+            {esBuseta
+              ? 'Encava, minibús o similar: un piso de puestos sencillos, sin clases ni amenidades. Queda lista para la ruta urbana por QR.'
+              : 'El mapa de asientos de la venta se genera solo desde esta configuración.'}
           </p>
 
           <div style={{ display: 'grid', gridTemplateColumns: '90px 1fr 1fr', gap: 12 }}>
             <Field label="Número" value={datos.numero} onChange={(e) => setDatos({ ...datos, numero: e.target.value })} autoFocus />
             <Field label="Placa" value={datos.placa} onChange={(e) => setDatos({ ...datos, placa: e.target.value })} />
-            <Field label="Marca y modelo" value={datos.marcaModelo} onChange={(e) => setDatos({ ...datos, marcaModelo: e.target.value })} />
+            <Field label="Marca y modelo" placeholder={esBuseta ? 'Encava ENT-610' : 'Volvo 9800'} value={datos.marcaModelo} onChange={(e) => setDatos({ ...datos, marcaModelo: e.target.value })} />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }}>
             <Field label="Año" type="number" value={datos.anio} onChange={(e) => setDatos({ ...datos, anio: e.target.value })} />
@@ -100,7 +138,8 @@ export function NuevaUnidad({ onCerrar }: { onCerrar: (creada: boolean) => void 
           {/* Armador de pisos */}
           <div style={{ marginTop: 18 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: 13, fontWeight: 700 }}>Asientos · {totalPuestos} puestos</span>
+              <span style={{ fontSize: 13, fontWeight: 700 }}>{esBuseta ? 'Puestos' : 'Asientos'} · {totalPuestos} puestos</span>
+              {!esBuseta && (
               <div style={{ marginLeft: 'auto' }}>
                 <PillTabs
                   items={[
@@ -120,13 +159,14 @@ export function NuevaUnidad({ onCerrar }: { onCerrar: (creada: boolean) => void 
                   }}
                 />
               </div>
+              )}
             </div>
             {pisos.map((p, i) => (
               <div
                 key={i}
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: '1fr 110px 90px',
+                  gridTemplateColumns: esBuseta ? '1fr 1fr' : '1fr 110px 90px',
                   gap: 10,
                   marginTop: 10,
                   background: 'var(--surface-alt)',
@@ -135,6 +175,7 @@ export function NuevaUnidad({ onCerrar }: { onCerrar: (creada: boolean) => void 
                   padding: 12,
                 }}
               >
+                {!esBuseta && (
                 <label className={ui.field}>
                   <span className={ui.fieldLabel}>Piso {i + 1} · clase de servicio</span>
                   <select
@@ -150,6 +191,7 @@ export function NuevaUnidad({ onCerrar }: { onCerrar: (creada: boolean) => void 
                     ))}
                   </select>
                 </label>
+                )}
                 <label className={ui.field}>
                   <span className={ui.fieldLabel}>Distribución</span>
                   <select
@@ -171,11 +213,14 @@ export function NuevaUnidad({ onCerrar }: { onCerrar: (creada: boolean) => void 
               </div>
             ))}
             <div style={{ fontSize: 12, color: 'var(--text-faint)', marginTop: 8 }}>
-              Las clases de servicio deben coincidir con las tarifas de tus rutas (vip, semicama, cama_ejecutivo).
+              {esBuseta
+                ? 'Los puestos se numeran igual por si algún día vendes pasaje con asiento; el cobro urbano por QR no los usa.'
+                : 'Las clases de servicio deben coincidir con las tarifas de tus rutas (estandar, semicama, vip, cama_ejecutivo).'}
             </div>
           </div>
 
-          {/* Amenidades */}
+          {/* Amenidades: la buseta urbana no las tiene */}
+          {!esBuseta && (
           <div style={{ marginTop: 14, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {AMENIDADES.map((a) => (
               <button
@@ -194,6 +239,7 @@ export function NuevaUnidad({ onCerrar }: { onCerrar: (creada: boolean) => void 
               </button>
             ))}
           </div>
+          )}
 
           {error && <div style={{ fontSize: 13, color: 'var(--bad-text)', marginTop: 12 }}>{error}</div>}
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 18 }}>

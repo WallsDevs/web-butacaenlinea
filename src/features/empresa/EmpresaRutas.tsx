@@ -260,6 +260,7 @@ export default function EmpresaRutas() {
                     }
                   >
                     <option value="">Clase de asiento…</option>
+                    <option value="estandar">Estándar</option>
                     <option value="semicama">Semicama</option>
                     <option value="vip">VIP Cama</option>
                     <option value="cama_ejecutivo">Cama Ejecutivo</option>
