@@ -55,7 +55,7 @@ export default function FlotaLista() {
             0
           );
           return (
-            <button key={u.documentId} className={styles.cardUnidad} onClick={() => navigate(`/empresa/unidades/${u.documentId}`)}>
+            <button key={u.documentId} className={styles.cardUnidad} onClick={() => navigate(`/empresa/flota/${u.documentId}`)}>
               <span className={styles.cuadroNumero}>{u.numero}</span>
               <span style={{ minWidth: 0 }}>
                 <span style={{ display: 'block', fontWeight: 700, fontSize: 16 }}>{u.marcaModelo}</span>

@@ -50,11 +50,8 @@ export const MENU_ADMIN: EntradaNav[] = [
  */
 export const MENU_EMPRESA: EntradaNav[] = [
   sec('Dashboard', '/empresa'),
-  {
-    id: 'flota',
-    label: 'Flota',
-    items: [sec('Unidades', '/empresa/unidades', ['flota']), sec('Flota en vivo', '/empresa/flota-en-vivo', ['mantenimiento', 'urbano']), sec('Personal', '/empresa/personal', ['flota'])],
-  },
+  // Una sola pantalla: unidades y mapa en vivo como pestañas (cualquiera de esos módulos la abre)
+  sec('Flota', '/empresa/flota', ['flota', 'mantenimiento', 'urbano']),
   {
     id: 'ventas',
     label: 'Ventas',
@@ -83,7 +80,7 @@ export const MENU_EMPRESA: EntradaNav[] = [
     label: 'Abordaje',
     items: [sec('Escáner', '/chofer', ['boleteria']), sec('Manifiesto', '/chofer/manifiesto', ['boleteria']), sec('Mi unidad', '/chofer/unidad', ['mantenimiento']), sec('Cobros urbanos', '/colector', ['urbano'])],
   },
-  { id: 'cuenta', label: 'Administración', items: [sec('Facturas', '/empresa/facturas'), sec('Configuración', '/empresa/configuracion')] },
+  { id: 'cuenta', label: 'Administración', items: [sec('Personal', '/empresa/personal', ['flota']), sec('Facturas', '/empresa/facturas'), sec('Configuración', '/empresa/configuracion')] },
 ];
 
 /** Rutas donde el administrador de la empresa ve su menú completo. */

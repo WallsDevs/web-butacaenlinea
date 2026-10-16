@@ -155,7 +155,7 @@ export default function FichaUnidad() {
 
   return (
     <div className={styles.contenido}>
-      <button className={ui.btnGhost} onClick={() => navigate('/empresa/unidades')} style={{ marginBottom: 14 }}>
+      <button className={ui.btnGhost} onClick={() => navigate('/empresa/flota')} style={{ marginBottom: 14 }}>
         ← Todas las unidades
       </button>
 

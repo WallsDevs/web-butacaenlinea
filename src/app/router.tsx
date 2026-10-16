@@ -31,7 +31,6 @@ const EmpresaReportes = lazy(() => import('../features/empresa/EmpresaReportes')
 const EmpresaConfiguracion = lazy(() => import('../features/empresa/EmpresaConfiguracion'));
 const Escaner = lazy(() => import('../features/chofer/Escaner'));
 const ManifiestoPage = lazy(() => import('../features/chofer/ManifiestoPage'));
-const FlotaLista = lazy(() => import('../features/flota/FlotaLista'));
 const AccesoPlataforma = lazy(() => import('../features/admin/AccesoPlataforma'));
 const AdminDashboard = lazy(() => import('../features/admin/AdminDashboard'));
 const AdminEmpresas = lazy(() => import('../features/admin/AdminEmpresas'));
@@ -40,12 +39,12 @@ const AdminTasas = lazy(() => import('../features/admin/AdminTasas'));
 const AdminAuditoria = lazy(() => import('../features/admin/AdminAuditoria'));
 const AdminSeguridad = lazy(() => import('../features/admin/AdminSeguridad'));
 const AdminWallet = lazy(() => import('../features/admin/AdminWallet'));
+const EmpresaFlota = lazy(() => import('../features/empresa/EmpresaFlota'));
 const AdminPasajeros = lazy(() => import('../features/admin/AdminPasajeros'));
 const AdminIntegraciones = lazy(() => import('../features/admin/AdminIntegraciones'));
 const AdminConectores = lazy(() => import('../features/admin/AdminConectores'));
 const AdminContratos = lazy(() => import('../features/admin/AdminContratos'));
 const AdminFacturas = lazy(() => import('../features/admin/AdminFacturas'));
-const FlotaEnVivo = lazy(() => import('../features/empresa/FlotaEnVivo'));
 const EmpresaFacturas = lazy(() => import('../features/empresa/EmpresaFacturas'));
 const FichaUnidad = lazy(() => import('../features/flota/FichaUnidad'));
 const PagoUrbano = lazy(() => import('../features/urbano/PagoUrbano'));
@@ -236,20 +235,23 @@ export const router = createBrowserRouter([
           { index: true, element: <EmpresaDashboard /> },
           { path: 'salidas', element: <EmpresaProgramacion /> },
           { path: 'rutas', element: <Navigate to="/empresa/salidas?tab=rutas" replace /> },
-          { path: 'unidades', element: <FlotaLista /> },
+          { path: 'flota', element: <EmpresaFlota /> },
+          { path: 'flota/:unidadId', element: <FichaUnidad /> },
+          // Rutas anteriores de la flota: siguen funcionando
+          { path: 'unidades', element: <Navigate to="/empresa/flota" replace /> },
           { path: 'unidades/:unidadId', element: <FichaUnidad /> },
           { path: 'personal', element: <EmpresaPersonal /> },
           { path: 'pagos', element: <VerificacionPagos /> },
           { path: 'boletos', element: <EmpresaBoletos /> },
           { path: 'reportes', element: <EmpresaReportes /> },
-          { path: 'flota-en-vivo', element: <FlotaEnVivo /> },
+          { path: 'flota-en-vivo', element: <Navigate to="/empresa/flota?tab=vivo" replace /> },
           { path: 'facturas', element: <EmpresaFacturas /> },
           { path: 'configuracion', element: <EmpresaConfiguracion /> },
         ],
       },
       // Rutas legadas del módulo flota
-      { path: '/flota', element: <Navigate to="/empresa/unidades" replace /> },
-      { path: '/flota/:unidadId', element: <Navigate to="/empresa/unidades" replace /> },
+      { path: '/flota', element: <Navigate to="/empresa/flota" replace /> },
+      { path: '/flota/:unidadId', element: <Navigate to="/empresa/flota" replace /> },
       // Sin rutas huérfanas: cualquier URL desconocida vuelve al marketplace
       {
         path: '/perfil',
