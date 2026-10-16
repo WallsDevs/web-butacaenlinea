@@ -26,7 +26,8 @@ const EmpresaLayout = lazy(() => import('../features/empresa/EmpresaLayout'));
 const EmpresaDashboard = lazy(() => import('../features/empresa/EmpresaDashboard'));
 const EmpresaProgramacion = lazy(() => import('../features/empresa/EmpresaProgramacion'));
 const EmpresaPersonal = lazy(() => import('../features/empresa/EmpresaPersonal'));
-const EmpresaVentas = lazy(() => import('../features/empresa/EmpresaVentas'));
+const EmpresaBoletos = lazy(() => import('../features/empresa/EmpresaBoletos'));
+const EmpresaReportes = lazy(() => import('../features/empresa/EmpresaReportes'));
 const EmpresaConfiguracion = lazy(() => import('../features/empresa/EmpresaConfiguracion'));
 const Escaner = lazy(() => import('../features/chofer/Escaner'));
 const ManifiestoPage = lazy(() => import('../features/chofer/ManifiestoPage'));
@@ -240,9 +241,9 @@ export const router = createBrowserRouter([
           { path: 'unidades', element: <Navigate to="/empresa/flota?tab=unidades" replace /> },
           { path: 'unidades/:unidadId', element: <FichaUnidad /> },
           { path: 'personal', element: <EmpresaPersonal /> },
-          { path: 'boletos', element: <EmpresaVentas /> },
-          { path: 'pagos', element: <Navigate to="/empresa/boletos?tab=pagos" replace /> },
-          { path: 'reportes', element: <Navigate to="/empresa/boletos?tab=reportes" replace /> },
+          { path: 'pagos', element: <VerificacionPagos /> },
+          { path: 'boletos', element: <EmpresaBoletos /> },
+          { path: 'reportes', element: <EmpresaReportes /> },
           { path: 'flota-en-vivo', element: <Navigate to="/empresa/flota" replace /> },
           { path: 'facturas', element: <EmpresaFacturas /> },
           { path: 'configuracion', element: <EmpresaConfiguracion /> },

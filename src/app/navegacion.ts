@@ -58,8 +58,9 @@ export const MENU_EMPRESA: EntradaNav[] = [
     items: [
       // Una sola pantalla con pestañas Salidas / Rutas (/empresa/rutas redirige a la pestaña)
       sec('Salidas y rutas', '/empresa/salidas', ['boleteria', 'urbano']),
-      // Una sola pantalla con pestañas Boletos / Pagos / Reportes (/empresa/pagos y /empresa/reportes redirigen)
-      sec('Boletos, pagos y reportes', '/empresa/boletos', ['boleteria', 'urbano']),
+      sec('Boletos', '/empresa/boletos', ['boleteria']),
+      sec('Pagos', '/empresa/pagos', ['boleteria']),
+      sec('Reportes', '/empresa/reportes', ['boleteria', 'urbano']),
     ],
   },
   {
@@ -142,4 +143,100 @@ export function seccionDe(secciones: SeccionModulo[], pathname: string): string 
     .find((s) => pathname === s.ruta || pathname.startsWith(s.ruta + '/'));
   // Sin coincidencia (p. ej. /perfil) no se marca ninguna: antes caía en la primera
   return encontrada?.id ?? '';
+}
+
+// ── Menú lateral (escritorio) ────────────────────────────────────────────────
+// En pantalla grande el menú del rol es una barra lateral con secciones y
+// ítems planos; un ítem puede tener hijos que se despliegan debajo cuando
+// está activo (Taquilla → Vender, Mis ventas…). En celular sigue la barra
+// inferior con el modelo de grupos de arriba.
+
+export interface ItemLateral extends SeccionModulo {
+  /** Clave del icono (ver iconos.tsx); sin ella se busca por la etiqueta. */
+  icono?: string;
+  hijos?: SeccionModulo[];
+}
+export interface SeccionLateral {
+  id: string;
+  label: string;
+  items: ItemLateral[];
+}
+
+const item = (label: string, ruta: string, icono: string, modulos?: ClaveModulo[], hijos?: SeccionModulo[]): ItemLateral => ({ id: ruta, label, ruta, icono, modulos, hijos });
+
+export const LATERAL_EMPRESA: SeccionLateral[] = [
+  { id: 'general', label: 'General', items: [item('Inicio', '/empresa', 'dashboard')] },
+  {
+    id: 'ventas',
+    label: 'Ventas',
+    items: [
+      item('Salidas y rutas', '/empresa/salidas', 'ventas', ['boleteria', 'urbano']),
+      item('Boletos', '/empresa/boletos', 'boletos', ['boleteria']),
+      item('Pagos', '/empresa/pagos', 'pagos', ['boleteria']),
+      item('Reportes', '/empresa/reportes', 'reportes', ['boleteria', 'urbano']),
+    ],
+  },
+  {
+    id: 'operacion',
+    label: 'Operación',
+    items: [
+      item('Flota', '/empresa/flota', 'flota', ['flota', 'mantenimiento', 'urbano']),
+      item('Taquilla', '/pos', 'taquilla', ['taquilla'], [
+        sec('Vender', '/pos', ['taquilla']),
+        sec('Mis ventas', '/pos/ventas', ['taquilla']),
+        sec('Pagos web', '/pos/pagos', ['taquilla']),
+        sec('Tasas', '/pos/tasas', ['taquilla']),
+        sec('Reportes de turno', '/pos/reportes', ['taquilla']),
+        sec('Cierre de turno', '/pos/cierre', ['taquilla']),
+      ]),
+      item('Abordaje', '/chofer', 'abordaje', ['boleteria', 'mantenimiento', 'urbano'], [
+        sec('Escáner', '/chofer', ['boleteria']),
+        sec('Manifiesto', '/chofer/manifiesto', ['boleteria']),
+        sec('Mi unidad', '/chofer/unidad', ['mantenimiento']),
+        sec('Cobros urbanos', '/colector', ['urbano']),
+      ]),
+    ],
+  },
+  {
+    id: 'administracion',
+    label: 'Administración',
+    items: [item('Personal', '/empresa/personal', 'clientes', ['flota']), item('Facturas', '/empresa/facturas', 'finanzas'), item('Configuración', '/empresa/configuracion', 'sistema')],
+  },
+];
+
+/** El menú de grupos de un rol, como lateral: cada grupo es una sección; lo suelto va en «General». */
+export function lateralDesdeMenu(menu: EntradaNav[]): SeccionLateral[] {
+  const generales: ItemLateral[] = [];
+  const secciones: SeccionLateral[] = [];
+  for (const e of menu) {
+    if (esGrupo(e)) secciones.push({ id: e.id, label: e.label, items: e.items.map((s) => ({ ...s, icono: s.id.startsWith('/') ? undefined : s.id })) });
+    else generales.push({ ...e, icono: e.id.startsWith('/') ? undefined : e.id });
+  }
+  return generales.length ? [{ id: 'general', label: 'General', items: generales }, ...secciones] : secciones;
+}
+
+/** Filtra el lateral por los módulos contratados; un ítem con hijos vive mientras le quede alguno. */
+export function lateralVisible(secciones: SeccionLateral[], modulos: ClaveModulo[] | null): SeccionLateral[] {
+  const visible = (x: SeccionModulo) => modulos === null || !x.modulos || x.modulos.some((m) => modulos.includes(m));
+  return secciones
+    .map((s) => ({
+      ...s,
+      items: s.items
+        .filter(visible)
+        .map((i): ItemLateral => (i.hijos ? { ...i, hijos: i.hijos.filter(visible) } : i))
+        .filter((i) => !i.hijos || i.hijos.length > 0),
+    }))
+    .filter((s) => s.items.length > 0);
+}
+
+/** Ids del ítem y del hijo activos para una ruta (coincidencia más larga). */
+export function activoLateral(secciones: SeccionLateral[], pathname: string): { item: string; hijo: string } {
+  const planos: { item: string; hijo: string; ruta: string }[] = [];
+  for (const s of secciones)
+    for (const i of s.items) {
+      planos.push({ item: i.id, hijo: '', ruta: i.ruta });
+      for (const h of i.hijos ?? []) planos.push({ item: i.id, hijo: h.id, ruta: h.ruta });
+    }
+  const encontrado = planos.sort((a, b) => b.ruta.length - a.ruta.length).find((p) => pathname === p.ruta || pathname.startsWith(p.ruta + '/'));
+  return { item: encontrado?.item ?? '', hijo: encontrado?.hijo ?? '' };
 }

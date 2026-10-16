@@ -1,23 +1,28 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { LogoLockup } from '../components/brand/LogoMark';
 import { PillTabs } from '../components/ui/PillTabs';
 import { NavPrincipal } from './NavPrincipal';
 import { BarraInferior } from './BarraInferior';
+import { BarraLateral } from './BarraLateral';
 import { useAuth } from '../stores/auth';
 import { useTasasSync } from '../lib/useTasas';
 import { useModulos } from '../lib/useModulos';
 import {
   AREAS_EMPRESA,
   AREAS_PASAJERO,
+  LATERAL_EMPRESA,
   MENU_ADMIN,
   MENU_EMPRESA,
   SECCIONES_CHOFER,
   SECCIONES_COLECTOR,
   SECCIONES_CUENTA,
   SECCIONES_POS,
+  lateralDesdeMenu,
+  lateralVisible,
   menuVisible,
   type EntradaNav,
+  type SeccionLateral,
 } from './navegacion';
 import styles from './AppChrome.module.css';
 
@@ -95,6 +100,18 @@ export function AppChrome() {
                 ? { menu: SECCIONES_CUENTA, tagline: 'Mi cuenta', home: '/' }
                 : null;
   const hogarDelRol = rol ? HOGAR_POR_ROL[rol] : undefined;
+  // En escritorio, el personal de una línea y el superadmin navegan por la barra
+  // lateral; el pasajero conserva la barra superior (su mundo es el sitio público)
+  const lateral: SeccionLateral[] | null =
+    nav && rol && rol !== 'cliente'
+      ? rol === 'empresa'
+        ? lateralVisible(LATERAL_EMPRESA, modulos)
+        : lateralDesdeMenu(nav.menu)
+      : null;
+  useEffect(() => {
+    document.body.classList.toggle('con-barra-lateral', Boolean(lateral));
+    return () => document.body.classList.remove('con-barra-lateral');
+  }, [Boolean(lateral)]);
 
   const iniciales = usuario?.nombreCorto
     ? usuario.nombreCorto
@@ -112,7 +129,8 @@ export function AppChrome() {
 
   return (
     <>
-    <header className={`${styles.chrome} no-print`}>
+    {lateral && <BarraLateral secciones={lateral} titulo={nav!.tagline} home={nav!.home} pathname={location.pathname} conBoleteria={modulos?.includes('boleteria') ?? false} />}
+    <header className={`${styles.chrome} ${lateral ? styles.ocultaEnEscritorio : ''} no-print`}>
       <button
         className={styles.brandZone}
         style={nav ? { marginRight: 0 } : undefined}
