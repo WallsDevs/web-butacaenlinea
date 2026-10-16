@@ -1,15 +1,8 @@
 import { useNavigate } from 'react-router';
-import { PillTabs } from '../../components/ui/PillTabs';
 import { useAuth } from '../../stores/auth';
 
-/** Marco de la cuenta del cliente: título + pestañas Mis boletos / Métodos de pago. */
-export function CuentaLayout({
-  activa,
-  children,
-}: {
-  activa: 'boletos' | 'metodos';
-  children: React.ReactNode;
-}) {
+/** Marco de la cuenta del cliente: título y cierre de sesión. Las secciones (wallet, boletos, métodos) viven en la barra superior. */
+export function CuentaLayout({ children }: { activa?: 'boletos' | 'metodos'; children: React.ReactNode }) {
   const navigate = useNavigate();
   const usuario = useAuth((s) => s.usuario);
   const cerrarSesion = useAuth((s) => s.cerrarSesion);
@@ -33,17 +26,7 @@ export function CuentaLayout({
           Cerrar sesión
         </button>
       </div>
-      <div style={{ margin: '18px 0' }}>
-        <PillTabs
-          items={[
-            { id: 'boletos', label: 'Mis boletos' },
-            { id: 'metodos', label: 'Métodos de pago' },
-          ]}
-          value={activa}
-          onChange={(id) => navigate(id === 'boletos' ? '/cuenta' : '/cuenta/metodos')}
-        />
-      </div>
-      {children}
+      <div style={{ marginTop: 18 }}>{children}</div>
     </div>
   );
 }
