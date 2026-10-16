@@ -39,13 +39,15 @@ export const getSalidas = (params?: {
   estados?: string[];
   unidadId?: string;
   orden?: string;
+  /** Tope de resultados (el API corta en 100). */
+  limite?: number;
 }) => {
   const q = new URLSearchParams({
     'populate[ruta]': 'true',
     'populate[unidad]': 'true',
     'populate[linea]': 'true',
     sort: params?.orden ?? 'fechaHoraSalida',
-    'pagination[pageSize]': '50',
+    'pagination[pageSize]': String(params?.limite ?? 50),
   });
   (params?.estados ?? ['programada', 'abordando']).forEach((e, i) => q.set(`filters[estado][$in][${i}]`, e));
   if (params?.unidadId) q.set('filters[unidad][documentId][$eq]', params.unidadId);
@@ -417,6 +419,32 @@ export interface AdminTasas {
 
 export const getAdminDashboard = () => api<AdminDashboard>('/api/admin/dashboard');
 export const getAdminEmpresas = () => api<AdminEmpresa[]>('/api/admin/empresas');
+
+/** Pasajero registrado visto desde Plataforma (solo lectura). */
+export interface AdminPasajero {
+  documentId: string;
+  username: string;
+  nombreCorto?: string | null;
+  email?: string | null;
+  telefono?: string | null;
+  documento?: string | null;
+  confirmado: boolean;
+  bloqueado: boolean;
+  registradoEn: string | null;
+  saldoBs: number;
+  recargadoBs: number;
+  recargasPendientes: number;
+  pasajesUrbanos: number;
+  boletos: number;
+  ultimoMovimiento: string | null;
+}
+export interface AdminPasajeroFicha extends Omit<AdminPasajero, 'saldoBs' | 'recargadoBs' | 'recargasPendientes' | 'pasajesUrbanos' | 'boletos' | 'ultimoMovimiento'> {
+  wallet: { saldoBs: number; movimientos: MovimientoWallet[] };
+  boletos: (import('./types').BoletoMio & { compradoEn: string | null })[];
+}
+export const getAdminPasajeros = (buscar?: string) =>
+  api<AdminPasajero[]>(`/api/admin/pasajeros${buscar ? `?buscar=${encodeURIComponent(buscar)}` : ''}`);
+export const getAdminPasajero = (documentId: string) => api<AdminPasajeroFicha>(`/api/admin/pasajeros/${documentId}`);
 export const crearEmpresa = (datos: {
   nombre: string;
   rif?: string;
@@ -503,11 +531,19 @@ export interface MovimientoWallet {
 }
 export const getWallet = () =>
   api<{ saldoBs: number; movimientos: MovimientoWallet[] }>('/api/wallet');
-export const reportarRecarga = (montoBs: number, referencia: string, banco?: string) =>
-  api<{ movimientoId: string; estado: string }>('/api/wallet/recargas', {
-    method: 'POST',
-    body: { montoBs, referencia, banco },
-  });
+/** Con `comprobante` (captura del pago) va como multipart; sin él, JSON. */
+export const reportarRecarga = (montoBs: number, referencia: string, banco?: string, comprobante?: File | null) => {
+  let body: unknown = { montoBs, referencia, banco };
+  if (comprobante) {
+    const fd = new FormData();
+    fd.append('montoBs', String(montoBs));
+    fd.append('referencia', referencia);
+    if (banco) fd.append('banco', banco);
+    fd.append('comprobante', comprobante);
+    body = fd;
+  }
+  return api<{ movimientoId: string; estado: string }>('/api/wallet/recargas', { method: 'POST', body });
+};
 /** A dónde transfiere el pasajero para recargar: lo fija el superadmin; `null` si aún no lo publicó. */
 export interface PagoMovilPlataforma {
   banco: string;
@@ -525,6 +561,8 @@ export interface RecargaPendiente {
   montoBs: number;
   referencia?: string | null;
   banco?: string | null;
+  /** Captura del pago que subió el pasajero, relativa al API (`/uploads/…`). */
+  comprobanteUrl?: string | null;
   fecha: string;
   pasajero?: string | null;
   telefono?: string | null;

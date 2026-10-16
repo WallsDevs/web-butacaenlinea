@@ -38,14 +38,9 @@ export default function Perfil() {
           {fila('Línea', usuario.linea?.nombre)}
           {fila('Taquilla', usuario.taquilla?.nombre)}
         </div>
-        {usuario.role?.type === 'cliente' && (
-          <button className={ui.btnSecondary} style={{ width: '100%', marginTop: 18 }} onClick={() => navigate('/cuenta/metodos')}>
-            Mis métodos de pago
-          </button>
-        )}
         <button
           className={ui.btnPrimary}
-          style={{ width: '100%', marginTop: 10, background: 'var(--bad-text)' }}
+          style={{ width: '100%', marginTop: 18, background: 'var(--bad-text)' }}
           onClick={() => {
             cerrarSesion();
             navigate('/');

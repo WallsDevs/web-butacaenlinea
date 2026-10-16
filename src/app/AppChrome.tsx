@@ -4,13 +4,12 @@ import { LogoLockup } from '../components/brand/LogoMark';
 import { PillTabs } from '../components/ui/PillTabs';
 import { NavPrincipal } from './NavPrincipal';
 import { BarraInferior } from './BarraInferior';
-import { useSettings } from '../stores/settings';
 import { useAuth } from '../stores/auth';
 import { useTasasSync } from '../lib/useTasas';
-import { formatearTasaBcv, type Moneda } from '../lib/money';
 import { useModulos } from '../lib/useModulos';
 import {
   AREAS_EMPRESA,
+  AREAS_PASAJERO,
   MENU_ADMIN,
   MENU_EMPRESA,
   SECCIONES_CHOFER,
@@ -59,11 +58,6 @@ export function AppChrome() {
   useTasasSync();
   const location = useLocation();
   const navigate = useNavigate();
-  const moneda = useSettings((s) => s.moneda);
-  const setMoneda = useSettings((s) => s.setMoneda);
-  const tasas = useSettings((s) => s.tasas);
-  const tasasFrescas = useSettings((s) => s.tasasFrescas);
-  const tasaPropia = useSettings((s) => s.tasaPropia);
   const usuario = useAuth((s) => s.usuario);
   const cerrarSesion = useAuth((s) => s.cerrarSesion);
   const [menuAbierto, setMenuAbierto] = useState(false);
@@ -82,19 +76,22 @@ export function AppChrome() {
   // Un solo patrón para todos los roles: las secciones del módulo viven en esta barra
   const rol = usuario?.role?.type;
   const path = location.pathname;
-  const enAreaEmpresa = AREAS_EMPRESA.some((a) => path === a || path.startsWith(a + '/'));
+  // Perfil es de todos los roles: conserva el menú del rol para poder volver
+  const enPerfil = path === '/perfil';
+  const enAreaEmpresa = enPerfil || AREAS_EMPRESA.some((a) => path === a || path.startsWith(a + '/'));
+  const enAreaPasajero = enPerfil || AREAS_PASAJERO.some((a) => path === a || path.startsWith(a + '/'));
   const nav: { menu: EntradaNav[]; tagline: string; home: string } | null =
-    rol === 'superadmin' && path.startsWith('/admin')
+    rol === 'superadmin' && (enPerfil || path.startsWith('/admin'))
       ? { menu: MENU_ADMIN, tagline: 'Plataforma', home: '/admin' }
       : rol === 'empresa' && enAreaEmpresa
         ? { menu: menuVisible(MENU_EMPRESA, modulos), tagline: usuario?.linea?.nombre ?? 'Mi empresa', home: '/empresa' }
-        : rol === 'cajero' && path.startsWith('/pos')
+        : rol === 'cajero' && (enPerfil || path.startsWith('/pos'))
           ? { menu: SECCIONES_POS, tagline: usuario?.linea?.nombre ?? 'Punto de venta', home: '/pos' }
-          : rol === 'chofer' && path.startsWith('/chofer')
+          : rol === 'chofer' && (enPerfil || path.startsWith('/chofer'))
             ? { menu: SECCIONES_CHOFER, tagline: usuario?.linea?.nombre ?? 'Conductor', home: '/chofer' }
-            : rol === 'colector' && path.startsWith('/colector')
+            : rol === 'colector' && (enPerfil || path.startsWith('/colector'))
               ? { menu: SECCIONES_COLECTOR, tagline: usuario?.linea?.nombre ?? 'Colector', home: '/colector' }
-              : rol === 'cliente' && path.startsWith('/cuenta')
+              : rol === 'cliente' && enAreaPasajero
                 ? { menu: SECCIONES_CUENTA, tagline: 'Mi cuenta', home: '/' }
                 : null;
   const hogarDelRol = rol ? HOGAR_POR_ROL[rol] : undefined;
@@ -142,23 +139,7 @@ export function AppChrome() {
 
       {!esPaginaAcceso && (
       <span className={styles.right}>
-        {tasas.bcv > 0 && tasasFrescas && (
-          <span className={styles.bcv}>
-            {tasaPropia ? 'Tasa' : 'BCV'} {formatearTasaBcv(tasas.bcv)}
-          </span>
-        )}
-        <span className={styles.currencyGroup}>
-          {(['Bs', 'USD', 'COP'] as Moneda[]).map((m) => (
-            <button
-              key={m}
-              className={`${styles.currencyBtn} ${moneda === m ? styles.currencyActive : ''}`}
-              onClick={() => setMoneda(m)}
-            >
-              {m}
-            </button>
-          ))}
-        </span>
-        <span style={{ position: 'relative' }}>
+        <span style={{ position: 'relative' }} className={nav ? styles.conBarra : undefined}>
           {usuario ? (
             <button className={styles.avatar} onClick={() => setMenuAbierto((m) => !m)}>
               {iniciales}
@@ -215,9 +196,6 @@ export function AppChrome() {
                     </button>
                   )}
                   <button className={styles.menuItem} onClick={() => navigate('/perfil')}>Mi perfil</button>
-                  {rol === 'cliente' && (
-                    <button className={styles.menuItem} onClick={() => navigate('/busetas')}>¿Por dónde viene mi buseta?</button>
-                  )}
                   <div className={styles.menuDivisor} />
                   <button
                     className={styles.menuItem}

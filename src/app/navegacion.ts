@@ -33,7 +33,7 @@ export const MENU_ADMIN: EntradaNav[] = [
   {
     id: 'clientes',
     label: 'Clientes',
-    items: [sec('Empresas', '/admin/empresas'), sec('Contratos', '/admin/contratos'), sec('Integraciones', '/admin/integraciones'), sec('Conectores', '/admin/conectores')],
+    items: [sec('Empresas', '/admin/empresas'), sec('Pasajeros', '/admin/pasajeros'), sec('Contratos', '/admin/contratos'), sec('Integraciones', '/admin/integraciones'), sec('Conectores', '/admin/conectores')],
   },
   {
     id: 'finanzas',
@@ -111,8 +111,11 @@ export const SECCIONES_COLECTOR: SeccionModulo[] = [
 export const SECCIONES_CUENTA: SeccionModulo[] = [
   { id: 'wallet', label: 'Mi wallet', ruta: '/cuenta/wallet' },
   { id: 'boletos', label: 'Mis boletos', ruta: '/cuenta' },
+  { id: 'busetas', label: 'Busetas', ruta: '/busetas' },
   { id: 'metodos', label: 'Métodos de pago', ruta: '/cuenta/metodos' },
 ];
+/** Páginas públicas que, con sesión de pasajero, siguen siendo «su área» (la barra del pasajero se queda). */
+export const AREAS_PASAJERO = ['/cuenta', '/busetas', '/mapa', '/pagar'];
 
 /** Las secciones que aplican a una línea según sus módulos (`null` = todas). */
 export function seccionesVisibles(secciones: SeccionModulo[], modulos: ClaveModulo[] | null): SeccionModulo[] {
@@ -141,5 +144,6 @@ export function seccionDe(secciones: SeccionModulo[], pathname: string): string 
   const encontrada = [...secciones]
     .sort((a, b) => b.ruta.length - a.ruta.length)
     .find((s) => pathname === s.ruta || pathname.startsWith(s.ruta + '/'));
-  return encontrada?.id ?? secciones[0]?.id ?? '';
+  // Sin coincidencia (p. ej. /perfil) no se marca ninguna: antes caía en la primera
+  return encontrada?.id ?? '';
 }

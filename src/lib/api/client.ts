@@ -31,7 +31,9 @@ interface Opciones {
 export async function api<T>(path: string, opciones: Opciones = {}): Promise<T> {
   const { method = 'GET', body, auth = true, signal } = opciones;
   const headers: Record<string, string> = {};
-  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  // Un FormData (subida de archivo) va tal cual: el navegador pone el boundary
+  const esFormulario = typeof FormData !== 'undefined' && body instanceof FormData;
+  if (body !== undefined && !esFormulario) headers['Content-Type'] = 'application/json';
   const jwt = useAuth.getState().jwt;
   if (auth && jwt) headers['Authorization'] = `Bearer ${jwt}`;
 
@@ -40,7 +42,7 @@ export async function api<T>(path: string, opciones: Opciones = {}): Promise<T> 
     res = await fetch(`${API_URL}${path}`, {
       method,
       headers,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: body === undefined ? undefined : esFormulario ? body : JSON.stringify(body),
       signal,
     });
   } catch (e) {
