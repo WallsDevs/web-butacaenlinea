@@ -5,19 +5,20 @@ import FlotaLista from '../flota/FlotaLista';
 import FlotaEnVivo from './FlotaEnVivo';
 import styles from '../flota/flota.module.css';
 
-type Pestana = 'unidades' | 'vivo';
+type Pestana = 'vivo' | 'unidades';
 
 /**
- * Toda la flota en una sola pantalla: las unidades (ficha, mantenimiento) y
- * el mapa en vivo, como pestañas. Qué pestañas hay depende del contrato: sin
- * Flota no hay unidades que editar; sin Mantenimiento ni Urbano no hay GPS.
+ * Toda la flota en una sola pantalla: el mapa en vivo primero (es lo que el
+ * dueño mira a diario) y las unidades (ficha, mantenimiento) como segunda
+ * pestaña. Qué pestañas hay depende del contrato: sin Flota no hay unidades
+ * que editar; sin Mantenimiento ni Urbano no hay GPS.
  */
 export default function EmpresaFlota() {
   const { tiene } = useModulos();
   const [params, setParams] = useSearchParams();
   const conUnidades = tiene('flota');
   const conVivo = tiene('mantenimiento') || tiene('urbano');
-  const activa: Pestana = !conUnidades || (conVivo && params.get('tab') === 'vivo') ? 'vivo' : 'unidades';
+  const activa: Pestana = !conVivo || (conUnidades && params.get('tab') === 'unidades') ? 'unidades' : 'vivo';
 
   return (
     <>
@@ -26,11 +27,11 @@ export default function EmpresaFlota() {
           <PillTabs
             variant="loose"
             items={[
-              { id: 'unidades', label: 'Unidades' },
               { id: 'vivo', label: 'En vivo' },
+              { id: 'unidades', label: 'Unidades' },
             ]}
             value={activa}
-            onChange={(id) => setParams(id === 'vivo' ? { tab: 'vivo' } : {}, { replace: true })}
+            onChange={(id) => setParams(id === 'unidades' ? { tab: 'unidades' } : {}, { replace: true })}
           />
         </div>
       )}
