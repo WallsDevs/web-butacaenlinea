@@ -58,9 +58,8 @@ export const MENU_EMPRESA: EntradaNav[] = [
     items: [
       // Una sola pantalla con pestañas Salidas / Rutas (/empresa/rutas redirige a la pestaña)
       sec('Salidas y rutas', '/empresa/salidas', ['boleteria', 'urbano']),
-      sec('Boletos', '/empresa/boletos', ['boleteria']),
-      sec('Pagos', '/empresa/pagos', ['boleteria']),
-      sec('Reportes', '/empresa/reportes', ['boleteria', 'urbano']),
+      // Una sola pantalla con pestañas Boletos / Pagos / Reportes (/empresa/pagos y /empresa/reportes redirigen)
+      sec('Boletos, pagos y reportes', '/empresa/boletos', ['boleteria', 'urbano']),
     ],
   },
   {
