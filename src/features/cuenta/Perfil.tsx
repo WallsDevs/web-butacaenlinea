@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router';
+import { Navigate, useNavigate } from 'react-router';
 import { useAuth } from '../../stores/auth';
 import { useSeo } from '../../lib/seo';
 import ui from '../../components/ui/ui.module.css';
@@ -13,6 +13,8 @@ export default function Perfil() {
   const usuario = useAuth((s) => s.usuario);
   const cerrarSesion = useAuth((s) => s.cerrarSesion);
   if (!usuario) return null;
+  // El conductor no tiene nada en la web: su perfil y su salida están en la pantalla de la app
+  if (usuario.role?.type === 'chofer') return <Navigate to="/app-conductor" replace />;
   const iniciales = (usuario.nombreCorto ?? usuario.username).split(' ').map((p) => p[0]).join('').slice(0, 2).toUpperCase();
   const fila = (etiqueta: string, valor?: string | null) =>
     valor ? (
