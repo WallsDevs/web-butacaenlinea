@@ -21,7 +21,6 @@ const VerificacionPagos = lazy(() => import('../features/pos/VerificacionPagos')
 const MisVentas = lazy(() => import('../features/pos/MisVentas'));
 const ReportesTurnos = lazy(() => import('../features/pos/ReportesTurnos'));
 const TasasPos = lazy(() => import('../features/pos/TasasPos'));
-const MiUnidad = lazy(() => import('../features/chofer/MiUnidad'));
 const EmpresaLayout = lazy(() => import('../features/empresa/EmpresaLayout'));
 const EmpresaDashboard = lazy(() => import('../features/empresa/EmpresaDashboard'));
 const EmpresaProgramacion = lazy(() => import('../features/empresa/EmpresaProgramacion'));
@@ -30,8 +29,7 @@ const EmpresaBoletos = lazy(() => import('../features/empresa/EmpresaBoletos'));
 const EmpresaReportes = lazy(() => import('../features/empresa/EmpresaReportes'));
 const EmpresaWallet = lazy(() => import('../features/empresa/EmpresaWallet'));
 const EmpresaConfiguracion = lazy(() => import('../features/empresa/EmpresaConfiguracion'));
-const Escaner = lazy(() => import('../features/chofer/Escaner'));
-const ManifiestoPage = lazy(() => import('../features/chofer/ManifiestoPage'));
+const SoloApp = lazy(() => import('../features/chofer/SoloApp'));
 const AccesoPlataforma = lazy(() => import('../features/admin/AccesoPlataforma'));
 const AdminDashboard = lazy(() => import('../features/admin/AdminDashboard'));
 const AdminEmpresas = lazy(() => import('../features/admin/AdminEmpresas'));
@@ -102,7 +100,7 @@ export const router = createBrowserRouter([
       {
         path: '/colector',
         element: (
-          <RequireAuth roles={['colector', 'chofer']}>
+          <RequireAuth roles={['colector']}>
             <Colector />
           </RequireAuth>
         ),
@@ -169,14 +167,8 @@ export const router = createBrowserRouter([
           </RequireAuth>
         ),
       },
-      {
-        path: '/pos/pagos',
-        element: (
-          <RequireAuth roles={['cajero']}>
-            <VerificacionPagos />
-          </RequireAuth>
-        ),
-      },
+      // «Pagos web» era lo mismo que «Mis ventas»; la verificación es del administrador (/empresa/pagos)
+      { path: '/pos/pagos', element: <Navigate to="/pos/ventas" replace /> },
       {
         path: '/pos/ventas',
         element: (
@@ -201,30 +193,16 @@ export const router = createBrowserRouter([
           </RequireAuth>
         ),
       },
+      // El conductor trabaja desde la app: en la web solo se le dice dónde está lo suyo
       {
-        path: '/chofer/unidad',
+        path: '/app-conductor',
         element: (
           <RequireAuth roles={['chofer']}>
-            <MiUnidad />
+            <SoloApp />
           </RequireAuth>
         ),
       },
-      {
-        path: '/chofer',
-        element: (
-          <RequireAuth roles={['chofer']}>
-            <Escaner />
-          </RequireAuth>
-        ),
-      },
-      {
-        path: '/chofer/manifiesto',
-        element: (
-          <RequireAuth roles={['chofer']}>
-            <ManifiestoPage />
-          </RequireAuth>
-        ),
-      },
+      { path: '/chofer/*', element: <Navigate to="/app-conductor" replace /> },
       {
         path: '/empresa',
         element: (

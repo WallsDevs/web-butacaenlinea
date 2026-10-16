@@ -22,7 +22,7 @@ import css from './inicio/inicio.module.css';
 const WHATSAPP = (import.meta.env.VITE_WHATSAPP as string | undefined)?.replace(/\D/g, '') || '584129647161';
 const COLORES_LINEA = ['#0B2A6B', '#2563EB', '#1D4ED8', '#123B8F', '#3B82F6', '#0B2A6B'];
 const DIAS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-const HOME_POR_ROL: Record<string, string> = { superadmin: '/admin', empresa: '/empresa', cajero: '/pos', chofer: '/chofer', colector: '/colector', cliente: '/cuenta' };
+const HOME_POR_ROL: Record<string, string> = { superadmin: '/admin', empresa: '/empresa', cajero: '/pos', chofer: '/app-conductor', colector: '/colector', cliente: '/cuenta' };
 
 const pad2 = (n: number) => String(n).padStart(2, '0');
 const iso = (d: Date) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;

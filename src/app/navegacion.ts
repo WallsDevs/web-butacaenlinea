@@ -76,7 +76,6 @@ export const AREAS_EMPRESA = ['/empresa', '/flota'];
 export const SECCIONES_POS: SeccionModulo[] = [
   { id: 'vender', label: 'Vender', ruta: '/pos' },
   { id: 'ventas', label: 'Mis ventas', ruta: '/pos/ventas' },
-  { id: 'pagos', label: 'Pagos web', ruta: '/pos/pagos' },
   { id: 'tasas', label: 'Tasas', ruta: '/pos/tasas' },
   { id: 'reportes', label: 'Reportes', ruta: '/pos/reportes' },
   { id: 'cierre', label: 'Cierre de turno', ruta: '/pos/cierre' },

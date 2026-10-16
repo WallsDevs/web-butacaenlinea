@@ -6,7 +6,7 @@ import { Isotipo } from '../../components/brand/LogoMark';
 import { useSeo } from '../../lib/seo';
 import css from './acceso.module.css';
 
-const HOME_POR_ROL: Record<string, string> = { cajero: '/pos', empresa: '/empresa', chofer: '/chofer', colector: '/colector', cliente: '/cuenta' };
+const HOME_POR_ROL: Record<string, string> = { cajero: '/pos', empresa: '/empresa', chofer: '/app-conductor', colector: '/colector', cliente: '/cuenta' };
 
 /** `next` solo vale si el rol puede entrar ahí; si no, cada rol va a su propio panel. */
 function destinoTras(rol: string, next: string | null): string {
@@ -15,10 +15,10 @@ function destinoTras(rol: string, next: string | null): string {
       ? rol === 'empresa'
       : ruta.startsWith('/pos')
         ? rol === 'cajero' || rol === 'empresa'
-        : ruta.startsWith('/chofer')
+        : ruta.startsWith('/chofer') || ruta.startsWith('/app-conductor')
           ? rol === 'chofer'
           : ruta.startsWith('/colector')
-            ? rol === 'colector' || rol === 'chofer' || rol === 'empresa'
+            ? rol === 'colector'
             : ruta.startsWith('/admin')
               ? rol === 'superadmin'
               : ruta.startsWith('/cuenta')
