@@ -4,6 +4,8 @@ import { getReportesEmpresa } from '../../lib/api/endpoints';
 import { ApiError } from '../../lib/api/client';
 import { hoyISO } from '../../lib/time';
 import { Field } from '../../components/ui/Field';
+import { EncabezadoPantalla } from '../../components/ui/EncabezadoPantalla';
+
 import { StatusChip } from '../../components/ui/StatusChip';
 import ui from '../../components/ui/ui.module.css';
 import styles from '../flota/flota.module.css';
@@ -63,15 +65,20 @@ export default function EmpresaReportes() {
 
   return (
     <div className={styles.contenido}>
-      <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', marginBottom: 16, flexWrap: 'wrap' }}>
-        <h2 style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-0.02em', marginRight: 'auto' }}>Reportes</h2>
-        <div style={{ width: 165 }}>
-          <Field label="Desde" type="date" value={desde} onChange={(e) => setDesde(e.target.value)} />
-        </div>
-        <div style={{ width: 165 }}>
-          <Field label="Hasta" type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} />
-        </div>
-      </div>
+      <EncabezadoPantalla
+        titulo="Reportes"
+        descripcion="Lo vendido en el período por día, canal, método de pago y cajero, con las liquidaciones de comisión."
+        acciones={
+          <>
+            <div style={{ width: 165 }}>
+              <Field label="Desde" type="date" value={desde} onChange={(e) => setDesde(e.target.value)} />
+            </div>
+            <div style={{ width: 165 }}>
+              <Field label="Hasta" type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} />
+            </div>
+          </>
+        }
+      />
 
       {error ? (
         <div className={ui.card} style={{ padding: 28, textAlign: 'center' }}>

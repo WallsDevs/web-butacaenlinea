@@ -48,7 +48,6 @@ const iniciales = (nombre: string) =>
 export function BarraLateral({ secciones, titulo, home, pathname, conBoleteria }: { secciones: SeccionLateral[]; titulo: string; home: string; pathname: string; conBoleteria: boolean }) {
   const navigate = useNavigate();
   const usuario = useAuth((s) => s.usuario);
-  const cerrarSesion = useAuth((s) => s.cerrarSesion);
   const rol = usuario?.role?.type;
   const insignias = useInsignias(rol, conBoleteria);
   const [plegada, setPlegada] = useState(() => {
@@ -59,7 +58,6 @@ export function BarraLateral({ secciones, titulo, home, pathname, conBoleteria }
     }
   });
   const [encima, setEncima] = useState(false);
-  const [menuYo, setMenuYo] = useState(false);
   // Un ítem con hijos abierto a mano, además del que esté activo
   const [abiertos, setAbiertos] = useState<string[]>([]);
   const activo = activoLateral(secciones, pathname);
@@ -78,17 +76,13 @@ export function BarraLateral({ secciones, titulo, home, pathname, conBoleteria }
   const ir = (ruta: string) => {
     navigate(ruta);
     setEncima(false);
-    setMenuYo(false);
   };
 
   return (
     <aside
       className={`${styles.lateral} ${plegada ? styles.plegada : ''} ${flotante ? styles.flotante : ''} no-print`}
       onMouseEnter={() => setEncima(true)}
-      onMouseLeave={() => {
-        setEncima(false);
-        setMenuYo(false);
-      }}
+      onMouseLeave={() => setEncima(false)}
       aria-label="Menú principal"
     >
       <div className={styles.cabecera}>
@@ -168,30 +162,22 @@ export function BarraLateral({ secciones, titulo, home, pathname, conBoleteria }
       </nav>
 
       <div className={styles.pie}>
-        {menuYo && (!plegada || flotante) && (
-          <div className={styles.menuYo}>
-            <div style={{ padding: '6px 12px', fontSize: 12, color: 'var(--text-faint)' }}>
-              {usuario?.nombreCorto ?? usuario?.username} · {usuario?.role?.name ?? ''}
-            </div>
-            <button type="button" className={styles.menuYoItem} onClick={() => ir('/perfil')}>Mi perfil</button>
-            <button
-              type="button"
-              className={styles.menuYoItem}
-              onClick={() => {
-                cerrarSesion();
-                navigate('/');
-              }}
-            >
-              Cerrar sesión
-            </button>
-          </div>
-        )}
-        <button type="button" className={styles.yo} onClick={() => setMenuYo((m) => !m)} aria-expanded={menuYo} title={plegada && !flotante ? usuario?.nombreCorto ?? usuario?.username : undefined}>
+        {/* Mi perfil: ahí están los datos y el único «Cerrar sesión» */}
+        <button
+          type="button"
+          className={`${styles.yo} ${pathname === '/perfil' ? styles.yoActivo : ''}`}
+          onClick={() => ir('/perfil')}
+          aria-current={pathname === '/perfil' ? 'page' : undefined}
+          title={plegada && !flotante ? 'Mi perfil' : undefined}
+        >
           <span className={styles.avatar}>{iniciales(usuario?.nombreCorto ?? usuario?.username ?? 'BE')}</span>
-          <span className={`${styles.yoTexto} ${styles.itemTexto}`}>{usuario?.nombreCorto ?? usuario?.username}</span>
+          <span className={`${styles.yoTexto} ${styles.itemTexto}`}>
+            <span style={{ display: 'block' }}>{usuario?.nombreCorto ?? usuario?.username}</span>
+            <span style={{ display: 'block', fontSize: 12, fontWeight: 500, color: 'var(--lat-suave)' }}>Mi perfil</span>
+          </span>
           {(!plegada || flotante) && (
-            <svg className={`${styles.flecha} ${menuYo ? styles.flechaAbierta : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M18 15l-6-6-6 6" />
+            <svg className={styles.flecha} style={{ transform: 'rotate(-90deg)' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M6 9l6 6 6-6" />
             </svg>
           )}
         </button>

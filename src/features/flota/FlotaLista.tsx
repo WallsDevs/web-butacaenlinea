@@ -33,13 +33,10 @@ export default function FlotaLista() {
 
   return (
     <div className={styles.contenido}>
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16 }}>
-        <div>
-          <div className={styles.kicker}>Flota y mantenimiento</div>
-          <h2 style={{ fontSize: 30, fontWeight: 700, letterSpacing: '-0.02em', marginTop: 8 }}>
-            {isLoading ? 'Cargando flota…' : `${unidades?.length ?? 0} unidad${(unidades?.length ?? 0) === 1 ? '' : 'es'}`}
-          </h2>
-        </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        <h2 style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.02em' }}>
+          {isLoading ? 'Cargando flota…' : `${unidades?.length ?? 0} unidad${(unidades?.length ?? 0) === 1 ? '' : 'es'}`}
+        </h2>
         <button
           className={ui.btnPrimary}
           style={{ marginLeft: 'auto', fontSize: 14, padding: '12px 20px' }}

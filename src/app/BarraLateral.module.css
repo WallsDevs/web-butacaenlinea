@@ -257,31 +257,7 @@
 }
 .plegada:not(.flotante) .yo { justify-content: center; padding: 6px 0; }
 .plegada:not(.flotante) .yoTexto { display: none; }
-.menuYo {
-  position: absolute;
-  left: 8px;
-  right: 8px;
-  bottom: calc(100% - 4px);
-  background: var(--surface);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: var(--r-14);
-  box-shadow: var(--shadow-panel);
-  padding: 6px;
-  display: flex;
-  flex-direction: column;
-  z-index: 2;
-}
-.menuYoItem {
-  text-align: left;
-  font-size: 14px;
-  font-weight: 600;
-  padding: 9px 12px;
-  border-radius: var(--r-9);
-  color: var(--text);
-  cursor: pointer;
-}
-.menuYoItem:hover { background: var(--tint-50); color: var(--blue-700); }
+.yoActivo { background: var(--lat-activo); }
 
 @media print {
   .lateral { display: none !important; }

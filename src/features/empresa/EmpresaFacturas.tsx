@@ -6,6 +6,7 @@ import { useModulos } from '../../lib/useModulos';
 import { fechaConAnio, fechaCorta } from '../../lib/time';
 import { StatusChip } from '../../components/ui/StatusChip';
 import ui from '../../components/ui/ui.module.css';
+import { EncabezadoPantalla } from '../../components/ui/EncabezadoPantalla';
 import styles from '../flota/flota.module.css';
 import { CHIP_ESTADO, nombreDePeriodo } from '../../lib/facturas';
 
@@ -110,10 +111,11 @@ export default function EmpresaFacturas() {
 
   return (
     <div className={styles.contenido}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16, flexWrap: 'wrap' }}>
-        <h2 style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-0.02em' }}>Facturas</h2>
-        {totalPendiente > 0 && <StatusChip tono="warn">{usd(totalPendiente)} por pagar</StatusChip>}
-      </div>
+      <EncabezadoPantalla
+        titulo="Facturas"
+        chip={totalPendiente > 0 && <StatusChip tono="warn">{usd(totalPendiente)} por pagar</StatusChip>}
+        descripcion="Tu contrato con Butaca En Línea y las facturas de los módulos de cobro fijo."
+      />
 
       <MiContratoCard />
 

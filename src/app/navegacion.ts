@@ -240,3 +240,12 @@ export function activoLateral(secciones: SeccionLateral[], pathname: string): { 
   const encontrado = planos.sort((a, b) => b.ruta.length - a.ruta.length).find((p) => pathname === p.ruta || pathname.startsWith(p.ruta + '/'));
   return { item: encontrado?.item ?? '', hijo: encontrado?.hijo ?? '' };
 }
+
+/** La sección del lateral a la que pertenece una ruta («Ventas», «Operación»…), para el antetítulo de la pantalla. */
+export function seccionLateralDe(rol: string | undefined, pathname: string): string | null {
+  const lateral = rol === 'empresa' ? LATERAL_EMPRESA : rol === 'superadmin' ? lateralDesdeMenu(MENU_ADMIN) : null;
+  if (!lateral) return null;
+  const activo = activoLateral(lateral, pathname);
+  const seccion = lateral.find((s) => s.items.some((i) => i.id === activo.item));
+  return seccion && seccion.id !== 'general' ? seccion.label : null;
+}

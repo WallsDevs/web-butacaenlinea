@@ -4,6 +4,8 @@ import { getBoletosPorVerificar, getReembolsos, marcarReembolsado, verificarPago
 import { useAuth } from '../../stores/auth';
 import { hora, fechaCorta } from '../../lib/time';
 import { StatusChip } from '../../components/ui/StatusChip';
+import { EncabezadoPantalla } from '../../components/ui/EncabezadoPantalla';
+
 import ui from '../../components/ui/ui.module.css';
 import styles from './pos.module.css';
 
@@ -55,14 +57,11 @@ export default function VerificacionPagos() {
 
   return (
     <div className={styles.cierreContenido} style={{ maxWidth: 900 }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 14, margin: '12px 0 6px' }}>
-        <h2 style={{ fontSize: 30, fontWeight: 700, letterSpacing: '-0.02em' }}>Pagos por verificar</h2>
-        {!isLoading && <StatusChip tono={pendientes?.length ? 'warn' : 'ok'}>{pendientes?.length ?? 0} pendientes</StatusChip>}
-      </div>
-      <p style={{ fontSize: 14, color: 'var(--text-soft)', marginBottom: 20 }}>
-        Ventas web con referencia bancaria. Confirma cada pago contra el banco de la línea; todo queda
-        con usuario y hora para la auditoría.
-      </p>
+      <EncabezadoPantalla
+        titulo="Pagos"
+        chip={!isLoading && <StatusChip tono={pendientes?.length ? 'warn' : 'ok'}>{pendientes?.length ?? 0} por verificar</StatusChip>}
+        descripcion="Ventas web con referencia bancaria. Confirma cada pago contra el banco de la línea antes de que el boleto valga; todo queda con usuario y hora para la auditoría."
+      />
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         {(pendientes ?? []).map((b) => (

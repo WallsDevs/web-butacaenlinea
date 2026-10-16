@@ -6,6 +6,7 @@ import { Field } from '../../components/ui/Field';
 import { TasasLinea } from './TasasLinea';
 import { WalletEmpresa } from './WalletEmpresa';
 import ui from '../../components/ui/ui.module.css';
+import { EncabezadoPantalla } from '../../components/ui/EncabezadoPantalla';
 import styles from '../flota/flota.module.css';
 
 /** Datos públicos de la empresa (la comisión la fija la plataforma). */
@@ -66,11 +67,10 @@ export default function EmpresaConfiguracion() {
 
   return (
     <div className={styles.contenido} style={{ maxWidth: 720, display: 'flex', flexDirection: 'column', gap: 18 }}>
+      <EncabezadoPantalla titulo="Configuración" descripcion="Tasas de cambio, wallet de la línea y los datos de la empresa." />
       <TasasLinea />
       <WalletEmpresa />
-      <h2 style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 16 }}>
-        Configuración de la empresa
-      </h2>
+      <h2 style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.02em' }}>Datos de la empresa</h2>
       <div className={ui.card} style={{ padding: 24 }}>
         {mensaje && (
           <div style={{ fontSize: 13, color: 'var(--blue-700)', background: 'var(--tint-50)', borderRadius: 12, padding: '10px 12px', marginBottom: 14 }}>

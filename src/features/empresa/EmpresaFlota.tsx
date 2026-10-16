@@ -1,6 +1,6 @@
 import { useSearchParams } from 'react-router';
 import { useModulos } from '../../lib/useModulos';
-import { PillTabs } from '../../components/ui/PillTabs';
+import { EncabezadoPantalla } from '../../components/ui/EncabezadoPantalla';
 import FlotaLista from '../flota/FlotaLista';
 import FlotaEnVivo from './FlotaEnVivo';
 import styles from '../flota/flota.module.css';
@@ -22,19 +22,13 @@ export default function EmpresaFlota() {
 
   return (
     <>
-      {conUnidades && conVivo && (
-        <div className={styles.contenido} style={{ paddingBottom: 16 }}>
-          <PillTabs
-            variant="loose"
-            items={[
-              { id: 'vivo', label: 'En vivo' },
-              { id: 'unidades', label: 'Unidades' },
-            ]}
-            value={activa}
-            onChange={(id) => setParams(id === 'unidades' ? { tab: 'unidades' } : {}, { replace: true })}
-          />
-        </div>
-      )}
+      <div className={styles.contenido} style={{ paddingBottom: 0 }}>
+        <EncabezadoPantalla<Pestana>
+          titulo="Flota"
+          descripcion={activa === 'vivo' ? 'Dónde está cada unidad ahora mismo; la app del conductor reporta mientras tiene un turno abierto.' : 'Las unidades de la línea: ficha, asientos, documentos y mantenimiento.'}
+          pestanas={conUnidades && conVivo ? { items: [{ id: 'vivo', label: 'En vivo' }, { id: 'unidades', label: 'Unidades' }], value: activa, onChange: (id) => setParams(id === 'unidades' ? { tab: 'unidades' } : {}, { replace: true }) } : undefined}
+        />
+      </div>
       {activa === 'vivo' ? <FlotaEnVivo /> : <FlotaLista />}
     </>
   );
