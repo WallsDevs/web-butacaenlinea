@@ -11,6 +11,7 @@ import { useSeo } from '../../lib/seo';
 import { Promociones } from './inicio/Promociones';
 import { Kilometros } from './inicio/Kilometros';
 import { Destinos } from './inicio/Destinos';
+import { BusetasEnVivo } from './inicio/Busetas';
 import { H2 } from './inicio/piezas';
 import { Letras, TableroMuestra, casillas } from './inicio/Tablero';
 import { PanelAsientos } from './inicio/PanelAsientos';
@@ -146,6 +147,7 @@ export default function MarketplaceHome() {
           </a>
           <nav style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 26, fontSize: 14, fontWeight: 500 }}>
             <span className={css.navHorizontal} style={{ display: 'flex', alignItems: 'center', gap: 26 }}>
+              <a className={css.navLink} href="#busetas">Busetas</a>
               <a className={css.navLink} href="#promos">Promociones</a>
               <a className={css.navLink} href="#kilometros">Kilómetros</a>
               <a className={css.navLink} href="#lineas">Líneas</a>
@@ -387,6 +389,7 @@ export default function MarketplaceHome() {
 
       {/* Secciones */}
       <div style={{ position: 'relative', maxWidth: 1440, margin: '0 auto', padding: '0 28px 96px', display: 'flex', flexDirection: 'column', gap: 88 }}>
+        <BusetasEnVivo />
         <Promociones />
         <Kilometros destino={destino} pasajeros={pax} />
         <Destinos
@@ -477,7 +480,7 @@ export default function MarketplaceHome() {
             </div>
             <div style={{ flex: '2 1 560px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))', gap: 32 }}>
               {[
-                ['Viajar', [['Destinos', '#destinos'], ['Promociones', '#promos'], ['Mis boletos', '/cuenta'], ['Horarios', '#salidas'], ['Busetas en vivo', '/busetas']]],
+                ['Viajar', [['Destinos', '#destinos'], ['Busetas en vivo', '/busetas'], ['Promociones', '#promos'], ['Mis boletos', '/cuenta'], ['Horarios', '#salidas']]],
                 ['Kilómetros', [['Cómo funcionan', '#kilometros'], ['Niveles', '#kilometros'], ['Canjear premios', '#kilometros']]],
                 ['Empresa', [['Quiénes somos', '#nosotros'], ['Líneas afiliadas', '#lineas'], ['Afiliar mi línea', 'mailto:hola@butacaenlinea.com?subject=Afiliar%20mi%20l%C3%ADnea']]],
               ].map(([titulo, links]) => (

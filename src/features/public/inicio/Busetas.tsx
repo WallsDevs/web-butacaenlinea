@@ -1,0 +1,58 @@
+import { useNavigate } from 'react-router';
+import { useQuery } from '@tanstack/react-query';
+import { getRutasUrbanasPublicas } from '../../../lib/api/endpoints';
+import { H2 } from './piezas';
+
+const bs = (n: number) => `Bs ${n.toLocaleString('es-VE', { minimumFractionDigits: 2 })}`;
+
+/**
+ * Las rutas urbanas de las líneas afiliadas, con cuántas busetas van rodando
+ * ahora. Es la puerta pública a «¿Por dónde viene mi buseta?»: el que espera
+ * en la esquina no tiene que escanear nada ni tener cuenta.
+ */
+export function BusetasEnVivo() {
+  const navigate = useNavigate();
+  const { data: rutas } = useQuery({ queryKey: ['rutas-urbanas-publicas', 'inicio'], queryFn: () => getRutasUrbanasPublicas(), refetchInterval: 30_000 });
+  if (!rutas?.length) return null;
+  const lista = [...rutas].sort((a, b) => b.busetasEnCamino - a.busetasEnCamino).slice(0, 6);
+  const enCamino = rutas.reduce((s, r) => s + r.busetasEnCamino, 0);
+  return (
+    <section id="busetas" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+          <H2>Busetas urbanas en vivo</H2>
+          <span style={{ fontSize: 13, fontWeight: 700, padding: '5px 10px', borderRadius: 999, background: enCamino ? '#E7F6EC' : '#EEF2F9', color: enCamino ? '#166534' : '#475569' }}>
+            {enCamino ? `${enCamino} rodando ahora` : 'ninguna rodando ahora'}
+          </span>
+        </div>
+        <span style={{ fontSize: 14, color: '#475569' }}>Mira por dónde viene antes de salir a la parada. Pagas el pasaje con QR al subir.</span>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 14 }}>
+        {lista.map((r) => (
+          <button
+            key={r.documentId}
+            onClick={() => navigate(`/mapa/${r.documentId}`)}
+            style={{ textAlign: 'left', fontFamily: 'inherit', cursor: 'pointer', background: '#FFFFFF', border: '1.5px solid #E6EBF4', borderRadius: 18, padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 6, color: '#0F172A' }}
+          >
+            <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ width: 10, height: 10, borderRadius: '50%', background: r.busetasEnCamino ? '#22A35A' : '#CBD5E1', flex: 'none' }} />
+              <span style={{ fontSize: 17, fontWeight: 700, letterSpacing: '-0.01em' }}>{r.nombre}</span>
+            </span>
+            <span style={{ fontSize: 13, color: '#7C8AA5' }}>{r.linea ?? 'Línea afiliada'}{r.origen && r.destino ? ` · ${r.origen} → ${r.destino}` : ''}</span>
+            <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: r.busetasEnCamino ? '#166534' : '#94A3B8' }}>
+                {r.busetasEnCamino ? `${r.busetasEnCamino} ${r.busetasEnCamino === 1 ? 'buseta' : 'busetas'} en camino` : 'Sin busetas ahora'}
+              </span>
+              <span style={{ fontSize: 15, fontWeight: 700, color: '#2563EB' }}>{bs(r.tarifaBs)}</span>
+            </span>
+          </button>
+        ))}
+      </div>
+      <div>
+        <button onClick={() => navigate('/busetas')} style={{ height: 48, padding: '0 22px', borderRadius: 14, border: '1.5px solid #E2E8F2', background: '#FFFFFF', color: '#0F172A', fontFamily: 'inherit', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>
+          Ver todas las rutas y ubicarme →
+        </button>
+      </div>
+    </section>
+  );
+}

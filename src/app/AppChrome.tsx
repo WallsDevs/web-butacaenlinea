@@ -208,10 +208,18 @@ export function AppChrome() {
                   <div style={{ padding: '8px 12px', fontSize: 12, color: 'var(--text-faint)' }}>
                     {usuario.nombreCorto ?? usuario.username} · {usuario.role?.name ?? ''}
                   </div>
-                  {hogarDelRol && !nav && (
-                    <button className={styles.menuItem} onClick={() => navigate(hogarDelRol)}>
-                      {rol === 'cliente' ? 'Mi cuenta' : 'Ir a mi panel'}
-                    </button>
+                  {rol === 'cliente' ? (
+                    <>
+                      <button className={styles.menuItem} onClick={() => navigate('/cuenta/wallet')}>Mi wallet</button>
+                      <button className={styles.menuItem} onClick={() => navigate('/cuenta')}>Mis boletos</button>
+                      <button className={styles.menuItem} onClick={() => navigate('/busetas')}>¿Por dónde viene mi buseta?</button>
+                    </>
+                  ) : (
+                    hogarDelRol && !nav && (
+                      <button className={styles.menuItem} onClick={() => navigate(hogarDelRol)}>
+                        Ir a mi panel
+                      </button>
+                    )
                   )}
                   <div className={styles.menuDivisor} />
                   <button
