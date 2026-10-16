@@ -18,7 +18,7 @@ const CLASES = [
 const AMENIDADES = ['Wi-Fi', 'A/A', 'Baño', 'Pantallas', 'USB'];
 
 const PISO_DEFECTO: PisoBuilder = { nombre: 'Semicama', claseServicio: 'semicama', layout: '2+2', filas: 10 };
-/** La buseta de toda la vida (Encava ENT-610): un piso de puestos sencillos, 2+2 × 8 = 32. Hoy hace urbano; mañana puede hacer ruta. */
+/** La buseta sencilla (una Encava, por ejemplo): un piso de puestos estándar, 2+2 × 8 = 32. Hoy hace urbano; mañana puede hacer ruta. */
 const PISO_BUSETA: PisoBuilder = { nombre: 'Estándar', claseServicio: 'estandar', layout: '2+2', filas: 8 };
 
 type TipoBus = 'buseta' | '1' | '2';
@@ -96,7 +96,7 @@ export function NuevaUnidad({ onCerrar }: { onCerrar: (creada: boolean) => void 
           <div style={{ display: 'grid', gridTemplateColumns: '90px 1fr 1fr', gap: 12 }}>
             <Field label="Número" value={datos.numero} onChange={(e) => setDatos({ ...datos, numero: e.target.value })} autoFocus />
             <Field label="Placa" value={datos.placa} onChange={(e) => setDatos({ ...datos, placa: e.target.value })} />
-            <Field label="Marca y modelo" placeholder="Encava ENT-610" value={datos.marcaModelo} onChange={(e) => setDatos({ ...datos, marcaModelo: e.target.value })} />
+            <Field label="Marca y modelo" value={datos.marcaModelo} onChange={(e) => setDatos({ ...datos, marcaModelo: e.target.value })} />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }}>
             <Field label="Año" type="number" value={datos.anio} onChange={(e) => setDatos({ ...datos, anio: e.target.value })} />
@@ -110,7 +110,7 @@ export function NuevaUnidad({ onCerrar }: { onCerrar: (creada: boolean) => void 
               <div style={{ marginLeft: 'auto' }}>
                 <PillTabs<TipoBus>
                   items={[
-                    { id: 'buseta', label: 'Buseta (Encava)' },
+                    { id: 'buseta', label: 'Buseta' },
                     { id: '1', label: 'Piso sencillo' },
                     { id: '2', label: 'Doble piso' },
                   ]}
@@ -120,7 +120,6 @@ export function NuevaUnidad({ onCerrar }: { onCerrar: (creada: boolean) => void 
                     if (id === 'buseta') {
                       setPisos([{ ...PISO_BUSETA }]);
                       setAmenidades([]);
-                      if (!datos.marcaModelo.trim()) setDatos((d) => ({ ...d, marcaModelo: 'Encava ENT-610' }));
                     } else if (id === '2') {
                       setPisos((ps) => (ps.length === 1 ? [{ nombre: 'VIP Cama', claseServicio: 'vip', layout: '1+1', filas: 6 }, ps[0].claseServicio === 'estandar' ? { ...PISO_DEFECTO } : { ...ps[0] }] : ps));
                     } else {
