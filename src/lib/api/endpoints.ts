@@ -39,13 +39,15 @@ export const getSalidas = (params?: {
   estados?: string[];
   unidadId?: string;
   orden?: string;
+  /** Tope de resultados (el API corta en 100). */
+  limite?: number;
 }) => {
   const q = new URLSearchParams({
     'populate[ruta]': 'true',
     'populate[unidad]': 'true',
     'populate[linea]': 'true',
     sort: params?.orden ?? 'fechaHoraSalida',
-    'pagination[pageSize]': '50',
+    'pagination[pageSize]': String(params?.limite ?? 50),
   });
   (params?.estados ?? ['programada', 'abordando']).forEach((e, i) => q.set(`filters[estado][$in][${i}]`, e));
   if (params?.unidadId) q.set('filters[unidad][documentId][$eq]', params.unidadId);

@@ -14,6 +14,9 @@ import styles from './public.module.css';
 
 type Orden = 'hora' | 'tipo' | 'precio';
 
+/** Ventana del catálogo público (/salidas sin fecha). */
+const DIAS_CATALOGO = 30;
+
 export default function Salidas() {
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
@@ -22,16 +25,21 @@ export default function Salidas() {
 
   const origen = params.get('origen') ?? '';
   const destino = params.get('destino') ?? '';
+  // Sin fecha, /salidas es el catálogo público: todo lo que sale en los próximos días
+  const fecha = params.get('fecha') ?? '';
   useSeo(
-    `Pasajes ${origen || 'Venezuela'} a ${destino || 'todos los destinos'} — Butaca En Línea`,
+    fecha || origen || destino
+      ? `Pasajes ${origen || 'Venezuela'} a ${destino || 'todos los destinos'} — Butaca En Línea`
+      : 'Todas las salidas — Butaca En Línea',
     `Salidas de autobús ${origen ? `desde ${origen} ` : ''}${destino ? `hacia ${destino}` : 'a todos los destinos'}: horarios, precios y compra en línea con puesto numerado.`
   );
-  const fecha = params.get('fecha') ?? hoyISO();
-  const { desde, hasta } = rangoDia(fecha);
+  const { desde, hasta } = fecha
+    ? rangoDia(fecha)
+    : { desde: new Date().toISOString(), hasta: new Date(Date.now() + DIAS_CATALOGO * 86_400_000).toISOString() };
 
   const { data: salidas, isLoading } = useQuery({
     queryKey: ['salidas', 'todas', origen, destino, fecha],
-    queryFn: () => getSalidas({ origen: origen || undefined, destino: destino || undefined, desde, hasta }),
+    queryFn: () => getSalidas({ origen: origen || undefined, destino: destino || undefined, desde, hasta, limite: 100 }),
     refetchInterval: 60_000,
   });
   const { data: rutasPublicas } = useQuery({ queryKey: ['rutas-publicas'], queryFn: () => getRutas() });
@@ -44,7 +52,8 @@ export default function Salidas() {
     [rutasPublicas]
   );
   const actualizarParams = (o: string, d: string, f: string) => {
-    const p: Record<string, string> = { fecha: f };
+    const p: Record<string, string> = {};
+    if (f) p.fecha = f;
     if (o) p.origen = o;
     if (d) p.destino = d;
     setParams(p);
@@ -121,8 +130,9 @@ export default function Salidas() {
           </select>
         </label>
         <Field
-          label="Fecha"
+          label="Fecha (vacía: próximos días)"
           type="date"
+          min={hoyISO()}
           value={fecha}
           onChange={(e) => actualizarParams(origen, destino, e.target.value)}
         />
@@ -144,7 +154,7 @@ export default function Salidas() {
             {isLoading ? 'Buscando…' : `${ordenadas.length} salida${ordenadas.length === 1 ? ' disponible' : 's disponibles'}`}
           </h2>
           <div className={styles.resultadosSub}>
-            {origen || 'Todos los orígenes'} → {destino || 'todos los destinos'} · {fechaLarga(`${fecha}T12:00:00`)} · todas las empresas
+            {origen || 'Todos los orígenes'} → {destino || 'todos los destinos'} · {fecha ? fechaLarga(`${fecha}T12:00:00`) : `próximos ${DIAS_CATALOGO} días`} · todas las empresas
           </div>
         </div>
         <div style={{ marginLeft: 'auto' }}>
@@ -165,8 +175,17 @@ export default function Salidas() {
         {ordenadas.map((s, i) => {
           const destacada = i === 0;
           const precioMin = Math.min(...Object.values(s.preciosUsd ?? { x: 0 }));
+          // En el catálogo (sin fecha, orden por hora) cada día lleva su cabecera
+          const dia = s.fechaHoraSalida.slice(0, 10);
+          const nuevoDia = !fecha && orden === 'hora' && (i === 0 || ordenadas[i - 1].fechaHoraSalida.slice(0, 10) !== dia);
           return (
-            <div key={s.documentId} className={`${styles.tarjetaSalida} ${destacada ? styles.tarjetaSalidaHl : ''}`}>
+            <div key={s.documentId}>
+            {nuevoDia && (
+              <div className={styles.resultadosSub} style={{ fontWeight: 700, color: 'var(--text)', margin: i === 0 ? '0 0 10px' : '18px 0 10px' }}>
+                {fechaLarga(s.fechaHoraSalida)}
+              </div>
+            )}
+            <div className={`${styles.tarjetaSalida} ${destacada ? styles.tarjetaSalidaHl : ''}`}>
               <div className={styles.tarjetaSalidaInterior}>
                 <div className={styles.horario}>
                   <div>
@@ -211,11 +230,12 @@ export default function Salidas() {
                 </div>
               </div>
             </div>
+            </div>
           );
         })}
         {!isLoading && !ordenadas.length && (
           <div className={styles.vacio} style={{ padding: 40 }}>
-            No hay salidas {destino ? `a ${destino}` : ''} con {criterios.pasajeros} puesto{criterios.pasajeros === 1 ? '' : 's'} libres ese día. Prueba otra fecha o menos pasajeros.
+            No hay salidas {destino ? `a ${destino}` : ''} con {criterios.pasajeros} puesto{criterios.pasajeros === 1 ? '' : 's'} libres {fecha ? 'ese día' : `en los próximos ${DIAS_CATALOGO} días`}. Prueba otra fecha o menos pasajeros.
           </div>
         )}
       </div>

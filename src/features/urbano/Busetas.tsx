@@ -62,7 +62,9 @@ export default function Busetas() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const conBusetas = (rutas ?? []).filter((r) => r.busetasEnCamino > 0).length;
+  // Solo se listan rutas con alguna buseta en servicio ahora; una ruta sin busetas rodando no le sirve a quien espera
+  const activas = (rutas ?? []).filter((r) => r.busetasEnCamino > 0);
+  const conBusetas = activas.length;
 
   return (
     <div style={{ maxWidth: 640, margin: '0 auto', padding: '20px 16px 40px' }}>
@@ -105,22 +107,24 @@ export default function Busetas() {
               : 'Ninguna buseta en servicio en este momento'}
       </div>
 
-      {!isLoading && !rutas?.length && (
+      {!isLoading && !activas.length && (
         <div className={ui.card} style={{ padding: 28, textAlign: 'center' }}>
           <div style={{ fontSize: 34, marginBottom: 8 }}>🚌</div>
           <div style={{ fontSize: 16, fontWeight: 700 }}>
-            {buscar ? 'Ninguna ruta coincide' : 'Todavía no hay rutas urbanas publicadas'}
+            {!rutas?.length
+              ? buscar ? 'Ninguna ruta coincide' : 'Todavía no hay rutas urbanas publicadas'
+              : 'Ninguna buseta en servicio ahora'}
           </div>
           <div style={{ fontSize: 14, color: 'var(--text-soft)', marginTop: 8, lineHeight: 1.5 }}>
-            {buscar
-              ? 'Prueba con el nombre del sector o de la empresa.'
-              : 'Las empresas de tu ciudad todavía no han cargado sus rutas.'}
+            {!rutas?.length
+              ? buscar ? 'Prueba con el nombre del sector o de la empresa.' : 'Las empresas de tu ciudad todavía no han cargado sus rutas.'
+              : 'Las rutas aparecen aquí mientras alguna buseta está de turno. Vuelve a mirar en un rato.'}
           </div>
         </div>
       )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {(rutas ?? []).map((r) => (
+        {activas.map((r) => (
           <button
             key={r.documentId}
             className={ui.card}
@@ -138,14 +142,10 @@ export default function Busetas() {
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 16, fontWeight: 700 }}>{r.nombre}</span>
-                {r.busetasEnCamino > 0 ? (
-                  <span style={estilos.chipVivo}>
-                    <span style={estilos.punto} />
-                    {r.busetasEnCamino} en camino
-                  </span>
-                ) : (
-                  <span style={estilos.chipApagado}>sin servicio ahora</span>
-                )}
+                <span style={estilos.chipVivo}>
+                  <span style={estilos.punto} />
+                  {r.busetasEnCamino} en camino
+                </span>
               </div>
               {(r.origen || r.destino) && (
                 <div style={{ fontSize: 13, color: 'var(--text-soft)', marginTop: 4 }}>
@@ -191,13 +191,5 @@ const estilos: Record<string, React.CSSProperties> = {
     borderRadius: '50%',
     background: 'var(--ok-dot)',
     display: 'inline-block',
-  },
-  chipApagado: {
-    fontSize: 12,
-    fontWeight: 600,
-    color: 'var(--text-faint)',
-    background: 'var(--pill-bg, #F1F5F9)',
-    borderRadius: 999,
-    padding: '3px 10px',
   },
 };
