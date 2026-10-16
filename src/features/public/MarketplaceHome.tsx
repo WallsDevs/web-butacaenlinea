@@ -147,7 +147,7 @@ export default function MarketplaceHome() {
           </a>
           <nav style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 26, fontSize: 14, fontWeight: 500 }}>
             <span className={css.navHorizontal} style={{ display: 'flex', alignItems: 'center', gap: 26 }}>
-              {usuario && <a className={css.navLink} href="#busetas">Busetas</a>}
+              <a className={css.navLink} href="#busetas">Busetas</a>
               <a className={css.navLink} href="#promos">Promociones</a>
               <a className={css.navLink} href="#kilometros">Kilómetros</a>
               <a className={css.navLink} href="#lineas">Líneas</a>
@@ -389,8 +389,8 @@ export default function MarketplaceHome() {
 
       {/* Secciones */}
       <div style={{ position: 'relative', maxWidth: 1440, margin: '0 auto', padding: '0 28px 96px', display: 'flex', flexDirection: 'column', gap: 88 }}>
-        {/* Las busetas en vivo son del pasajero con sesión; al visitante no se le ofrece esa puerta (/busetas sigue existiendo como vista pública por enlace, igual que /salidas) */}
-        {usuario && <BusetasEnVivo />}
+        {/* Con sesión: rutas con buseta de turno; sin sesión: aviso para registrarse (/busetas sigue por enlace, como /salidas) */}
+        <BusetasEnVivo />
         <Promociones />
         <Kilometros destino={destino} pasajeros={pax} />
         <Destinos
