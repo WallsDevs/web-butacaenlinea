@@ -74,7 +74,12 @@
 }
 @media (max-width: 900px) {
   .tagline { display: none; }
-  .chrome { gap: 10px; padding: 12px 14px; overflow-x: auto; }
+  /* Dos filas: marca y acciones arriba, el menú del rol abajo a todo el ancho.
+     Antes todo iba en una fila y el menú (flex:1, min-width:0) se quedaba sin ancho: invisible. */
+  .chrome { gap: 8px 10px; padding: 10px 14px; flex-wrap: wrap; }
+  .right { margin-left: auto; }
+  .moduleNav { order: 10; flex: 1 1 100%; }
+  .bcv { display: none; }
 }
 
 .menuItem {
