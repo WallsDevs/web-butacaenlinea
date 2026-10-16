@@ -33,7 +33,7 @@ export const MENU_ADMIN: EntradaNav[] = [
   {
     id: 'clientes',
     label: 'Clientes',
-    items: [sec('Empresas', '/admin/empresas'), sec('Contratos', '/admin/contratos'), sec('Integraciones', '/admin/integraciones'), sec('Conectores', '/admin/conectores')],
+    items: [sec('Empresas', '/admin/empresas'), sec('Pasajeros', '/admin/pasajeros'), sec('Contratos', '/admin/contratos'), sec('Integraciones', '/admin/integraciones'), sec('Conectores', '/admin/conectores')],
   },
   {
     id: 'finanzas',

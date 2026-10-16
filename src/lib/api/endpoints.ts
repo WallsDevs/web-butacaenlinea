@@ -419,6 +419,32 @@ export interface AdminTasas {
 
 export const getAdminDashboard = () => api<AdminDashboard>('/api/admin/dashboard');
 export const getAdminEmpresas = () => api<AdminEmpresa[]>('/api/admin/empresas');
+
+/** Pasajero registrado visto desde Plataforma (solo lectura). */
+export interface AdminPasajero {
+  documentId: string;
+  username: string;
+  nombreCorto?: string | null;
+  email?: string | null;
+  telefono?: string | null;
+  documento?: string | null;
+  confirmado: boolean;
+  bloqueado: boolean;
+  registradoEn: string | null;
+  saldoBs: number;
+  recargadoBs: number;
+  recargasPendientes: number;
+  pasajesUrbanos: number;
+  boletos: number;
+  ultimoMovimiento: string | null;
+}
+export interface AdminPasajeroFicha extends Omit<AdminPasajero, 'saldoBs' | 'recargadoBs' | 'recargasPendientes' | 'pasajesUrbanos' | 'boletos' | 'ultimoMovimiento'> {
+  wallet: { saldoBs: number; movimientos: MovimientoWallet[] };
+  boletos: (import('./types').BoletoMio & { compradoEn: string | null })[];
+}
+export const getAdminPasajeros = (buscar?: string) =>
+  api<AdminPasajero[]>(`/api/admin/pasajeros${buscar ? `?buscar=${encodeURIComponent(buscar)}` : ''}`);
+export const getAdminPasajero = (documentId: string) => api<AdminPasajeroFicha>(`/api/admin/pasajeros/${documentId}`);
 export const crearEmpresa = (datos: {
   nombre: string;
   rif?: string;

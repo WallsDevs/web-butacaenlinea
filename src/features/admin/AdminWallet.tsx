@@ -10,7 +10,7 @@ import {
   resolverRetiro,
   verificarRecarga,
 } from '../../lib/api/endpoints';
-import { API_URL } from '../../lib/api/client';
+import { API_URL, ApiError } from '../../lib/api/client';
 import { fechaCorta, hora } from '../../lib/time';
 import { StatusChip } from '../../components/ui/StatusChip';
 import ui from '../../components/ui/ui.module.css';
@@ -252,7 +252,21 @@ function PagoMovilCard() {
       setForm(null);
       setError(null);
     },
-    onError: () => setError('No se pudo guardar. Banco, teléfono y cédula/RIF son obligatorios.'),
+    onError: (e) => {
+      const code = e instanceof ApiError ? e.code : '';
+      const status = e instanceof ApiError ? e.status : 0;
+      setError(
+        code === 'payload_invalido'
+          ? 'Banco, teléfono y cédula/RIF son obligatorios.'
+          : status === 401 || code === 'no_autorizado'
+            ? 'Tu sesión venció: vuelve a entrar y guarda de nuevo.'
+            : code === 'solo_superadmin'
+              ? 'Solo el superadmin puede cambiar estos datos.'
+              : code === 'sin_conexion'
+                ? 'Sin conexión con el servidor.'
+                : `No se pudo guardar (${status || '?'} · ${code || 'error desconocido'}).`
+      );
+    },
   });
   const abrir = () => setForm({ banco: actual?.banco ?? '', telefono: actual?.telefono ?? '', documento: actual?.documento ?? '', titular: actual?.titular ?? '', nota: actual?.nota ?? '' });
   const campo = (etiqueta: string, clave: 'banco' | 'telefono' | 'documento' | 'titular' | 'nota', placeholder: string) => (
