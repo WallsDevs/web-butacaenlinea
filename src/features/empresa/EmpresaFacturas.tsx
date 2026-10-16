@@ -36,13 +36,41 @@ function MiContratoCard() {
           <StatusChip tono="ok" size="sm">Indefinido</StatusChip>
         )}
       </div>
-      <div style={{ fontSize: 13, color: 'var(--text-soft)', marginTop: 8, lineHeight: 1.6 }}>
-        {contrato.modulos.map((m) => NOMBRE_MODULO[m] ?? m).join(' · ')}
-        <br />
-        {comision && <>Comisión de la plataforma: <strong>{contrato.comisionPct} %</strong> por pasaje. </>}
-        {porBus && <>Tarifa de Mantenimiento: <strong>{usd(contrato.montoBusUsd)}</strong> por bus al mes, {contrato.diasGracia} días de gracia.</>}
-        {vencido && <><br />Para renovar, comuníquese con Butaca En Línea: mientras tanto el acceso a los módulos y la venta de sus salidas están cerrados; sus datos siguen intactos.</>}
+      {/* Módulos como chips, y las condiciones de cobro como datos sueltos: antes era una sola línea corrida */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 12 }}>
+        {contrato.modulos.map((m) => (
+          <span key={m} style={{ fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 999, background: 'var(--tint-50)', color: 'var(--blue-700, var(--blue-600))' }}>
+            {NOMBRE_MODULO[m] ?? m}
+          </span>
+        ))}
       </div>
+      {(comision || porBus) && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 28px', marginTop: 14 }}>
+          {comision && (
+            <div>
+              <div style={{ fontSize: 12, color: 'var(--text-faint)' }}>Comisión de la plataforma</div>
+              <div style={{ fontSize: 15, fontWeight: 700 }}>{contrato.comisionPct} % <span style={{ fontWeight: 500, color: 'var(--text-soft)' }}>por pasaje</span></div>
+            </div>
+          )}
+          {porBus && (
+            <>
+              <div>
+                <div style={{ fontSize: 12, color: 'var(--text-faint)' }}>Tarifa de Mantenimiento</div>
+                <div style={{ fontSize: 15, fontWeight: 700 }}>{usd(contrato.montoBusUsd)} <span style={{ fontWeight: 500, color: 'var(--text-soft)' }}>por bus al mes</span></div>
+              </div>
+              <div>
+                <div style={{ fontSize: 12, color: 'var(--text-faint)' }}>Días de gracia</div>
+                <div style={{ fontSize: 15, fontWeight: 700 }}>{contrato.diasGracia}</div>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+      {vencido && (
+        <div style={{ fontSize: 13, color: 'var(--bad-text)', marginTop: 12, lineHeight: 1.6 }}>
+          Para renovar, comuníquese con Butaca En Línea: mientras tanto el acceso a los módulos y la venta de sus salidas están cerrados; sus datos siguen intactos.
+        </div>
+      )}
     </div>
   );
 }
