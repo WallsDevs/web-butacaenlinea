@@ -37,8 +37,8 @@ export default function MiWallet() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [recargando, setRecargando] = useState(false);
-  // `desde` es el método guardado con el que pagó ('otro' = escribe el banco a mano)
-  const [form, setForm] = useState({ montoBs: '', referencia: '', banco: '', desde: '' });
+  // `desde` es el método de pago guardado con el que pagó; `comprobante`, la captura del pago
+  const [form, setForm] = useState<{ montoBs: string; referencia: string; desde: string; comprobante: File | null }>({ montoBs: '', referencia: '', desde: '', comprobante: null });
   const [error, setError] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
 
@@ -51,20 +51,23 @@ export default function MiWallet() {
   // Sus métodos guardados en bolívares: desde cuál pagó, para que la plataforma ubique el pago
   const { data: metodosGuardados } = useQuery({ queryKey: ['metodos-pago'], queryFn: getMetodosPago, staleTime: 300_000 });
   const metodosBs = (metodosGuardados ?? []).filter((m) => m.tipo === 'pago_movil' || m.tipo === 'transferencia');
-  const metodoDesde = metodosBs.find((m) => m.documentId === form.desde) ?? (form.desde === 'otro' ? undefined : metodosBs.find((m) => m.predeterminado) ?? metodosBs[0]);
-  const bancoReportado = metodoDesde
-    ? [metodoDesde.banco, metodoDesde.telefonoPago].filter(Boolean).join(' · ')
-    : form.banco.trim();
+  const metodoDesde = metodosBs.find((m) => m.documentId === form.desde) ?? metodosBs.find((m) => m.predeterminado) ?? metodosBs[0];
+  const bancoReportado = metodoDesde ? [metodoDesde.banco, metodoDesde.telefonoPago].filter(Boolean).join(' · ') : '';
+  // Solo se puede reportar con una cuenta de la plataforma publicada y un método propio guardado
+  const puedeReportar = Boolean(pagoMovil && metodoDesde);
+  const formListo = puedeReportar && montoDe(form.montoBs) > 0 && form.referencia.trim().length > 0;
+  const limpiar = () => setForm({ montoBs: '', referencia: '', desde: '', comprobante: null });
+  const WHATSAPP = (import.meta.env.VITE_WHATSAPP as string | undefined)?.replace(/\D/g, '') || '584129647161';
   const recargasPendientes = (wallet?.movimientos ?? []).filter((m) => m.tipo === 'recarga' && m.estado === 'pendiente');
   const copiar = (t: string) => void navigator.clipboard?.writeText(t).catch(() => {});
 
 
   const reportar = useMutation({
-    mutationFn: () => reportarRecarga(montoDe(form.montoBs), form.referencia.trim(), bancoReportado || undefined),
+    mutationFn: () => reportarRecarga(montoDe(form.montoBs), form.referencia.trim(), bancoReportado || undefined, form.comprobante),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wallet'] });
       setRecargando(false);
-      setForm({ montoBs: '', referencia: '', banco: '', desde: '' });
+      limpiar();
       setError(null);
       setAviso('Recarga reportada. Se acredita cuando la plataforma confirme tu pago (normalmente en minutos).');
     },
@@ -179,7 +182,7 @@ export default function MiWallet() {
           <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
             <h3 style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>Recargar wallet</h3>
             <p style={{ fontSize: 13, color: 'var(--text-soft)', marginBottom: 12 }}>
-              1) Haz el pago móvil a esta cuenta · 2) Reporta aquí el monto y la referencia · 3) Tu
+              1) Haz el pago móvil a esta cuenta · 2) Reporta aquí el monto, la referencia y la captura · 3) Tu
               saldo se acredita cuando la plataforma confirme el pago.
             </p>
             {cargandoPagoMovil ? (
@@ -195,10 +198,23 @@ export default function MiWallet() {
                 {pagoMovil.nota && <div style={{ gridColumn: '1 / -1', fontSize: 12, color: 'var(--text-soft)' }}>{pagoMovil.nota}</div>}
               </div>
             ) : (
+              // Sin cuenta publicada no hay a dónde pagar: nada que reportar
               <div style={{ background: 'var(--warn-bg)', color: 'var(--warn-text-alert)', borderRadius: 'var(--r-14)', padding: '12px 14px', marginBottom: 14, fontSize: 13 }}>
-                La plataforma todavía no publicó sus datos de pago móvil. Escríbenos por WhatsApp para recargar.
+                La plataforma todavía no publicó sus datos de pago móvil, así que por ahora no se puede recargar.{' '}
+                <a href={`https://wa.me/${WHATSAPP}?text=${encodeURIComponent('Hola, quiero recargar mi wallet de Butaca En Línea')}`} target="_blank" rel="noreferrer" style={{ fontWeight: 700, color: 'inherit' }}>
+                  Escríbenos por WhatsApp
+                </a>
+                .
               </div>
             )}
+            {pagoMovil && !cargandoPagoMovil && !metodoDesde && (
+              // El banco desde el que paga sale de sus métodos guardados; sin uno, primero lo guarda
+              <div style={{ background: 'var(--tint-50)', borderRadius: 'var(--r-14)', padding: '12px 14px', marginBottom: 14, fontSize: 13, color: 'var(--text-soft)' }}>
+                Para reportar la recarga necesitamos saber desde qué Pago Móvil o cuenta pagas. Guárdalo una vez en
+                <strong> Métodos de pago</strong> y no lo escribes más.
+              </div>
+            )}
+            {puedeReportar && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <Field
                 label="Monto (Bs)"
@@ -214,52 +230,59 @@ export default function MiWallet() {
                   value={form.referencia}
                   onChange={(e) => setForm({ ...form, referencia: e.target.value })}
                 />
-                {metodosBs.length ? (
-                  <label className={ui.field}>
-                    <span className={ui.fieldLabel}>Pagaste desde</span>
-                    <select
-                      className={ui.fieldInput}
-                      value={metodoDesde?.documentId ?? 'otro'}
-                      onChange={(e) => setForm({ ...form, desde: e.target.value })}
-                    >
-                      {metodosBs.map((m) => (
-                        <option key={m.documentId} value={m.documentId}>
-                          {m.alias || (m.tipo === 'pago_movil' ? 'Pago Móvil' : 'Transferencia')}{m.banco ? ` · ${m.banco}` : ''}
-                        </option>
-                      ))}
-                      <option value="otro">Otro banco…</option>
-                    </select>
-                  </label>
-                ) : (
-                  <Field label="Banco desde el que pagaste (opcional)" value={form.banco} onChange={(e) => setForm({ ...form, banco: e.target.value })} />
-                )}
+                <label className={ui.field}>
+                  <span className={ui.fieldLabel}>Pagaste desde</span>
+                  <select
+                    className={ui.fieldInput}
+                    value={metodoDesde?.documentId ?? ''}
+                    onChange={(e) => setForm({ ...form, desde: e.target.value })}
+                  >
+                    {metodosBs.map((m) => (
+                      <option key={m.documentId} value={m.documentId}>
+                        {m.alias || (m.tipo === 'pago_movil' ? 'Pago Móvil' : 'Transferencia')}{m.banco ? ` · ${m.banco}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </label>
               </div>
-              {metodosBs.length > 0 && !metodoDesde && (
-                <Field label="Banco desde el que pagaste (opcional)" value={form.banco} onChange={(e) => setForm({ ...form, banco: e.target.value })} />
-              )}
-              {!metodosBs.length && (
-                <div style={{ fontSize: 12, color: 'var(--text-faint)' }}>
-                  Guarda tu Pago Móvil en <button style={{ color: 'var(--blue-600)', fontWeight: 600 }} onClick={() => navigate('/cuenta/metodos')}>Métodos de pago</button> y no lo escribes más.
-                </div>
+              <label className={ui.field}>
+                <span className={ui.fieldLabel}>Captura del pago (opcional, ayuda a verificar más rápido)</span>
+                <input
+                  type="file"
+                  accept="image/*,application/pdf"
+                  className={ui.fieldInput}
+                  style={{ padding: '9px 12px', fontSize: 13 }}
+                  onChange={(e) => setForm({ ...form, comprobante: e.target.files?.[0] ?? null })}
+                />
+              </label>
+              {form.comprobante && form.comprobante.type.startsWith('image/') && (
+                <img
+                  src={URL.createObjectURL(form.comprobante)}
+                  alt="Captura del pago"
+                  style={{ maxHeight: 140, maxWidth: '100%', objectFit: 'contain', borderRadius: 'var(--r-10)', border: '1px solid var(--border)', alignSelf: 'flex-start' }}
+                />
               )}
               {error && <div style={{ fontSize: 13, color: 'var(--bad-text)' }}>{error}</div>}
-              {!error && (!(montoDe(form.montoBs) > 0) || !form.referencia.trim()) && (
+              {!error && !formListo && (
                 <div style={{ fontSize: 12, color: 'var(--text-faint)' }}>
                   {!(montoDe(form.montoBs) > 0) ? 'Escribe el monto que pagaste (en bolívares).' : 'Falta la referencia del pago móvil.'}
                 </div>
               )}
-              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-                <button className={ui.btnSecondary} onClick={() => setRecargando(false)}>
-                  Cancelar
-                </button>
-                <button
-                  className={ui.btnPrimary}
-                  disabled={!(montoDe(form.montoBs) > 0) || !form.referencia.trim() || reportar.isPending}
-                  onClick={() => reportar.mutate()}
-                >
+            </div>
+            )}
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 14 }}>
+              <button className={ui.btnSecondary} onClick={() => { setRecargando(false); limpiar(); }}>
+                {puedeReportar ? 'Cancelar' : 'Cerrar'}
+              </button>
+              {puedeReportar ? (
+                <button className={ui.btnPrimary} disabled={!formListo || reportar.isPending} onClick={() => reportar.mutate()}>
                   {reportar.isPending ? 'Reportando…' : 'Reportar recarga'}
                 </button>
-              </div>
+              ) : pagoMovil && !cargandoPagoMovil ? (
+                <button className={ui.btnPrimary} onClick={() => navigate('/cuenta/metodos')}>
+                  Guardar mi método de pago
+                </button>
+              ) : null}
             </div>
           </div>
         </div>

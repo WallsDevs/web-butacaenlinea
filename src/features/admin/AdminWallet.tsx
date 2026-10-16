@@ -10,6 +10,7 @@ import {
   resolverRetiro,
   verificarRecarga,
 } from '../../lib/api/endpoints';
+import { API_URL } from '../../lib/api/client';
 import { fechaCorta, hora } from '../../lib/time';
 import { StatusChip } from '../../components/ui/StatusChip';
 import ui from '../../components/ui/ui.module.css';
@@ -128,6 +129,15 @@ export default function AdminWallet() {
               <div style={{ minWidth: 130 }}>
                 <div style={{ fontSize: 12, color: 'var(--text-faint)' }}>Referencia</div>
                 <div style={{ fontWeight: 700, letterSpacing: '0.06em' }}>{r.referencia || '—'}</div>
+              </div>
+              <div style={{ minWidth: 110, fontSize: 13 }}>
+                {r.comprobanteUrl ? (
+                  <a href={`${API_URL}${r.comprobanteUrl}`} target="_blank" rel="noreferrer" style={{ color: 'var(--blue-600)', fontWeight: 600 }}>
+                    Ver comprobante ↗
+                  </a>
+                ) : (
+                  <span style={{ color: 'var(--text-faint)' }}>Sin comprobante</span>
+                )}
               </div>
               <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
                 <input

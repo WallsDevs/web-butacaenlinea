@@ -503,11 +503,19 @@ export interface MovimientoWallet {
 }
 export const getWallet = () =>
   api<{ saldoBs: number; movimientos: MovimientoWallet[] }>('/api/wallet');
-export const reportarRecarga = (montoBs: number, referencia: string, banco?: string) =>
-  api<{ movimientoId: string; estado: string }>('/api/wallet/recargas', {
-    method: 'POST',
-    body: { montoBs, referencia, banco },
-  });
+/** Con `comprobante` (captura del pago) va como multipart; sin él, JSON. */
+export const reportarRecarga = (montoBs: number, referencia: string, banco?: string, comprobante?: File | null) => {
+  let body: unknown = { montoBs, referencia, banco };
+  if (comprobante) {
+    const fd = new FormData();
+    fd.append('montoBs', String(montoBs));
+    fd.append('referencia', referencia);
+    if (banco) fd.append('banco', banco);
+    fd.append('comprobante', comprobante);
+    body = fd;
+  }
+  return api<{ movimientoId: string; estado: string }>('/api/wallet/recargas', { method: 'POST', body });
+};
 /** A dónde transfiere el pasajero para recargar: lo fija el superadmin; `null` si aún no lo publicó. */
 export interface PagoMovilPlataforma {
   banco: string;
@@ -525,6 +533,8 @@ export interface RecargaPendiente {
   montoBs: number;
   referencia?: string | null;
   banco?: string | null;
+  /** Captura del pago que subió el pasajero, relativa al API (`/uploads/…`). */
+  comprobanteUrl?: string | null;
   fecha: string;
   pasajero?: string | null;
   telefono?: string | null;
