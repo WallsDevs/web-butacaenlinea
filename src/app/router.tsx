@@ -28,6 +28,7 @@ const EmpresaProgramacion = lazy(() => import('../features/empresa/EmpresaProgra
 const EmpresaPersonal = lazy(() => import('../features/empresa/EmpresaPersonal'));
 const EmpresaBoletos = lazy(() => import('../features/empresa/EmpresaBoletos'));
 const EmpresaReportes = lazy(() => import('../features/empresa/EmpresaReportes'));
+const EmpresaWallet = lazy(() => import('../features/empresa/EmpresaWallet'));
 const EmpresaConfiguracion = lazy(() => import('../features/empresa/EmpresaConfiguracion'));
 const Escaner = lazy(() => import('../features/chofer/Escaner'));
 const ManifiestoPage = lazy(() => import('../features/chofer/ManifiestoPage'));
@@ -245,6 +246,7 @@ export const router = createBrowserRouter([
           { path: 'boletos', element: <EmpresaBoletos /> },
           { path: 'reportes', element: <EmpresaReportes /> },
           { path: 'flota-en-vivo', element: <Navigate to="/empresa/flota" replace /> },
+          { path: 'wallet', element: <EmpresaWallet /> },
           { path: 'facturas', element: <EmpresaFacturas /> },
           { path: 'configuracion', element: <EmpresaConfiguracion /> },
         ],

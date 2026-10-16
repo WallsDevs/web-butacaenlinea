@@ -63,7 +63,7 @@ export const MENU_EMPRESA: EntradaNav[] = [
       sec('Reportes', '/empresa/reportes', ['boleteria', 'urbano']),
     ],
   },
-  { id: 'cuenta', label: 'Administración', items: [sec('Personal', '/empresa/personal', ['flota']), sec('Facturas', '/empresa/facturas'), sec('Configuración', '/empresa/configuracion')] },
+  { id: 'cuenta', label: 'Administración', items: [sec('Personal', '/empresa/personal', ['flota']), sec('Wallet', '/empresa/wallet'), sec('Facturas', '/empresa/facturas'), sec('Configuración', '/empresa/configuracion')] },
 ];
 
 /**
@@ -171,7 +171,7 @@ export const LATERAL_EMPRESA: SeccionLateral[] = [
   {
     id: 'administracion',
     label: 'Administración',
-    items: [item('Personal', '/empresa/personal', 'clientes', ['flota']), item('Facturas', '/empresa/facturas', 'finanzas'), item('Configuración', '/empresa/configuracion', 'sistema')],
+    items: [item('Personal', '/empresa/personal', 'clientes', ['flota']), item('Wallet', '/empresa/wallet', 'wallet'), item('Facturas', '/empresa/facturas', 'finanzas'), item('Configuración', '/empresa/configuracion', 'sistema')],
   },
 ];
 

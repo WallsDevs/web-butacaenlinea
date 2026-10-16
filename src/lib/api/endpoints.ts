@@ -821,7 +821,7 @@ export const pagarCobroTaquilla = (documentId: string) =>
 // Retiros
 export const solicitarRetiro = (montoBs: number, datosPago: string) =>
   api<{ movimientoId: string }>('/api/wallet/retiros', { method: 'POST', body: { montoBs, datosPago } });
-export const getWalletLinea = () => api<{ saldoBs: number }>('/api/empresa/wallet');
+export const getWalletLinea = () => api<{ saldoBs: number; movimientos: MovimientoWallet[] }>('/api/empresa/wallet');
 export const retiroLinea = (montoBs: number, datosPago: string) =>
   api<{ movimientoId: string }>('/api/empresa/wallet/retiros', { method: 'POST', body: { montoBs, datosPago } });
 export interface RetiroPendiente {

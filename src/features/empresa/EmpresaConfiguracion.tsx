@@ -4,7 +4,6 @@ import { actualizarConfiguracionEmpresa, getLineas } from '../../lib/api/endpoin
 import { useAuth } from '../../stores/auth';
 import { Field } from '../../components/ui/Field';
 import { TasasLinea } from './TasasLinea';
-import { WalletEmpresa } from './WalletEmpresa';
 import ui from '../../components/ui/ui.module.css';
 import { EncabezadoPantalla } from '../../components/ui/EncabezadoPantalla';
 import styles from '../flota/flota.module.css';
@@ -67,7 +66,7 @@ export default function EmpresaConfiguracion() {
 
   return (
     <div className={styles.contenido} style={{ maxWidth: 1240 }}>
-      <EncabezadoPantalla titulo="Configuración" descripcion="Los datos de la empresa, sus tasas de cambio y la wallet de la línea." />
+      <EncabezadoPantalla titulo="Configuración" descripcion="Los datos de la empresa y sus tasas de cambio." />
       <div className={styles.dosColumnas}>
       <div className={ui.card} style={{ padding: 24 }}>
         <h2 style={{ fontSize: 17, fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 14 }}>Datos de la empresa</h2>
@@ -147,10 +146,7 @@ export default function EmpresaConfiguracion() {
           </button>
         </div>
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-        <TasasLinea />
-        <WalletEmpresa />
-      </div>
+      <TasasLinea />
       </div>
     </div>
   );
