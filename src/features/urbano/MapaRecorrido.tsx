@@ -36,6 +36,8 @@ export function MapaRecorrido({
   miUbicacion = null,
   centrarEnMi = 0,
   alto = 320,
+  radio = 16,
+  zoomEn = 'topleft',
   rutaFondo = [],
   enfocar = null,
   ajustarCada = '',
@@ -49,7 +51,12 @@ export function MapaRecorrido({
   miUbicacion?: { lat: number; lng: number; precision?: number } | null;
   /** Cambia este número para pedirle al mapa que centre en el usuario. */
   centrarEnMi?: number;
-  alto?: number;
+  /** Alto en px o cualquier valor CSS («100%» para llenar al padre). */
+  alto?: number | string;
+  /** Radio de las esquinas; 0 para un mapa a sangre. */
+  radio?: number;
+  /** Esquina del control de zoom (a la derecha cuando algo flota a la izquierda). */
+  zoomEn?: 'topleft' | 'topright';
   /** Otra línea, más clara y debajo: la ruta planificada cuando `puntos` es lo recorrido de verdad. */
   rutaFondo?: [number, number][];
   /** Centrar aquí (zoom 15) cada vez que cambie `clave`. */
@@ -72,10 +79,11 @@ export function MapaRecorrido({
 
   // Crear el mapa una sola vez
   useEffect(() => {
-    const mapa = L.map(divRef.current!, { zoomControl: true }).setView(
+    const mapa = L.map(divRef.current!, { zoomControl: false }).setView(
       puntosRef.current[0] ?? CENTRO,
       13
     );
+    L.control.zoom({ position: zoomEn }).addTo(mapa);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution: '© OpenStreetMap',
@@ -98,12 +106,21 @@ export function MapaRecorrido({
       });
     }
     mapaRef.current = mapa;
-    // El modal se abre antes de que el div tenga tamaño real
-    setTimeout(() => mapa.invalidateSize(), 120);
+    // El modal se abre antes de que el div tenga tamaño real, y un mapa a
+    // pantalla completa cambia de alto después de montarse: Leaflet necesita
+    // enterarse o anima sobre un tamaño viejo
+    // (y ninguna de esas llamadas puede caer sobre un mapa ya destruido)
+    const vivo = () => mapaRef.current === mapa;
+    const temporizador = setTimeout(() => vivo() && mapa.invalidateSize(), 120);
+    const observador = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => vivo() && mapa.invalidateSize()) : null;
+    observador?.observe(divRef.current!);
     return () => {
-      mapa.remove();
+      clearTimeout(temporizador);
+      observador?.disconnect();
       mapaRef.current = null;
+      mapa.remove();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /**
@@ -198,6 +215,7 @@ export function MapaRecorrido({
   // Centrar en un punto cuando lo piden (la unidad elegida)
   useEffect(() => {
     if (!enfocar || !mapaRef.current) return;
+    mapaRef.current.invalidateSize();
     mapaRef.current.setView([enfocar.lat, enfocar.lng], Math.max(mapaRef.current.getZoom(), 15), { animate: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enfocar?.clave]);
@@ -234,5 +252,5 @@ export function MapaRecorrido({
     }
   }, [buses]);
 
-  return <div ref={divRef} style={{ height: alto, borderRadius: 16, overflow: 'hidden' }} />;
+  return <div ref={divRef} style={{ height: alto, borderRadius: radio, overflow: 'hidden' }} />;
 }
