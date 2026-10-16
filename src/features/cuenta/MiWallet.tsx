@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { getPagoMovilPlataforma, getWallet, reportarRecarga, solicitarRetiro } from '../../lib/api/endpoints';
+import { getPagoMovilPlataforma, getWallet, reportarRecarga } from '../../lib/api/endpoints';
 import { ApiError } from '../../lib/api/client';
 import { fechaCorta, hora } from '../../lib/time';
 import { Field } from '../../components/ui/Field';
@@ -50,26 +50,6 @@ export default function MiWallet() {
   const recargasPendientes = (wallet?.movimientos ?? []).filter((m) => m.tipo === 'recarga' && m.estado === 'pendiente');
   const copiar = (t: string) => void navigator.clipboard?.writeText(t).catch(() => {});
 
-  const [retirando, setRetirando] = useState(false);
-  const [formRetiro, setFormRetiro] = useState({ montoBs: '', datosPago: '' });
-  const retirar = useMutation({
-    mutationFn: () => solicitarRetiro(Number(formRetiro.montoBs), formRetiro.datosPago),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['wallet'] });
-      setRetirando(false);
-      setFormRetiro({ montoBs: '', datosPago: '' });
-      setError(null);
-      setAviso('Retiro solicitado. Te llega a tu cuenta cuando la plataforma lo procese.');
-    },
-    onError: (e) => {
-      if (e instanceof ApiError && e.code === 'saldo_insuficiente') {
-        const d = e.details as { disponibleBs?: number };
-        setError(`Saldo insuficiente: disponible ${bs(d?.disponibleBs ?? 0)} (descontando retiros en proceso).`);
-      } else {
-        setError('No se pudo solicitar el retiro.');
-      }
-    },
-  });
 
   const reportar = useMutation({
     mutationFn: () => reportarRecarga(montoDe(form.montoBs), form.referencia.trim(), form.banco || undefined),
@@ -124,31 +104,17 @@ export default function MiWallet() {
         >
           🚌 ¿Por dónde viene mi buseta?
         </button>
-        <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
-          <button
-            className={ui.btnSecondary}
-            style={{ flex: 1 }}
-            onClick={() => {
-              setRecargando(true);
-              setAviso(null);
-              setError(null);
-            }}
-          >
-            Recargar
-          </button>
-          <button
-            className={ui.btnSecondary}
-            style={{ flex: 1 }}
-            disabled={!((wallet?.saldoBs ?? 0) > 0)}
-            onClick={() => {
-              setRetirando(true);
-              setAviso(null);
-              setError(null);
-            }}
-          >
-            Retirar
-          </button>
-        </div>
+        <button
+          className={ui.btnSecondary}
+          style={{ width: '100%', marginTop: 10 }}
+          onClick={() => {
+            setRecargando(true);
+            setAviso(null);
+            setError(null);
+          }}
+        >
+          Recargar
+        </button>
         <div style={{ fontSize: 12, color: 'var(--text-faint)', marginTop: 10 }}>
           Con tu saldo pagas el pasaje escaneando el QR de la buseta.
         </div>
@@ -199,46 +165,6 @@ export default function MiWallet() {
           )}
         </div>
       </div>
-
-      {retirando && (
-        <div className={styles.velo}>
-          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>Retirar saldo</h3>
-            <p style={{ fontSize: 13, color: 'var(--text-soft)', marginBottom: 14 }}>
-              Tu saldo vuelve a tu cuenta bancaria o pago móvil. La plataforma procesa el retiro
-              manualmente y te avisa al confirmarlo.
-            </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <Field
-                label="Monto (Bs)"
-                type="number"
-                value={formRetiro.montoBs}
-                onChange={(e) => setFormRetiro({ ...formRetiro, montoBs: e.target.value })}
-                autoFocus
-              />
-              <Field
-                label="Cuenta destino (banco y número, o pago móvil)"
-                placeholder="Ej. Pago móvil 0414-1234567 · Banesco · V-12.345.678"
-                value={formRetiro.datosPago}
-                onChange={(e) => setFormRetiro({ ...formRetiro, datosPago: e.target.value })}
-              />
-              {error && <div style={{ fontSize: 13, color: 'var(--bad-text)' }}>{error}</div>}
-              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-                <button className={ui.btnSecondary} onClick={() => setRetirando(false)}>
-                  Cancelar
-                </button>
-                <button
-                  className={ui.btnPrimary}
-                  disabled={!(Number(formRetiro.montoBs) > 0) || !formRetiro.datosPago.trim() || retirar.isPending}
-                  onClick={() => retirar.mutate()}
-                >
-                  {retirar.isPending ? 'Solicitando…' : 'Solicitar retiro'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {recargando && (
         <div className={styles.velo}>
