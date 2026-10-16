@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { getPagoMovilPlataforma, getWallet, reportarRecarga } from '../../lib/api/endpoints';
+import { getMetodosPago, getPagoMovilPlataforma, getWallet, reportarRecarga } from '../../lib/api/endpoints';
 import { ApiError } from '../../lib/api/client';
 import { fechaCorta, hora } from '../../lib/time';
 import { Field } from '../../components/ui/Field';
@@ -37,7 +37,8 @@ export default function MiWallet() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [recargando, setRecargando] = useState(false);
-  const [form, setForm] = useState({ montoBs: '', referencia: '', banco: '' });
+  // `desde` es el método guardado con el que pagó ('otro' = escribe el banco a mano)
+  const [form, setForm] = useState({ montoBs: '', referencia: '', banco: '', desde: '' });
   const [error, setError] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
 
@@ -47,16 +48,23 @@ export default function MiWallet() {
     refetchInterval: 20_000,
   });
   const { data: pagoMovil, isLoading: cargandoPagoMovil } = useQuery({ queryKey: ['pago-movil-plataforma'], queryFn: getPagoMovilPlataforma, staleTime: 300_000 });
+  // Sus métodos guardados en bolívares: desde cuál pagó, para que la plataforma ubique el pago
+  const { data: metodosGuardados } = useQuery({ queryKey: ['metodos-pago'], queryFn: getMetodosPago, staleTime: 300_000 });
+  const metodosBs = (metodosGuardados ?? []).filter((m) => m.tipo === 'pago_movil' || m.tipo === 'transferencia');
+  const metodoDesde = metodosBs.find((m) => m.documentId === form.desde) ?? (form.desde === 'otro' ? undefined : metodosBs.find((m) => m.predeterminado) ?? metodosBs[0]);
+  const bancoReportado = metodoDesde
+    ? [metodoDesde.banco, metodoDesde.telefonoPago].filter(Boolean).join(' · ')
+    : form.banco.trim();
   const recargasPendientes = (wallet?.movimientos ?? []).filter((m) => m.tipo === 'recarga' && m.estado === 'pendiente');
   const copiar = (t: string) => void navigator.clipboard?.writeText(t).catch(() => {});
 
 
   const reportar = useMutation({
-    mutationFn: () => reportarRecarga(montoDe(form.montoBs), form.referencia.trim(), form.banco || undefined),
+    mutationFn: () => reportarRecarga(montoDe(form.montoBs), form.referencia.trim(), bancoReportado || undefined),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wallet'] });
       setRecargando(false);
-      setForm({ montoBs: '', referencia: '', banco: '' });
+      setForm({ montoBs: '', referencia: '', banco: '', desde: '' });
       setError(null);
       setAviso('Recarga reportada. Se acredita cuando la plataforma confirme tu pago (normalmente en minutos).');
     },
@@ -206,8 +214,34 @@ export default function MiWallet() {
                   value={form.referencia}
                   onChange={(e) => setForm({ ...form, referencia: e.target.value })}
                 />
-                <Field label="Banco (opcional)" value={form.banco} onChange={(e) => setForm({ ...form, banco: e.target.value })} />
+                {metodosBs.length ? (
+                  <label className={ui.field}>
+                    <span className={ui.fieldLabel}>Pagaste desde</span>
+                    <select
+                      className={ui.fieldInput}
+                      value={metodoDesde?.documentId ?? 'otro'}
+                      onChange={(e) => setForm({ ...form, desde: e.target.value })}
+                    >
+                      {metodosBs.map((m) => (
+                        <option key={m.documentId} value={m.documentId}>
+                          {m.alias || (m.tipo === 'pago_movil' ? 'Pago Móvil' : 'Transferencia')}{m.banco ? ` · ${m.banco}` : ''}
+                        </option>
+                      ))}
+                      <option value="otro">Otro banco…</option>
+                    </select>
+                  </label>
+                ) : (
+                  <Field label="Banco desde el que pagaste (opcional)" value={form.banco} onChange={(e) => setForm({ ...form, banco: e.target.value })} />
+                )}
               </div>
+              {metodosBs.length > 0 && !metodoDesde && (
+                <Field label="Banco desde el que pagaste (opcional)" value={form.banco} onChange={(e) => setForm({ ...form, banco: e.target.value })} />
+              )}
+              {!metodosBs.length && (
+                <div style={{ fontSize: 12, color: 'var(--text-faint)' }}>
+                  Guarda tu Pago Móvil en <button style={{ color: 'var(--blue-600)', fontWeight: 600 }} onClick={() => navigate('/cuenta/metodos')}>Métodos de pago</button> y no lo escribes más.
+                </div>
+              )}
               {error && <div style={{ fontSize: 13, color: 'var(--bad-text)' }}>{error}</div>}
               {!error && (!(montoDe(form.montoBs) > 0) || !form.referencia.trim()) && (
                 <div style={{ fontSize: 12, color: 'var(--text-faint)' }}>
