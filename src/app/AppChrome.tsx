@@ -9,6 +9,7 @@ import { useTasasSync } from '../lib/useTasas';
 import { useModulos } from '../lib/useModulos';
 import {
   AREAS_EMPRESA,
+  AREAS_PASAJERO,
   MENU_ADMIN,
   MENU_EMPRESA,
   SECCIONES_CHOFER,
@@ -78,6 +79,7 @@ export function AppChrome() {
   // Perfil es de todos los roles: conserva el menú del rol para poder volver
   const enPerfil = path === '/perfil';
   const enAreaEmpresa = enPerfil || AREAS_EMPRESA.some((a) => path === a || path.startsWith(a + '/'));
+  const enAreaPasajero = enPerfil || AREAS_PASAJERO.some((a) => path === a || path.startsWith(a + '/'));
   const nav: { menu: EntradaNav[]; tagline: string; home: string } | null =
     rol === 'superadmin' && (enPerfil || path.startsWith('/admin'))
       ? { menu: MENU_ADMIN, tagline: 'Plataforma', home: '/admin' }
@@ -89,7 +91,7 @@ export function AppChrome() {
             ? { menu: SECCIONES_CHOFER, tagline: usuario?.linea?.nombre ?? 'Conductor', home: '/chofer' }
             : rol === 'colector' && (enPerfil || path.startsWith('/colector'))
               ? { menu: SECCIONES_COLECTOR, tagline: usuario?.linea?.nombre ?? 'Colector', home: '/colector' }
-              : rol === 'cliente' && (enPerfil || path.startsWith('/cuenta'))
+              : rol === 'cliente' && enAreaPasajero
                 ? { menu: SECCIONES_CUENTA, tagline: 'Mi cuenta', home: '/' }
                 : null;
   const hogarDelRol = rol ? HOGAR_POR_ROL[rol] : undefined;
@@ -194,9 +196,6 @@ export function AppChrome() {
                     </button>
                   )}
                   <button className={styles.menuItem} onClick={() => navigate('/perfil')}>Mi perfil</button>
-                  {rol === 'cliente' && (
-                    <button className={styles.menuItem} onClick={() => navigate('/busetas')}>¿Por dónde viene mi buseta?</button>
-                  )}
                   <div className={styles.menuDivisor} />
                   <button
                     className={styles.menuItem}

@@ -111,8 +111,11 @@ export const SECCIONES_COLECTOR: SeccionModulo[] = [
 export const SECCIONES_CUENTA: SeccionModulo[] = [
   { id: 'wallet', label: 'Mi wallet', ruta: '/cuenta/wallet' },
   { id: 'boletos', label: 'Mis boletos', ruta: '/cuenta' },
+  { id: 'busetas', label: 'Busetas', ruta: '/busetas' },
   { id: 'metodos', label: 'Métodos de pago', ruta: '/cuenta/metodos' },
 ];
+/** Páginas públicas que, con sesión de pasajero, siguen siendo «su área» (la barra del pasajero se queda). */
+export const AREAS_PASAJERO = ['/cuenta', '/busetas', '/mapa', '/pagar'];
 
 /** Las secciones que aplican a una línea según sus módulos (`null` = todas). */
 export function seccionesVisibles(secciones: SeccionModulo[], modulos: ClaveModulo[] | null): SeccionModulo[] {
