@@ -252,5 +252,7 @@ export function MapaRecorrido({
     }
   }, [buses]);
 
-  return <div ref={divRef} style={{ height: alto, borderRadius: radio, overflow: 'hidden' }} />;
+  // `isolation` encierra los z-index de Leaflet (400 capas, 1000 controles)
+  // dentro del mapa: sin eso se comían el menú de la barra superior
+  return <div ref={divRef} style={{ height: alto, borderRadius: radio, overflow: 'hidden', position: 'relative', zIndex: 0, isolation: 'isolate' }} />;
 }
