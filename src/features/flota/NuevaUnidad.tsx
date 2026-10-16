@@ -84,7 +84,7 @@ export function NuevaUnidad({ onCerrar }: { onCerrar: (creada: boolean) => void 
     <div className={styles.velo}>
       <div
         className={styles.modal}
-        style={{ width: 940, display: 'grid', gridTemplateColumns: '1fr 340px', gap: 24 }}
+        style={{ width: 'min(1160px, calc(100vw - 32px))', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 460px', gap: 28 }}
         onClick={(e) => e.stopPropagation()}
       >
         <div>
@@ -135,7 +135,7 @@ export function NuevaUnidad({ onCerrar }: { onCerrar: (creada: boolean) => void 
                 key={i}
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: '1fr 110px 80px 150px',
+                  gridTemplateColumns: 'minmax(150px, 1fr) 110px 80px 140px',
                   gap: 10,
                   marginTop: 10,
                   background: 'var(--surface-alt)',
@@ -186,7 +186,7 @@ export function NuevaUnidad({ onCerrar }: { onCerrar: (creada: boolean) => void 
                   >
                     <option value="0">Sin fila trasera</option>
                     {[3, 4, 5, 6].map((n) => (
-                      <option key={n} value={n}>{n} puestos seguidos</option>
+                      <option key={n} value={n}>{n} puestos</option>
                     ))}
                   </select>
                 </label>
@@ -233,7 +233,7 @@ export function NuevaUnidad({ onCerrar }: { onCerrar: (creada: boolean) => void 
         </div>
 
         {/* Vista previa en vivo */}
-        <div style={{ background: 'var(--surface-alt)', borderRadius: 'var(--r-16)', padding: 16, overflow: 'auto', maxHeight: 620 }}>
+        <div style={{ background: 'var(--surface-alt)', borderRadius: 'var(--r-16)', padding: 16, overflow: 'auto', maxHeight: 'calc(100dvh - 120px)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-faint)' }}>VISTA PREVIA</span>
             {preview.length > 1 && (
