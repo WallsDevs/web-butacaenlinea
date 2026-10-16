@@ -1,19 +1,39 @@
-/* Módulo 2 · Punto de Venta — pantalla táctil 1280px (objetivos ≥44px) */
+/* Módulo 2 · Punto de Venta — pantalla táctil (objetivos ≥44px). La caja
+   llena el ancho que le quede (con o sin barra lateral) y puede ir a
+   pantalla completa: al final es la caja. */
 
 .marco {
-  padding: 24px;
-  display: grid;
-  place-items: start center;
+  padding: 20px;
 }
 .ventana {
-  width: 1280px;
-  max-width: 100%;
+  width: 100%;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--r-22);
   overflow: hidden;
   box-shadow: var(--shadow-pos);
 }
+.ventana:fullscreen {
+  width: 100vw;
+  height: 100vh;
+  border-radius: 0;
+  border: none;
+  overflow: auto;
+}
+.pantallaCompleta {
+  margin-left: 10px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  cursor: pointer;
+  flex: none;
+}
+.pantallaCompleta:hover { background: rgba(255, 255, 255, 0.24); }
 
 /* Cabecera navy */
 .cabecera {
@@ -47,10 +67,13 @@
 .folioLabel { font-size: 12px; color: var(--blue-150); }
 .folioValor { font-weight: 700; font-size: 14px; }
 
-/* Cuerpo dos columnas */
+/* Cuerpo dos columnas: la derecha (apartado, pago, cobrar) nunca se corta */
 .cuerpo {
   display: grid;
-  grid-template-columns: 1fr 400px;
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 400px);
+}
+@media (max-width: 1100px) {
+  .cuerpo { grid-template-columns: minmax(0, 1fr); }
 }
 .panelIzq {
   padding: 20px;
@@ -257,10 +280,12 @@
 
 /* Cierre de turno */
 .cierreContenido {
-  max-width: 760px;
+  max-width: 1100px;
   margin: 0 auto;
-  padding: 28px 24px 72px;
+  padding: 28px 28px 72px;
 }
+/* Junto a la barra lateral el contenido se pega a ella, como en el resto del panel */
+:global(body.con-barra-lateral) .cierreContenido { margin: 0; }
 .cierreTabla {
   width: 100%;
   border-collapse: collapse;

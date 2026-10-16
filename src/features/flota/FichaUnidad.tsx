@@ -103,7 +103,7 @@ export default function FichaUnidad() {
   const totalPuestos = useMemo(
     () =>
       unidad?.configuracionAsientos?.pisos?.reduce(
-        (s, p) => s + p.filas.length * (p.layout.izquierda + p.layout.derecha),
+        (s, p) => s + (p.filas.length * (p.layout.izquierda + p.layout.derecha) + (p.filaTrasera ?? 0)),
         0
       ),
     [unidad]
@@ -124,7 +124,7 @@ export default function FichaUnidad() {
 
   const descPisos = unidad.configuracionAsientos?.pisos?.length === 2 ? 'Doble piso' : 'Piso sencillo';
   const clasesDesc = unidad.configuracionAsientos?.pisos
-    ?.map((p) => `${p.filas.length * (p.layout.izquierda + p.layout.derecha)} ${p.nombre.toLowerCase()}`)
+    ?.map((p) => `${(p.filas.length * (p.layout.izquierda + p.layout.derecha) + (p.filaTrasera ?? 0))} ${p.nombre.toLowerCase()}`)
     .join(' / ');
 
   const elegirCaucho = (c: CauchoDto | null, posicionLibre?: string) => {
@@ -155,7 +155,7 @@ export default function FichaUnidad() {
 
   return (
     <div className={styles.contenido}>
-      <button className={ui.btnGhost} onClick={() => navigate('/empresa/unidades')} style={{ marginBottom: 14 }}>
+      <button className={ui.btnGhost} onClick={() => navigate('/empresa/flota?tab=unidades')} style={{ marginBottom: 14 }}>
         ← Todas las unidades
       </button>
 

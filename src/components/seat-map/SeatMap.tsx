@@ -68,11 +68,18 @@ export function SeatMap({
         {piso.filas.map((fila) => (
           <div key={fila.fila} className={styles.fila}>
             <span className={styles.filaLabel}>{fila.fila}</span>
-            <div className={styles.lado}>{fila.izquierda.map(renderAsiento)}</div>
-            <div className={`${styles.pasillo} ${size === 'pos' ? styles.pasilloPos : ''}`}>
-              <span className={styles.pasilloBarra} />
-            </div>
-            <div className={styles.lado}>{fila.derecha.map(renderAsiento)}</div>
+            {fila.completa ? (
+              // Fila trasera corrida: todos los puestos seguidos, sin pasillo
+              <div className={styles.lado}>{[...fila.izquierda, ...fila.derecha].map(renderAsiento)}</div>
+            ) : (
+              <>
+                <div className={styles.lado}>{fila.izquierda.map(renderAsiento)}</div>
+                <div className={`${styles.pasillo} ${size === 'pos' ? styles.pasilloPos : ''}`}>
+                  <span className={styles.pasilloBarra} />
+                </div>
+                <div className={styles.lado}>{fila.derecha.map(renderAsiento)}</div>
+              </>
+            )}
           </div>
         ))}
       </div>

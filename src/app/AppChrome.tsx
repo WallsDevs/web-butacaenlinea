@@ -1,23 +1,27 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { LogoLockup } from '../components/brand/LogoMark';
 import { PillTabs } from '../components/ui/PillTabs';
 import { NavPrincipal } from './NavPrincipal';
 import { BarraInferior } from './BarraInferior';
+import { BarraLateral } from './BarraLateral';
 import { useAuth } from '../stores/auth';
 import { useTasasSync } from '../lib/useTasas';
 import { useModulos } from '../lib/useModulos';
 import {
   AREAS_EMPRESA,
   AREAS_PASAJERO,
+  LATERAL_EMPRESA,
   MENU_ADMIN,
   MENU_EMPRESA,
-  SECCIONES_CHOFER,
   SECCIONES_COLECTOR,
   SECCIONES_CUENTA,
   SECCIONES_POS,
+  lateralDesdeMenu,
+  lateralVisible,
   menuVisible,
   type EntradaNav,
+  type SeccionLateral,
 } from './navegacion';
 import styles from './AppChrome.module.css';
 
@@ -28,7 +32,7 @@ const HOGAR_POR_ROL: Record<string, string> = {
   superadmin: '/admin',
   empresa: '/empresa',
   cajero: '/pos',
-  chofer: '/chofer',
+  chofer: '/app-conductor',
   colector: '/colector',
   cliente: '/cuenta',
 };
@@ -72,7 +76,7 @@ export function AppChrome() {
       ? `El contrato de la línea vence en ${contrato.diasRestantes} ${contrato.diasRestantes === 1 ? 'día' : 'días'}.`
       : null;
   // En las páginas de acceso el chrome es mínimo: solo la marca
-  const esPaginaAcceso = ['/ingresar', '/registro', '/plataforma'].includes(location.pathname);
+  const esPaginaAcceso = ['/ingresar', '/registro', '/plataforma', '/app-conductor'].includes(location.pathname);
   // Un solo patrón para todos los roles: las secciones del módulo viven en esta barra
   const rol = usuario?.role?.type;
   const path = location.pathname;
@@ -87,14 +91,24 @@ export function AppChrome() {
         ? { menu: menuVisible(MENU_EMPRESA, modulos), tagline: usuario?.linea?.nombre ?? 'Mi empresa', home: '/empresa' }
         : rol === 'cajero' && (enPerfil || path.startsWith('/pos'))
           ? { menu: SECCIONES_POS, tagline: usuario?.linea?.nombre ?? 'Punto de venta', home: '/pos' }
-          : rol === 'chofer' && (enPerfil || path.startsWith('/chofer'))
-            ? { menu: SECCIONES_CHOFER, tagline: usuario?.linea?.nombre ?? 'Conductor', home: '/chofer' }
-            : rol === 'colector' && (enPerfil || path.startsWith('/colector'))
+          : rol === 'colector' && (enPerfil || path.startsWith('/colector'))
               ? { menu: SECCIONES_COLECTOR, tagline: usuario?.linea?.nombre ?? 'Colector', home: '/colector' }
               : rol === 'cliente' && enAreaPasajero
                 ? { menu: SECCIONES_CUENTA, tagline: 'Mi cuenta', home: '/' }
                 : null;
   const hogarDelRol = rol ? HOGAR_POR_ROL[rol] : undefined;
+  // En escritorio, el personal de una línea y el superadmin navegan por la barra
+  // lateral; el pasajero conserva la barra superior (su mundo es el sitio público)
+  const lateral: SeccionLateral[] | null =
+    nav && rol && rol !== 'cliente'
+      ? rol === 'empresa'
+        ? lateralVisible(LATERAL_EMPRESA, modulos)
+        : lateralDesdeMenu(nav.menu)
+      : null;
+  useEffect(() => {
+    document.body.classList.toggle('con-barra-lateral', Boolean(lateral));
+    return () => document.body.classList.remove('con-barra-lateral');
+  }, [Boolean(lateral)]);
 
   const iniciales = usuario?.nombreCorto
     ? usuario.nombreCorto
@@ -108,11 +122,12 @@ export function AppChrome() {
 
   // La página principal trae su propia cabecera (diseño «Sitio Público v5»)
   // Las pantallas de acceso traen su propio diseño de pantalla completa
-  if (['/', '/ingresar', '/registro', '/plataforma'].includes(location.pathname)) return null;
+  if (['/', '/ingresar', '/registro', '/plataforma', '/app-conductor'].includes(location.pathname)) return null;
 
   return (
     <>
-    <header className={`${styles.chrome} no-print`}>
+    {lateral && <BarraLateral secciones={lateral} titulo={nav!.tagline} home={nav!.home} pathname={location.pathname} conBoleteria={modulos?.includes('boleteria') ?? false} />}
+    <header className={`${styles.chrome} ${lateral ? styles.ocultaEnEscritorio : ''} no-print`}>
       <button
         className={styles.brandZone}
         style={nav ? { marginRight: 0 } : undefined}

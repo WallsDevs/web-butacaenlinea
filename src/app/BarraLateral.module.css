@@ -1,0 +1,264 @@
+/* ── Barra lateral de escritorio: el menú del rol, siempre a la vista ─────── */
+/* Tonos propios del lateral (navy de marca, más profundo que el resto de la web) */
+.lateral {
+  --lat-bg: #1b2a5c;
+  --lat-bg-2: #243673;
+  --lat-activo: #2f4388;
+  --lat-texto: #eef2ff;
+  --lat-suave: #b3bfe8;
+  --lat-titulo: #8c9dd1;
+  --lat-insignia: #e8a33d;
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 264px;
+  z-index: 35;
+  display: none;
+  flex-direction: column;
+  background: var(--lat-bg);
+  color: var(--lat-texto);
+  transition: width 0.18s ease;
+}
+@media (min-width: 901px) {
+  .lateral { display: flex; }
+}
+/* Plegada: un carril de iconos */
+.plegada { width: 72px; }
+/* Plegada pero con el ratón encima: se abre por encima del contenido sin empujarlo */
+.flotante {
+  width: 264px;
+  box-shadow: 12px 0 32px rgba(11, 42, 107, 0.25);
+}
+
+.cabecera {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px 6px;
+  min-height: 56px;
+}
+.marca {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  color: inherit;
+}
+.marcaTexto {
+  font-weight: 800;
+  font-size: 20px;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+.marcaSub {
+  display: block;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: var(--lat-suave);
+  margin-top: 3px;
+}
+.plegar {
+  margin-left: auto;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  color: var(--lat-suave);
+  cursor: pointer;
+  flex: none;
+}
+.plegar:hover { background: var(--lat-bg-2); color: var(--lat-texto); }
+.plegar:focus-visible { outline: 2px solid #fff; outline-offset: 1px; }
+
+/* Quién soy: la línea (o la plataforma) y mi rol */
+.tarjeta {
+  margin: 4px 14px 8px;
+  padding: 10px;
+  border-radius: 12px;
+  background: var(--lat-bg-2);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.plegada:not(.flotante) .tarjeta { margin: 6px 14px 14px; padding: 6px; justify-content: center; }
+.iniciales {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #fff;
+  color: var(--navy);
+  font-weight: 800;
+  font-size: 14px;
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+.tarjetaNombre {
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tarjetaRol {
+  font-size: 12.5px;
+  color: var(--lat-suave);
+  margin-top: 2px;
+}
+
+.cuerpo {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 14px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--lat-bg-2) transparent;
+}
+.seccionTitulo {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--lat-titulo);
+  padding: 12px 12px 4px;
+  white-space: nowrap;
+}
+/* Plegada, el título de sección se vuelve una rayita */
+.plegada:not(.flotante) .seccionTitulo {
+  font-size: 0;
+  padding: 10px 0 6px;
+}
+.plegada:not(.flotante) .seccionTitulo::after {
+  content: '';
+  display: block;
+  height: 1px;
+  margin: 0 14px;
+  background: var(--lat-bg-2);
+}
+
+.item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  color: var(--lat-texto);
+  font-size: 14.5px;
+  font-weight: 500;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.item:hover { background: var(--lat-bg-2); }
+.item:focus-visible { outline: 2px solid #fff; outline-offset: -2px; }
+.itemActivo {
+  background: var(--lat-activo);
+  font-weight: 700;
+}
+.itemIcono {
+  flex: none;
+  width: 22px;
+  display: grid;
+  place-items: center;
+  color: var(--lat-suave);
+}
+.itemActivo .itemIcono { color: #fff; }
+.itemTexto {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.plegada:not(.flotante) .item { justify-content: center; padding: 10px 0; }
+.plegada:not(.flotante) .itemTexto,
+.plegada:not(.flotante) .insignia,
+.plegada:not(.flotante) .flecha,
+.plegada:not(.flotante) .hijos { display: none; }
+
+.insignia {
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--lat-insignia);
+  color: #1b1b1b;
+  font-size: 12px;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+}
+.flecha {
+  width: 12px;
+  height: 12px;
+  color: var(--lat-suave);
+  transition: transform 0.15s;
+}
+.flechaAbierta { transform: rotate(180deg); }
+
+/* Los hijos se despliegan debajo del padre, con una guía a la izquierda */
+.hijos {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 2px 0 4px 22px;
+  padding-left: 12px;
+  border-left: 1px solid var(--lat-bg-2);
+}
+.hijo {
+  text-align: left;
+  padding: 7px 10px;
+  border-radius: 8px;
+  color: var(--lat-suave);
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.hijo:hover { background: var(--lat-bg-2); color: var(--lat-texto); }
+.hijoActivo { color: #fff; font-weight: 700; }
+
+.pie {
+  border-top: 1px solid var(--lat-bg-2);
+  margin: 0 14px;
+  padding: 8px 0 10px;
+  position: relative;
+}
+.yo {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  color: var(--lat-texto);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.yo:hover { background: var(--lat-bg-2); }
+.avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--blue-600);
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+.plegada:not(.flotante) .yo { justify-content: center; padding: 6px 0; }
+.plegada:not(.flotante) .yoTexto { display: none; }
+.yoActivo { background: var(--lat-activo); }
+
+@media print {
+  .lateral { display: none !important; }
+}

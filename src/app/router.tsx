@@ -21,17 +21,15 @@ const VerificacionPagos = lazy(() => import('../features/pos/VerificacionPagos')
 const MisVentas = lazy(() => import('../features/pos/MisVentas'));
 const ReportesTurnos = lazy(() => import('../features/pos/ReportesTurnos'));
 const TasasPos = lazy(() => import('../features/pos/TasasPos'));
-const MiUnidad = lazy(() => import('../features/chofer/MiUnidad'));
 const EmpresaLayout = lazy(() => import('../features/empresa/EmpresaLayout'));
 const EmpresaDashboard = lazy(() => import('../features/empresa/EmpresaDashboard'));
 const EmpresaProgramacion = lazy(() => import('../features/empresa/EmpresaProgramacion'));
 const EmpresaPersonal = lazy(() => import('../features/empresa/EmpresaPersonal'));
 const EmpresaBoletos = lazy(() => import('../features/empresa/EmpresaBoletos'));
 const EmpresaReportes = lazy(() => import('../features/empresa/EmpresaReportes'));
+const EmpresaWallet = lazy(() => import('../features/empresa/EmpresaWallet'));
 const EmpresaConfiguracion = lazy(() => import('../features/empresa/EmpresaConfiguracion'));
-const Escaner = lazy(() => import('../features/chofer/Escaner'));
-const ManifiestoPage = lazy(() => import('../features/chofer/ManifiestoPage'));
-const FlotaLista = lazy(() => import('../features/flota/FlotaLista'));
+const SoloApp = lazy(() => import('../features/chofer/SoloApp'));
 const AccesoPlataforma = lazy(() => import('../features/admin/AccesoPlataforma'));
 const AdminDashboard = lazy(() => import('../features/admin/AdminDashboard'));
 const AdminEmpresas = lazy(() => import('../features/admin/AdminEmpresas'));
@@ -40,12 +38,12 @@ const AdminTasas = lazy(() => import('../features/admin/AdminTasas'));
 const AdminAuditoria = lazy(() => import('../features/admin/AdminAuditoria'));
 const AdminSeguridad = lazy(() => import('../features/admin/AdminSeguridad'));
 const AdminWallet = lazy(() => import('../features/admin/AdminWallet'));
+const EmpresaFlota = lazy(() => import('../features/empresa/EmpresaFlota'));
 const AdminPasajeros = lazy(() => import('../features/admin/AdminPasajeros'));
 const AdminIntegraciones = lazy(() => import('../features/admin/AdminIntegraciones'));
 const AdminConectores = lazy(() => import('../features/admin/AdminConectores'));
 const AdminContratos = lazy(() => import('../features/admin/AdminContratos'));
 const AdminFacturas = lazy(() => import('../features/admin/AdminFacturas'));
-const FlotaEnVivo = lazy(() => import('../features/empresa/FlotaEnVivo'));
 const EmpresaFacturas = lazy(() => import('../features/empresa/EmpresaFacturas'));
 const FichaUnidad = lazy(() => import('../features/flota/FichaUnidad'));
 const PagoUrbano = lazy(() => import('../features/urbano/PagoUrbano'));
@@ -102,7 +100,7 @@ export const router = createBrowserRouter([
       {
         path: '/colector',
         element: (
-          <RequireAuth roles={['colector', 'chofer', 'empresa']}>
+          <RequireAuth roles={['colector']}>
             <Colector />
           </RequireAuth>
         ),
@@ -156,7 +154,7 @@ export const router = createBrowserRouter([
       {
         path: '/pos',
         element: (
-          <RequireAuth roles={['cajero', 'empresa']}>
+          <RequireAuth roles={['cajero']}>
             <Pos />
           </RequireAuth>
         ),
@@ -164,23 +162,17 @@ export const router = createBrowserRouter([
       {
         path: '/pos/cierre',
         element: (
-          <RequireAuth roles={['cajero', 'empresa']}>
+          <RequireAuth roles={['cajero']}>
             <CierreTurno />
           </RequireAuth>
         ),
       },
-      {
-        path: '/pos/pagos',
-        element: (
-          <RequireAuth roles={['cajero', 'empresa']}>
-            <VerificacionPagos />
-          </RequireAuth>
-        ),
-      },
+      // «Pagos web» era lo mismo que «Mis ventas»; la verificación es del administrador (/empresa/pagos)
+      { path: '/pos/pagos', element: <Navigate to="/pos/ventas" replace /> },
       {
         path: '/pos/ventas',
         element: (
-          <RequireAuth roles={['cajero', 'empresa']}>
+          <RequireAuth roles={['cajero']}>
             <MisVentas />
           </RequireAuth>
         ),
@@ -188,7 +180,7 @@ export const router = createBrowserRouter([
       {
         path: '/pos/reportes',
         element: (
-          <RequireAuth roles={['cajero', 'empresa']}>
+          <RequireAuth roles={['cajero']}>
             <ReportesTurnos />
           </RequireAuth>
         ),
@@ -196,35 +188,21 @@ export const router = createBrowserRouter([
       {
         path: '/pos/tasas',
         element: (
-          <RequireAuth roles={['cajero', 'empresa']}>
+          <RequireAuth roles={['cajero']}>
             <TasasPos />
           </RequireAuth>
         ),
       },
+      // El conductor trabaja desde la app: en la web solo se le dice dónde está lo suyo
       {
-        path: '/chofer/unidad',
+        path: '/app-conductor',
         element: (
-          <RequireAuth roles={['chofer', 'empresa']}>
-            <MiUnidad />
+          <RequireAuth roles={['chofer']}>
+            <SoloApp />
           </RequireAuth>
         ),
       },
-      {
-        path: '/chofer',
-        element: (
-          <RequireAuth roles={['chofer', 'empresa']}>
-            <Escaner />
-          </RequireAuth>
-        ),
-      },
-      {
-        path: '/chofer/manifiesto',
-        element: (
-          <RequireAuth roles={['chofer', 'empresa']}>
-            <ManifiestoPage />
-          </RequireAuth>
-        ),
-      },
+      { path: '/chofer/*', element: <Navigate to="/app-conductor" replace /> },
       {
         path: '/empresa',
         element: (
@@ -236,20 +214,24 @@ export const router = createBrowserRouter([
           { index: true, element: <EmpresaDashboard /> },
           { path: 'salidas', element: <EmpresaProgramacion /> },
           { path: 'rutas', element: <Navigate to="/empresa/salidas?tab=rutas" replace /> },
-          { path: 'unidades', element: <FlotaLista /> },
+          { path: 'flota', element: <EmpresaFlota /> },
+          { path: 'flota/:unidadId', element: <FichaUnidad /> },
+          // Rutas anteriores de la flota: siguen funcionando
+          { path: 'unidades', element: <Navigate to="/empresa/flota?tab=unidades" replace /> },
           { path: 'unidades/:unidadId', element: <FichaUnidad /> },
           { path: 'personal', element: <EmpresaPersonal /> },
           { path: 'pagos', element: <VerificacionPagos /> },
           { path: 'boletos', element: <EmpresaBoletos /> },
           { path: 'reportes', element: <EmpresaReportes /> },
-          { path: 'flota-en-vivo', element: <FlotaEnVivo /> },
+          { path: 'flota-en-vivo', element: <Navigate to="/empresa/flota" replace /> },
+          { path: 'wallet', element: <EmpresaWallet /> },
           { path: 'facturas', element: <EmpresaFacturas /> },
           { path: 'configuracion', element: <EmpresaConfiguracion /> },
         ],
       },
       // Rutas legadas del módulo flota
-      { path: '/flota', element: <Navigate to="/empresa/unidades" replace /> },
-      { path: '/flota/:unidadId', element: <Navigate to="/empresa/unidades" replace /> },
+      { path: '/flota', element: <Navigate to="/empresa/flota" replace /> },
+      { path: '/flota/:unidadId', element: <Navigate to="/empresa/flota" replace /> },
       // Sin rutas huérfanas: cualquier URL desconocida vuelve al marketplace
       {
         path: '/perfil',

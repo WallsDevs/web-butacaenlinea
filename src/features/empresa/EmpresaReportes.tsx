@@ -1,8 +1,11 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getReportesEmpresa } from '../../lib/api/endpoints';
+import { ApiError } from '../../lib/api/client';
 import { hoyISO } from '../../lib/time';
 import { Field } from '../../components/ui/Field';
+import { EncabezadoPantalla } from '../../components/ui/EncabezadoPantalla';
+
 import { StatusChip } from '../../components/ui/StatusChip';
 import ui from '../../components/ui/ui.module.css';
 import styles from '../flota/flota.module.css';
@@ -53,24 +56,43 @@ export default function EmpresaReportes() {
   });
   const [hasta, setHasta] = useState(hoyISO());
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['empresa-reportes', desde, hasta],
     queryFn: () => getReportesEmpresa(desde, hasta),
+    retry: 1,
   });
+  const codigo = error instanceof ApiError ? `${error.status || 'sin conexión'} · ${error.code}` : error ? String(error) : null;
 
   return (
     <div className={styles.contenido}>
-      <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', marginBottom: 16, flexWrap: 'wrap' }}>
-        <h2 style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-0.02em', marginRight: 'auto' }}>Reportes</h2>
-        <div style={{ width: 165 }}>
-          <Field label="Desde" type="date" value={desde} onChange={(e) => setDesde(e.target.value)} />
-        </div>
-        <div style={{ width: 165 }}>
-          <Field label="Hasta" type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} />
-        </div>
-      </div>
+      <EncabezadoPantalla
+        titulo="Reportes"
+        descripcion="Lo vendido en el período por día, canal, método de pago y cajero, con las liquidaciones de comisión."
+        acciones={
+          <>
+            <div style={{ width: 165 }}>
+              <Field label="Desde" type="date" value={desde} onChange={(e) => setDesde(e.target.value)} />
+            </div>
+            <div style={{ width: 165 }}>
+              <Field label="Hasta" type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} />
+            </div>
+          </>
+        }
+      />
 
-      {isLoading || !data ? (
+      {error ? (
+        <div className={ui.card} style={{ padding: 28, textAlign: 'center' }}>
+          <div style={{ fontWeight: 700 }}>No se pudo calcular el reporte</div>
+          <div style={{ fontSize: 13, color: 'var(--text-soft)', marginTop: 6 }}>
+            {error instanceof ApiError && error.status === 401
+              ? 'Tu sesión venció: vuelve a entrar.'
+              : error instanceof ApiError && error.code === 'modulo_no_contratado'
+                ? 'Tu contrato no incluye reportes de venta.'
+                : `El servidor respondió: ${codigo}.`}
+          </div>
+          <button className={ui.btnSecondary} style={{ marginTop: 14 }} onClick={() => refetch()}>Reintentar</button>
+        </div>
+      ) : isLoading || !data ? (
         <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-soft)' }}>Calculando…</div>
       ) : (
         <>

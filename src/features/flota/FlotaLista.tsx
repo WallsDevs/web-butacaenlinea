@@ -33,13 +33,10 @@ export default function FlotaLista() {
 
   return (
     <div className={styles.contenido}>
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16 }}>
-        <div>
-          <div className={styles.kicker}>Flota y mantenimiento</div>
-          <h2 style={{ fontSize: 30, fontWeight: 700, letterSpacing: '-0.02em', marginTop: 8 }}>
-            {isLoading ? 'Cargando flota…' : `${unidades?.length ?? 0} unidad${(unidades?.length ?? 0) === 1 ? '' : 'es'}`}
-          </h2>
-        </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        <h2 style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.02em' }}>
+          {isLoading ? 'Cargando flota…' : `${unidades?.length ?? 0} unidad${(unidades?.length ?? 0) === 1 ? '' : 'es'}`}
+        </h2>
         <button
           className={ui.btnPrimary}
           style={{ marginLeft: 'auto', fontSize: 14, padding: '12px 20px' }}
@@ -51,11 +48,11 @@ export default function FlotaLista() {
       <div className={styles.gridUnidades}>
         {(unidades ?? []).map((u) => {
           const total = u.configuracionAsientos?.pisos?.reduce(
-            (s, p) => s + p.filas.length * (p.layout.izquierda + p.layout.derecha),
+            (s, p) => s + (p.filas.length * (p.layout.izquierda + p.layout.derecha) + (p.filaTrasera ?? 0)),
             0
           );
           return (
-            <button key={u.documentId} className={styles.cardUnidad} onClick={() => navigate(`/empresa/unidades/${u.documentId}`)}>
+            <button key={u.documentId} className={styles.cardUnidad} onClick={() => navigate(`/empresa/flota/${u.documentId}`)}>
               <span className={styles.cuadroNumero}>{u.numero}</span>
               <span style={{ minWidth: 0 }}>
                 <span style={{ display: 'block', fontWeight: 700, fontSize: 16 }}>{u.marcaModelo}</span>

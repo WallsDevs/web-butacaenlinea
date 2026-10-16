@@ -3,6 +3,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { anularBoleto, buscarBoletos } from '../../lib/api/endpoints';
 import { hora, fechaCorta, hoyISO } from '../../lib/time';
 import { Field } from '../../components/ui/Field';
+import { EncabezadoPantalla } from '../../components/ui/EncabezadoPantalla';
+
 import { StatusChip } from '../../components/ui/StatusChip';
 import ui from '../../components/ui/ui.module.css';
 import styles from '../flota/flota.module.css';
@@ -41,15 +43,20 @@ export default function EmpresaBoletos() {
 
   return (
     <div className={styles.contenido}>
-      <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', marginBottom: 16, flexWrap: 'wrap' }}>
-        <h2 style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-0.02em', marginRight: 'auto' }}>Boletos</h2>
-        <div style={{ width: 200 }}>
-          <Field label="Buscar por folio" value={folio} onChange={(e) => setFolio(e.target.value)} placeholder="C02-000410" />
-        </div>
-        <div style={{ width: 170 }}>
-          <Field label="O por día" type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} disabled={Boolean(folio)} />
-        </div>
-      </div>
+      <EncabezadoPantalla
+        titulo="Boletos"
+        descripcion="Busca un boleto por folio o revisa los de un día. Anular libera el puesto; el registro queda auditado."
+        acciones={
+          <>
+            <div style={{ width: 200 }}>
+              <Field label="Buscar por folio" value={folio} onChange={(e) => setFolio(e.target.value)} placeholder="C02-000410" />
+            </div>
+            <div style={{ width: 170 }}>
+              <Field label="O por día" type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} disabled={Boolean(folio)} />
+            </div>
+          </>
+        }
+      />
 
       <div className={ui.card} style={{ overflow: 'hidden' }}>
         <table className={styles.tabla}>

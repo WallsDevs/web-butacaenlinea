@@ -1,0 +1,53 @@
+/* Cabecera de pantalla del panel: sección · título · descripción, acciones a la derecha, pestañas debajo */
+.encabezado {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-bottom: 22px;
+}
+.fila {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px 24px;
+  flex-wrap: wrap;
+}
+.texto {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+.seccion {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-faint);
+  margin-bottom: 4px;
+}
+.titulo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+.descripcion {
+  font-size: 15px;
+  color: var(--text-soft);
+  margin-top: 8px;
+  line-height: 1.5;
+  max-width: 720px;
+}
+.acciones {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+/* Las pestañas abrazan su contenido: no son una barra de lado a lado */
+.pestanas { display: flex; }
+
+@media (max-width: 640px) {
+  .titulo { font-size: 26px; }
+  .acciones { width: 100%; }
+}

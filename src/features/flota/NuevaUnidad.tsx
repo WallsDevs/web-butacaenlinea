@@ -9,6 +9,7 @@ import ui from '../../components/ui/ui.module.css';
 import styles from './flota.module.css';
 
 const CLASES = [
+  { valor: 'estandar', nombre: 'Estándar' },
   { valor: 'semicama', nombre: 'Semicama' },
   { valor: 'vip', nombre: 'VIP Cama' },
   { valor: 'cama_ejecutivo', nombre: 'Cama Ejecutivo' },
@@ -16,7 +17,12 @@ const CLASES = [
 
 const AMENIDADES = ['Wi-Fi', 'A/A', 'Baño', 'Pantallas', 'USB'];
 
-const PISO_DEFECTO: PisoBuilder = { nombre: 'Semicama', claseServicio: 'semicama', layout: '2+2', filas: 10 };
+const PISO_DEFECTO: PisoBuilder = { nombre: 'Semicama', claseServicio: 'semicama', layout: '2+2', filas: 10, filaTrasera: 0 };
+/** La buseta sencilla (una Encava, por ejemplo): un piso de puestos estándar, 2+2 × 8 = 32. Hoy hace urbano; mañana puede hacer ruta. */
+const PISO_BUSETA: PisoBuilder = { nombre: 'Estándar', claseServicio: 'estandar', layout: '2+2', filas: 7, filaTrasera: 5 };
+
+type TipoBus = 'buseta' | '1' | '2';
+const tipoDe = (pisos: PisoBuilder[]): TipoBus => (pisos.length > 1 ? '2' : pisos[0]?.claseServicio === 'estandar' ? 'buseta' : '1');
 
 /** Alta de unidad con armador de asientos y vista previa en vivo del mapa. */
 export function NuevaUnidad({ onCerrar }: { onCerrar: (creada: boolean) => void }) {
@@ -78,7 +84,7 @@ export function NuevaUnidad({ onCerrar }: { onCerrar: (creada: boolean) => void 
     <div className={styles.velo}>
       <div
         className={styles.modal}
-        style={{ width: 940, display: 'grid', gridTemplateColumns: '1fr 340px', gap: 24 }}
+        style={{ width: 'min(1160px, calc(100vw - 32px))', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 460px', gap: 28 }}
         onClick={(e) => e.stopPropagation()}
       >
         <div>
@@ -102,20 +108,23 @@ export function NuevaUnidad({ onCerrar }: { onCerrar: (creada: boolean) => void 
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <span style={{ fontSize: 13, fontWeight: 700 }}>Asientos · {totalPuestos} puestos</span>
               <div style={{ marginLeft: 'auto' }}>
-                <PillTabs
+                <PillTabs<TipoBus>
                   items={[
+                    { id: 'buseta', label: 'Buseta' },
                     { id: '1', label: 'Piso sencillo' },
                     { id: '2', label: 'Doble piso' },
                   ]}
-                  value={String(pisos.length)}
+                  value={tipoDe(pisos)}
                   onChange={(id) => {
-                    setPisos((ps) =>
-                      id === '2' && ps.length === 1
-                        ? [{ nombre: 'VIP Cama', claseServicio: 'vip', layout: '1+1', filas: 6 }, { ...ps[0] }]
-                        : id === '1' && ps.length === 2
-                          ? [ps[1]]
-                          : ps
-                    );
+                    // Cada tipo es un punto de partida; después se ajusta lo que haga falta
+                    if (id === 'buseta') {
+                      setPisos([{ ...PISO_BUSETA }]);
+                      setAmenidades([]);
+                    } else if (id === '2') {
+                      setPisos((ps) => (ps.length === 1 ? [{ nombre: 'VIP Cama', claseServicio: 'vip', layout: '1+1', filas: 6, filaTrasera: 0 }, ps[0].claseServicio === 'estandar' ? { ...PISO_DEFECTO } : { ...ps[0] }] : ps));
+                    } else {
+                      setPisos((ps) => (ps.length === 2 ? [ps[1]] : ps[0]?.claseServicio === 'estandar' ? [{ ...PISO_DEFECTO }] : ps));
+                    }
                     setPisoPreview(0);
                   }}
                 />
@@ -126,7 +135,7 @@ export function NuevaUnidad({ onCerrar }: { onCerrar: (creada: boolean) => void 
                 key={i}
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: '1fr 110px 90px',
+                  gridTemplateColumns: 'minmax(150px, 1fr) 110px 80px 140px',
                   gap: 10,
                   marginTop: 10,
                   background: 'var(--surface-alt)',
@@ -168,10 +177,23 @@ export function NuevaUnidad({ onCerrar }: { onCerrar: (creada: boolean) => void 
                   value={String(p.filas)}
                   onChange={(e) => actualizarPiso(i, { filas: Math.max(1, Math.min(15, Number(e.target.value) || 1)) })}
                 />
+                <label className={ui.field}>
+                  <span className={ui.fieldLabel}>Fila trasera corrida</span>
+                  <select
+                    className={ui.fieldInput}
+                    value={String(p.filaTrasera)}
+                    onChange={(e) => actualizarPiso(i, { filaTrasera: Number(e.target.value) })}
+                  >
+                    <option value="0">Sin fila trasera</option>
+                    {[3, 4, 5, 6].map((n) => (
+                      <option key={n} value={n}>{n} puestos</option>
+                    ))}
+                  </select>
+                </label>
               </div>
             ))}
             <div style={{ fontSize: 12, color: 'var(--text-faint)', marginTop: 8 }}>
-              Las clases de servicio deben coincidir con las tarifas de tus rutas (vip, semicama, cama_ejecutivo).
+              Las clases de servicio deben coincidir con las tarifas de tus rutas (estandar, semicama, vip, cama_ejecutivo). La buseta trae puestos estándar sin amenidades; puedes cambiar lo que quieras.
             </div>
           </div>
 
@@ -211,7 +233,7 @@ export function NuevaUnidad({ onCerrar }: { onCerrar: (creada: boolean) => void 
         </div>
 
         {/* Vista previa en vivo */}
-        <div style={{ background: 'var(--surface-alt)', borderRadius: 'var(--r-16)', padding: 16, overflow: 'auto', maxHeight: 620 }}>
+        <div style={{ background: 'var(--surface-alt)', borderRadius: 'var(--r-16)', padding: 16, overflow: 'auto', maxHeight: 'calc(100dvh - 120px)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-faint)' }}>VISTA PREVIA</span>
             {preview.length > 1 && (

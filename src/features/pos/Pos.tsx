@@ -8,7 +8,6 @@ import {
   crearReserva,
   emitirBoletos,
   getArqueo,
-  getBoletosPorVerificar,
   getCobroTaquilla,
   getMapaAsientos,
   getRutas,
@@ -136,13 +135,6 @@ export default function Pos() {
     queryFn: () => getArqueo(turno!.documentId),
     enabled: Boolean(turno),
     refetchInterval: 15000,
-  });
-
-  // Pagos web pendientes de verificar (pago manual)
-  const { data: porVerificar } = useQuery({
-    queryKey: ['por-verificar'],
-    queryFn: getBoletosPorVerificar,
-    refetchInterval: 20000,
   });
 
   const seleccionados = pasajeros.map((p) => p.asientoId);
@@ -293,6 +285,15 @@ export default function Pos() {
   );
   const accionPrincipal = () => (esWallet ? publicarCobro.mutate() : emitir.mutate());
 
+  // La caja a pantalla completa (API del navegador sobre la ventana del POS)
+  const ventanaRef = useRef<HTMLDivElement>(null);
+  const [pantallaCompleta, setPantallaCompleta] = useState(false);
+  useEffect(() => {
+    const al = () => setPantallaCompleta(Boolean(document.fullscreenElement));
+    document.addEventListener('fullscreenchange', al);
+    return () => document.removeEventListener('fullscreenchange', al);
+  }, []);
+
   // Atajos F2 / F9
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -339,7 +340,7 @@ export default function Pos() {
 
   return (
     <div className={styles.marco}>
-      <div className={styles.ventana}>
+      <div className={styles.ventana} ref={ventanaRef}>
         {/* Cabecera navy */}
         <div className={styles.cabecera}>
           <span className={styles.cabeceraIso} style={{ color: '#fff' }}>
@@ -393,6 +394,20 @@ export default function Pos() {
                 {arqueo?.folios?.hasta ?? turno?.taquilla?.serieFolio ?? '—'}
               </span>
             </span>
+          )}
+          {typeof document !== 'undefined' && document.fullscreenEnabled && (
+            <button
+              type="button"
+              className={styles.pantallaCompleta}
+              style={turno ? undefined : { marginLeft: 'auto' }}
+              onClick={() => (document.fullscreenElement ? void document.exitFullscreen() : void ventanaRef.current?.requestFullscreen?.())}
+              aria-label={pantallaCompleta ? 'Salir de pantalla completa' : 'Caja a pantalla completa'}
+              title={pantallaCompleta ? 'Salir de pantalla completa (Esc)' : 'Pantalla completa'}
+            >
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                {pantallaCompleta ? <path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" /> : <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />}
+              </svg>
+            </button>
           )}
         </div>
 
@@ -613,13 +628,6 @@ export default function Pos() {
                     QR de mi caja
                   </button>
                 )}
-                <button
-                  className={styles.btnSec}
-                  style={porVerificar?.length ? { borderColor: 'var(--warn-border)', color: 'var(--warn-text)' } : undefined}
-                  onClick={() => navigate('/pos/pagos')}
-                >
-                  Pagos web{porVerificar?.length ? ` · ${porVerificar.length}` : ''}
-                </button>
               </div>
             </div>
           </div>

@@ -4,8 +4,8 @@ import { actualizarConfiguracionEmpresa, getLineas } from '../../lib/api/endpoin
 import { useAuth } from '../../stores/auth';
 import { Field } from '../../components/ui/Field';
 import { TasasLinea } from './TasasLinea';
-import { WalletEmpresa } from './WalletEmpresa';
 import ui from '../../components/ui/ui.module.css';
+import { EncabezadoPantalla } from '../../components/ui/EncabezadoPantalla';
 import styles from '../flota/flota.module.css';
 
 /** Datos públicos de la empresa (la comisión la fija la plataforma). */
@@ -65,13 +65,11 @@ export default function EmpresaConfiguracion() {
   });
 
   return (
-    <div className={styles.contenido} style={{ maxWidth: 720, display: 'flex', flexDirection: 'column', gap: 18 }}>
-      <TasasLinea />
-      <WalletEmpresa />
-      <h2 style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 16 }}>
-        Configuración de la empresa
-      </h2>
+    <div className={styles.contenido} style={{ maxWidth: 1240 }}>
+      <EncabezadoPantalla titulo="Configuración" descripcion="Los datos de la empresa y sus tasas de cambio." />
+      <div className={styles.dosColumnas}>
       <div className={ui.card} style={{ padding: 24 }}>
+        <h2 style={{ fontSize: 17, fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 14 }}>Datos de la empresa</h2>
         {mensaje && (
           <div style={{ fontSize: 13, color: 'var(--blue-700)', background: 'var(--tint-50)', borderRadius: 12, padding: '10px 12px', marginBottom: 14 }}>
             {mensaje}
@@ -141,15 +139,15 @@ export default function EmpresaConfiguracion() {
           />
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 18 }}>
-          <button className={ui.btnPrimary} disabled={guardar.isPending || !form.nombre} onClick={() => guardar.mutate()}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 18, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>El porcentaje de comisión de la plataforma lo administra Butaca En Línea.</span>
+          <button className={ui.btnPrimary} style={{ marginLeft: 'auto' }} disabled={guardar.isPending || !form.nombre} onClick={() => guardar.mutate()}>
             {guardar.isPending ? 'Guardando…' : 'Guardar cambios'}
           </button>
         </div>
       </div>
-      <p style={{ fontSize: 12, color: 'var(--text-faint)', marginTop: 12 }}>
-        El porcentaje de comisión de la plataforma lo administra Butaca En Línea.
-      </p>
+      <TasasLinea />
+      </div>
     </div>
   );
 }

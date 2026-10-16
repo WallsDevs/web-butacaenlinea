@@ -3,15 +3,16 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getMisFacturas, reportarPagoFactura, type Factura } from '../../lib/api/endpoints';
 import { ApiError } from '../../lib/api/client';
 import { useModulos } from '../../lib/useModulos';
-import { fechaCorta } from '../../lib/time';
+import { fechaConAnio, fechaCorta } from '../../lib/time';
 import { StatusChip } from '../../components/ui/StatusChip';
 import ui from '../../components/ui/ui.module.css';
+import { EncabezadoPantalla } from '../../components/ui/EncabezadoPantalla';
 import styles from '../flota/flota.module.css';
 import { CHIP_ESTADO, nombreDePeriodo } from '../../lib/facturas';
 
 const usd = (n: number) => `$ ${n.toLocaleString('es-VE', { minimumFractionDigits: 2 })}`;
 const bs = (n: number) => `Bs ${n.toLocaleString('es-VE', { maximumFractionDigits: 2 })}`;
-const dia = (iso: string) => fechaCorta(`${iso}T12:00:00`);
+const dia = (iso: string) => fechaConAnio(`${iso}T12:00:00`);
 const NOMBRE_PLAN = { mantenimiento: 'Mantenimiento', venta: 'Solo boletería', completo: 'Full', personalizado: 'Personalizado' } as const;
 const NOMBRE_MODULO: Record<string, string> = { flota: 'Flota y personal', mantenimiento: 'Mantenimiento', boleteria: 'Boletería', taquilla: 'Taquilla', equipaje: 'Equipaje', urbano: 'Urbano por QR' };
 
@@ -36,13 +37,41 @@ function MiContratoCard() {
           <StatusChip tono="ok" size="sm">Indefinido</StatusChip>
         )}
       </div>
-      <div style={{ fontSize: 13, color: 'var(--text-soft)', marginTop: 8, lineHeight: 1.6 }}>
-        {contrato.modulos.map((m) => NOMBRE_MODULO[m] ?? m).join(' · ')}
-        <br />
-        {comision && <>Comisión de la plataforma: <strong>{contrato.comisionPct} %</strong> por pasaje. </>}
-        {porBus && <>Tarifa de Mantenimiento: <strong>{usd(contrato.montoBusUsd)}</strong> por bus al mes, {contrato.diasGracia} días de gracia.</>}
-        {vencido && <><br />Para renovar, comuníquese con Butaca En Línea: mientras tanto el acceso a los módulos y la venta de sus salidas están cerrados; sus datos siguen intactos.</>}
+      {/* Módulos como chips, y las condiciones de cobro como datos sueltos: antes era una sola línea corrida */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 12 }}>
+        {contrato.modulos.map((m) => (
+          <span key={m} style={{ fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 999, background: 'var(--tint-50)', color: 'var(--blue-700, var(--blue-600))' }}>
+            {NOMBRE_MODULO[m] ?? m}
+          </span>
+        ))}
       </div>
+      {(comision || porBus) && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 28px', marginTop: 14 }}>
+          {comision && (
+            <div>
+              <div style={{ fontSize: 12, color: 'var(--text-faint)' }}>Comisión de la plataforma</div>
+              <div style={{ fontSize: 15, fontWeight: 700 }}>{contrato.comisionPct} % <span style={{ fontWeight: 500, color: 'var(--text-soft)' }}>por pasaje</span></div>
+            </div>
+          )}
+          {porBus && (
+            <>
+              <div>
+                <div style={{ fontSize: 12, color: 'var(--text-faint)' }}>Tarifa de Mantenimiento</div>
+                <div style={{ fontSize: 15, fontWeight: 700 }}>{usd(contrato.montoBusUsd)} <span style={{ fontWeight: 500, color: 'var(--text-soft)' }}>por bus al mes</span></div>
+              </div>
+              <div>
+                <div style={{ fontSize: 12, color: 'var(--text-faint)' }}>Días de gracia</div>
+                <div style={{ fontSize: 15, fontWeight: 700 }}>{contrato.diasGracia}</div>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+      {vencido && (
+        <div style={{ fontSize: 13, color: 'var(--bad-text)', marginTop: 12, lineHeight: 1.6 }}>
+          Para renovar, comuníquese con Butaca En Línea: mientras tanto el acceso a los módulos y la venta de sus salidas están cerrados; sus datos siguen intactos.
+        </div>
+      )}
     </div>
   );
 }
@@ -82,10 +111,11 @@ export default function EmpresaFacturas() {
 
   return (
     <div className={styles.contenido}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16, flexWrap: 'wrap' }}>
-        <h2 style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-0.02em' }}>Facturas</h2>
-        {totalPendiente > 0 && <StatusChip tono="warn">{usd(totalPendiente)} por pagar</StatusChip>}
-      </div>
+      <EncabezadoPantalla
+        titulo="Facturas"
+        chip={totalPendiente > 0 && <StatusChip tono="warn">{usd(totalPendiente)} por pagar</StatusChip>}
+        descripcion="Tu contrato con Butaca En Línea y las facturas de los módulos de cobro fijo."
+      />
 
       <MiContratoCard />
 
@@ -134,7 +164,7 @@ export default function EmpresaFacturas() {
                     </div>
                   </td>
                   <td style={{ color: f.estado === 'vencida' ? 'var(--red-600, #DC2626)' : 'var(--text-soft)' }}>
-                    {fechaCorta(`${f.venceEn}T12:00:00`)}
+                    {fechaConAnio(`${f.venceEn}T12:00:00`)}
                   </td>
                   <td>
                     <StatusChip tono={chip.tono} size="sm">{chip.texto}</StatusChip>

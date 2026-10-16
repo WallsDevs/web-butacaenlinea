@@ -8,7 +8,7 @@ import {
   type EstadoFactura,
   type Factura,
 } from '../../lib/api/endpoints';
-import { fechaCorta } from '../../lib/time';
+import { fechaConAnio } from '../../lib/time';
 import { CHIP_ESTADO, nombreDePeriodo } from '../../lib/facturas';
 import { PillTabs } from '../../components/ui/PillTabs';
 import { StatusChip } from '../../components/ui/StatusChip';
@@ -160,7 +160,7 @@ function FilaFactura({
         {usd(f.montoUsd)}
         <div style={{ fontWeight: 400, fontSize: 12, color: 'var(--text-faint)' }}>{bs(f.montoBs)}</div>
       </td>
-      <td style={{ color: f.estado === 'vencida' ? 'var(--red-600, #DC2626)' : 'var(--text-soft)' }}>{fechaCorta(`${f.venceEn}T12:00:00`)}</td>
+      <td style={{ color: f.estado === 'vencida' ? 'var(--red-600, #DC2626)' : 'var(--text-soft)' }}>{fechaConAnio(`${f.venceEn}T12:00:00`)}</td>
       <td>
         <StatusChip tono={chip.tono} size="sm">{chip.texto}</StatusChip>
         {f.estado === 'por_verificar' && f.referencia && (

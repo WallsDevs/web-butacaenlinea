@@ -31,6 +31,14 @@ body {
 @media (max-width: 900px) {
   body.con-barra-inferior { padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
 }
+/* La barra lateral de escritorio deja su sitio a la izquierda (72px plegada) */
+@media (min-width: 901px) {
+  body.con-barra-lateral { padding-left: 264px; }
+  body.con-barra-lateral.barra-lateral-plegada { padding-left: 72px; }
+}
+@media print {
+  body.con-barra-lateral { padding-left: 0; }
+}
 
 a {
   color: var(--blue-600);

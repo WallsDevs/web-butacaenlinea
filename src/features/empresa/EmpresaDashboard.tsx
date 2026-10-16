@@ -1,6 +1,8 @@
 import { useNavigate } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { getDashboardEmpresa } from '../../lib/api/endpoints';
+import { ApiError } from '../../lib/api/client';
+import { EncabezadoPantalla } from '../../components/ui/EncabezadoPantalla';
 import { hora, fechaCorta } from '../../lib/time';
 import { StatusChip } from '../../components/ui/StatusChip';
 import ui from '../../components/ui/ui.module.css';
@@ -9,12 +11,28 @@ import styles from '../flota/flota.module.css';
 /** Dashboard de la empresa: el pulso del día. */
 export default function EmpresaDashboard() {
   const navigate = useNavigate();
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['empresa-dashboard'],
     queryFn: getDashboardEmpresa,
     refetchInterval: 30000,
+    retry: 1,
   });
 
+  // Un error no se disfraza de «Cargando…»: se dice cuál es y se puede reintentar
+  if (error) {
+    const e = error instanceof ApiError ? error : null;
+    return (
+      <div className={styles.contenido}>
+        <div className={ui.card} style={{ padding: 28, textAlign: 'center', maxWidth: 560 }}>
+          <div style={{ fontWeight: 700 }}>No se pudo cargar el inicio</div>
+          <div style={{ fontSize: 13, color: 'var(--text-soft)', marginTop: 6 }}>
+            {e?.status === 401 ? 'Tu sesión venció: vuelve a entrar.' : `El servidor respondió: ${e ? `${e.status || 'sin conexión'} · ${e.code}` : String(error)}.`}
+          </div>
+          <button className={ui.btnSecondary} style={{ marginTop: 14 }} onClick={() => refetch()}>Reintentar</button>
+        </div>
+      </div>
+    );
+  }
   if (isLoading || !data) {
     return <div style={{ padding: 48, textAlign: 'center', color: 'var(--text-soft)' }}>Cargando…</div>;
   }
@@ -28,6 +46,7 @@ export default function EmpresaDashboard() {
 
   return (
     <div className={styles.contenido}>
+      <EncabezadoPantalla titulo="Inicio" descripcion="El pulso del día: ventas, pagos por verificar, próximas salidas y liquidaciones pendientes." />
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
         {cards.map((c) => (
           <div key={c.label} className={ui.card} style={{ padding: 20 }}>

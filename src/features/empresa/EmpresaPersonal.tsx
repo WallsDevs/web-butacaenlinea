@@ -14,6 +14,7 @@ import type { UsuarioEmpresa } from '../../lib/api/endpoints';
 import { Field } from '../../components/ui/Field';
 import { StatusChip } from '../../components/ui/StatusChip';
 import ui from '../../components/ui/ui.module.css';
+import { EncabezadoPantalla } from '../../components/ui/EncabezadoPantalla';
 import styles from '../flota/flota.module.css';
 
 const NOMBRE_ROL: Record<string, string> = { cajero: 'Cajero', chofer: 'Conductor', colector: 'Colector', empresa: 'Administrador' };
@@ -161,14 +162,15 @@ export default function EmpresaPersonal() {
 
   return (
     <div className={styles.contenido}>
-      <div style={{ display: 'flex', alignItems: 'center', marginBottom: 16 }}>
-        <h2 style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-0.02em' }}>
-          {isLoading ? 'Cargando…' : `${usuarios?.length ?? 0} personas`}
-        </h2>
-        <button className={ui.btnPrimary} style={{ marginLeft: 'auto', fontSize: 14, padding: '12px 20px' }} onClick={() => setCreando(true)}>
-          Agregar persona
-        </button>
-      </div>
+      <EncabezadoPantalla
+        titulo="Personal"
+        descripcion={isLoading ? 'Cargando…' : `${usuarios?.length ?? 0} personas con acceso: administradores, taquilla, conductores y colectores.`}
+        acciones={
+          <button className={ui.btnPrimary} style={{ fontSize: 14, padding: '12px 20px' }} onClick={() => setCreando(true)}>
+            Agregar persona
+          </button>
+        }
+      />
 
       <div className={ui.card} style={{ overflow: 'hidden' }}>
         <table className={styles.tabla}>

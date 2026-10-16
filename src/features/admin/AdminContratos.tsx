@@ -14,13 +14,13 @@ import {
   type ResumenContratoLinea,
 } from '../../lib/api/endpoints';
 import { ApiError } from '../../lib/api/client';
-import { fechaCorta, hoyISO } from '../../lib/time';
+import { fechaConAnio, hoyISO } from '../../lib/time';
 import { StatusChip } from '../../components/ui/StatusChip';
 import ui from '../../components/ui/ui.module.css';
 import styles from '../flota/flota.module.css';
 
 const usd = (n: number) => `$ ${n.toLocaleString('es-VE', { minimumFractionDigits: 2 })}`;
-const dia = (iso: string) => fechaCorta(`${iso}T12:00:00`);
+const dia = (iso: string) => fechaConAnio(`${iso}T12:00:00`);
 
 const MENSAJES: Record<string, string> = {
   modulo_requiere: 'Ese módulo necesita otro que no está marcado.',
