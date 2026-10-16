@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { EncabezadoPantalla } from '../../components/ui/EncabezadoPantalla';
 import { useQuery } from '@tanstack/react-query';
 import { getMisVentas } from '../../lib/api/endpoints';
 import { hora, hoyISO } from '../../lib/time';
@@ -33,19 +34,20 @@ export default function MisVentas() {
   });
 
   return (
-    <div className={styles.cierreContenido} style={{ maxWidth: 900 }}>
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16, margin: '12px 0 20px', flexWrap: 'wrap' }}>
-        <div>
-          <h2 style={{ fontSize: 30, fontWeight: 700, letterSpacing: '-0.02em' }}>Mis ventas</h2>
-          <div style={{ fontSize: 14, color: 'var(--text-soft)' }}>
-            {data ? `${data.resumen.emitidos} boletos · $ ${data.resumen.totalUsd.toLocaleString('es-VE', { minimumFractionDigits: 2 })}` : '—'}
-            {data?.resumen.anulados ? ` · ${data.resumen.anulados} anulado${data.resumen.anulados === 1 ? '' : 's'}` : ''}
+    <div className={styles.cierreContenido}>
+      <EncabezadoPantalla
+        titulo="Mis ventas"
+        descripcion={
+          data
+            ? `Lo que vendiste ese día: ${data.resumen.emitidos} boletos · $ ${data.resumen.totalUsd.toLocaleString('es-VE', { minimumFractionDigits: 2 })}${data.resumen.anulados ? ` · ${data.resumen.anulados} anulado${data.resumen.anulados === 1 ? '' : 's'}` : ''}.`
+            : 'Los boletos que vendiste en tu caja, día por día.'
+        }
+        acciones={
+          <div style={{ width: 180 }}>
+            <Field label="Fecha" type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
           </div>
-        </div>
-        <div style={{ marginLeft: 'auto', width: 180 }}>
-          <Field label="Fecha" type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
-        </div>
-      </div>
+        }
+      />
 
       <div className={ui.card} style={{ overflow: 'hidden' }}>
         <table className={styles.cierreTabla}>

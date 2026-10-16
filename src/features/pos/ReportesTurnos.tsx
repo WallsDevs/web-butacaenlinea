@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { EncabezadoPantalla } from '../../components/ui/EncabezadoPantalla';
 import { useQuery } from '@tanstack/react-query';
 import { getMisTurnos } from '../../lib/api/endpoints';
 import { hora, fechaCorta } from '../../lib/time';
@@ -32,10 +33,8 @@ export default function ReportesTurnos() {
   const detalle = (t: TurnoMio) => t.cierre;
 
   return (
-    <div className={styles.cierreContenido} style={{ maxWidth: 820 }}>
-      <h2 style={{ fontSize: 30, fontWeight: 700, letterSpacing: '-0.02em', margin: '12px 0 20px' }}>
-        Mis reportes de turno
-      </h2>
+    <div className={styles.cierreContenido}>
+      <EncabezadoPantalla titulo="Reportes de turno" descripcion="Cada turno que abriste en tu caja: horario, boletos vendidos y lo cobrado." />
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {(turnos ?? []).map((t) => (

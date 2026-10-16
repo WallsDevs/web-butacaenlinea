@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { EncabezadoPantalla } from '../../components/ui/EncabezadoPantalla';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { cerrarTurno, getArqueo, getTurnoActual } from '../../lib/api/endpoints';
 import { hora } from '../../lib/time';
@@ -52,8 +53,9 @@ export default function CierreTurno() {
   if (!turno && !cerrado) {
     return (
       <div className={styles.cierreContenido}>
-        <div className={ui.card} style={{ padding: 32, textAlign: 'center', color: 'var(--text-soft)' }}>
-          No hay un turno abierto.{' '}
+        <EncabezadoPantalla titulo="Cierre de turno" descripcion="Al cerrar el turno se cuadra lo cobrado por método de pago y queda el reporte." />
+        <div className={ui.card} style={{ padding: 32, textAlign: 'center', color: 'var(--text-soft)', maxWidth: 560 }}>
+          No hay un turno abierto. Ábrelo desde <strong>Vender</strong> cuando empieces a atender.
         </div>
       </div>
     );
@@ -63,14 +65,10 @@ export default function CierreTurno() {
 
   return (
     <div className={styles.cierreContenido}>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 14, margin: '12px 0 20px' }}>
-        <h2 style={{ fontSize: 30, fontWeight: 700, letterSpacing: '-0.02em' }}>
-          {cerrado ? 'Turno cerrado' : 'Cierre de turno'}
-        </h2>
-        <span style={{ fontSize: 14, color: 'var(--text-soft)' }}>
-          {turno?.taquilla?.nombre} · {turno?.cajero?.nombreCorto} · abierto {turno ? hora(turno.abiertoEn) : ''}
-        </span>
-      </div>
+      <EncabezadoPantalla
+        titulo={cerrado ? 'Turno cerrado' : 'Cierre de turno'}
+        descripcion={`${turno?.taquilla?.nombre ?? ''} · ${turno?.cajero?.nombreCorto ?? ''} · abierto ${turno ? hora(turno.abiertoEn) : ''}`}
+      />
 
       <div className={ui.card} style={{ overflow: 'hidden' }}>
         <div style={{ padding: '18px 20px', display: 'flex', gap: 28, flexWrap: 'wrap' }}>

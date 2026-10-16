@@ -280,10 +280,12 @@
 
 /* Cierre de turno */
 .cierreContenido {
-  max-width: 760px;
+  max-width: 1100px;
   margin: 0 auto;
-  padding: 28px 24px 72px;
+  padding: 28px 28px 72px;
 }
+/* Junto a la barra lateral el contenido se pega a ella, como en el resto del panel */
+:global(body.con-barra-lateral) .cierreContenido { margin: 0; }
 .cierreTabla {
   width: 100%;
   border-collapse: collapse;
