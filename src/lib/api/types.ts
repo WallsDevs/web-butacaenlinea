@@ -87,6 +87,8 @@ export interface PisoConfig {
   layout: { izquierda: number; derecha: number };
   filas: string[];
   asientoInicial: number;
+  /** Puestos de la fila trasera corrida (sin pasillo); 0 o ausente: no hay. */
+  filaTrasera?: number;
 }
 export interface ConfiguracionAsientos {
   pisos: PisoConfig[];
@@ -104,6 +106,8 @@ export interface FilaMapa {
   fila: string;
   izquierda: AsientoMapa[];
   derecha: AsientoMapa[];
+  /** Fila trasera corrida: se pinta sin pasillo. */
+  completa?: boolean;
 }
 export interface PisoMapa {
   numero: number;

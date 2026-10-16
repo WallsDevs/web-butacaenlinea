@@ -51,7 +51,7 @@ export default function FlotaLista() {
       <div className={styles.gridUnidades}>
         {(unidades ?? []).map((u) => {
           const total = u.configuracionAsientos?.pisos?.reduce(
-            (s, p) => s + p.filas.length * (p.layout.izquierda + p.layout.derecha),
+            (s, p) => s + (p.filas.length * (p.layout.izquierda + p.layout.derecha) + (p.filaTrasera ?? 0)),
             0
           );
           return (

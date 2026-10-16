@@ -69,7 +69,7 @@ export default function Salidas() {
   const libresDe = (s: NonNullable<typeof salidas>[number]) => {
     const total =
       s.unidad?.configuracionAsientos?.pisos?.reduce(
-        (acc, p) => acc + p.filas.length * (p.layout.izquierda + p.layout.derecha),
+        (acc, p) => acc + (p.filas.length * (p.layout.izquierda + p.layout.derecha) + (p.filaTrasera ?? 0)),
         0
       ) ?? 0;
     return Math.max(0, total - (ocupacion?.[s.documentId] ?? 0));

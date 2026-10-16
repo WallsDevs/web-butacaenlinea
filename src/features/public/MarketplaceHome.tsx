@@ -106,7 +106,7 @@ export default function MarketplaceHome() {
     refetchInterval: 30_000,
   });
   const libresDe = (s: NonNullable<typeof salidas>[number]) => {
-    const total = s.unidad?.configuracionAsientos?.pisos?.reduce((acc, p) => acc + p.filas.length * (p.layout.izquierda + p.layout.derecha), 0) ?? 0;
+    const total = s.unidad?.configuracionAsientos?.pisos?.reduce((acc, p) => acc + (p.filas.length * (p.layout.izquierda + p.layout.derecha) + (p.filaTrasera ?? 0)), 0) ?? 0;
     return Math.max(0, total - (ocupacion?.[s.documentId] ?? 0));
   };
   const precioMin = (s: { preciosUsd?: Record<string, number> }) => Math.min(...Object.values(s.preciosUsd ?? { x: 0 }));

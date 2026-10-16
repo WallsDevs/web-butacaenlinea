@@ -17,9 +17,9 @@ const CLASES = [
 
 const AMENIDADES = ['Wi-Fi', 'A/A', 'Baño', 'Pantallas', 'USB'];
 
-const PISO_DEFECTO: PisoBuilder = { nombre: 'Semicama', claseServicio: 'semicama', layout: '2+2', filas: 10 };
+const PISO_DEFECTO: PisoBuilder = { nombre: 'Semicama', claseServicio: 'semicama', layout: '2+2', filas: 10, filaTrasera: 0 };
 /** La buseta sencilla (una Encava, por ejemplo): un piso de puestos estándar, 2+2 × 8 = 32. Hoy hace urbano; mañana puede hacer ruta. */
-const PISO_BUSETA: PisoBuilder = { nombre: 'Estándar', claseServicio: 'estandar', layout: '2+2', filas: 8 };
+const PISO_BUSETA: PisoBuilder = { nombre: 'Estándar', claseServicio: 'estandar', layout: '2+2', filas: 7, filaTrasera: 5 };
 
 type TipoBus = 'buseta' | '1' | '2';
 const tipoDe = (pisos: PisoBuilder[]): TipoBus => (pisos.length > 1 ? '2' : pisos[0]?.claseServicio === 'estandar' ? 'buseta' : '1');
@@ -121,7 +121,7 @@ export function NuevaUnidad({ onCerrar }: { onCerrar: (creada: boolean) => void 
                       setPisos([{ ...PISO_BUSETA }]);
                       setAmenidades([]);
                     } else if (id === '2') {
-                      setPisos((ps) => (ps.length === 1 ? [{ nombre: 'VIP Cama', claseServicio: 'vip', layout: '1+1', filas: 6 }, ps[0].claseServicio === 'estandar' ? { ...PISO_DEFECTO } : { ...ps[0] }] : ps));
+                      setPisos((ps) => (ps.length === 1 ? [{ nombre: 'VIP Cama', claseServicio: 'vip', layout: '1+1', filas: 6, filaTrasera: 0 }, ps[0].claseServicio === 'estandar' ? { ...PISO_DEFECTO } : { ...ps[0] }] : ps));
                     } else {
                       setPisos((ps) => (ps.length === 2 ? [ps[1]] : ps[0]?.claseServicio === 'estandar' ? [{ ...PISO_DEFECTO }] : ps));
                     }
@@ -135,7 +135,7 @@ export function NuevaUnidad({ onCerrar }: { onCerrar: (creada: boolean) => void 
                 key={i}
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: '1fr 110px 90px',
+                  gridTemplateColumns: '1fr 110px 80px 150px',
                   gap: 10,
                   marginTop: 10,
                   background: 'var(--surface-alt)',
@@ -177,6 +177,19 @@ export function NuevaUnidad({ onCerrar }: { onCerrar: (creada: boolean) => void 
                   value={String(p.filas)}
                   onChange={(e) => actualizarPiso(i, { filas: Math.max(1, Math.min(15, Number(e.target.value) || 1)) })}
                 />
+                <label className={ui.field}>
+                  <span className={ui.fieldLabel}>Fila trasera corrida</span>
+                  <select
+                    className={ui.fieldInput}
+                    value={String(p.filaTrasera)}
+                    onChange={(e) => actualizarPiso(i, { filaTrasera: Number(e.target.value) })}
+                  >
+                    <option value="0">Sin fila trasera</option>
+                    {[3, 4, 5, 6].map((n) => (
+                      <option key={n} value={n}>{n} puestos seguidos</option>
+                    ))}
+                  </select>
+                </label>
               </div>
             ))}
             <div style={{ fontSize: 12, color: 'var(--text-faint)', marginTop: 8 }}>
