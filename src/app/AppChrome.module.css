@@ -72,13 +72,59 @@
   color: var(--blue-700);
   flex: none;
 }
+/* ── Barra inferior (celular y tablet): el menú del rol, con iconos ─── */
+.barraInferior {
+  display: none;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.barraInferior::-webkit-scrollbar { display: none; }
+.barraTab {
+  flex: 1 0 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 6px 4px;
+  border-radius: var(--r-9);
+  color: var(--text-soft);
+  font-size: 10.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.barraTabActiva { color: var(--blue-700); background: var(--tint-50); }
+.barraTabTexto { max-width: 76px; overflow: hidden; text-overflow: ellipsis; }
+.barraVelo { position: fixed; inset: 0; z-index: 39; background: rgba(11, 42, 107, 0.25); }
+.barraHoja {
+  position: fixed;
+  left: 10px;
+  right: 10px;
+  bottom: calc(70px + env(safe-area-inset-bottom));
+  z-index: 41;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-14);
+  box-shadow: var(--shadow-panel);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+}
+.barraHojaTitulo { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-faint); padding: 6px 12px 4px; }
+
 @media (max-width: 900px) {
   .tagline { display: none; }
-  /* Dos filas: marca y acciones arriba, el menú del rol abajo a todo el ancho.
-     Antes todo iba en una fila y el menú (flex:1, min-width:0) se quedaba sin ancho: invisible. */
-  .chrome { gap: 8px 10px; padding: 10px 14px; flex-wrap: wrap; }
-  .right { margin-left: auto; }
-  .moduleNav { order: 10; flex: 1 1 100%; }
+  .chrome { gap: 10px; padding: 10px 14px; }
+  /* El menú del rol se va a la barra inferior */
+  .moduleNav { display: none; }
+  .barraInferior { display: flex; }
   .bcv { display: none; }
 }
 

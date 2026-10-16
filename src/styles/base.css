@@ -27,6 +27,11 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* Con la barra inferior (celular y tablet), el final de la página no queda tapado */
+@media (max-width: 900px) {
+  body.con-barra-inferior { padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
+}
+
 a {
   color: var(--blue-600);
   text-decoration: none;

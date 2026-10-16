@@ -11,6 +11,7 @@ const Checkout = lazy(() => import('../features/public/Checkout'));
 const Boleto = lazy(() => import('../features/public/Boleto'));
 const Acceso = lazy(() => import('../features/public/Acceso'));
 const NoEncontrada = lazy(() => import('../features/public/NoEncontrada'));
+const Perfil = lazy(() => import('../features/cuenta/Perfil'));
 const MisBoletos = lazy(() => import('../features/cuenta/MisBoletos'));
 const MetodosPago = lazy(() => import('../features/cuenta/MetodosPago'));
 const MiWallet = lazy(() => import('../features/cuenta/MiWallet'));
@@ -248,6 +249,14 @@ export const router = createBrowserRouter([
       { path: '/flota', element: <Navigate to="/empresa/unidades" replace /> },
       { path: '/flota/:unidadId', element: <Navigate to="/empresa/unidades" replace /> },
       // Sin rutas huérfanas: cualquier URL desconocida vuelve al marketplace
+      {
+        path: '/perfil',
+        element: (
+          <RequireAuth roles={['cliente', 'empresa', 'cajero', 'chofer', 'colector', 'superadmin']}>
+            <Perfil />
+          </RequireAuth>
+        ),
+      },
       { path: '*', element: <NoEncontrada /> },
     ],
   },
