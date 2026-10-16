@@ -8,7 +8,6 @@ import {
   crearReserva,
   emitirBoletos,
   getArqueo,
-  getBoletosPorVerificar,
   getCobroTaquilla,
   getMapaAsientos,
   getRutas,
@@ -136,13 +135,6 @@ export default function Pos() {
     queryFn: () => getArqueo(turno!.documentId),
     enabled: Boolean(turno),
     refetchInterval: 15000,
-  });
-
-  // Pagos web pendientes de verificar (pago manual)
-  const { data: porVerificar } = useQuery({
-    queryKey: ['por-verificar'],
-    queryFn: getBoletosPorVerificar,
-    refetchInterval: 20000,
   });
 
   const seleccionados = pasajeros.map((p) => p.asientoId);
@@ -636,13 +628,6 @@ export default function Pos() {
                     QR de mi caja
                   </button>
                 )}
-                <button
-                  className={styles.btnSec}
-                  style={porVerificar?.length ? { borderColor: 'var(--warn-border)', color: 'var(--warn-text)' } : undefined}
-                  onClick={() => navigate('/pos/pagos')}
-                >
-                  Pagos web{porVerificar?.length ? ` · ${porVerificar.length}` : ''}
-                </button>
               </div>
             </div>
           </div>
