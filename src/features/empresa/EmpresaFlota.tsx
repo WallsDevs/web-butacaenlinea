@@ -23,7 +23,7 @@ export default function EmpresaFlota() {
   return (
     <>
       {conUnidades && conVivo && (
-        <div className={styles.contenido} style={{ paddingBottom: 0 }}>
+        <div className={styles.contenido} style={{ paddingBottom: 16 }}>
           <PillTabs
             variant="loose"
             items={[

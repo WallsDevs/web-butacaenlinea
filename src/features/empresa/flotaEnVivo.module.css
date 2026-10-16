@@ -4,6 +4,31 @@
   overflow: hidden;
   background: var(--tint-50);
 }
+/* En pantalla completa el escenario es la ventana entera */
+.escenario:fullscreen {
+  height: 100vh !important;
+  width: 100vw;
+}
+
+/* Botón de pantalla completa: bajo el zoom, con la misma factura que los controles de Leaflet */
+.pantallaCompleta {
+  position: absolute;
+  z-index: 500;
+  top: 84px;
+  right: 10px;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  background: #fff;
+  color: #000;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  cursor: pointer;
+  background-clip: padding-box;
+}
+.pantallaCompleta:hover { background: #f4f4f4; }
+.pantallaCompleta:focus-visible { outline: 2px solid var(--blue-600); outline-offset: 1px; }
 
 /* El tablero flotante: una tarjeta que se arrastra por su cabecera y se pliega a una píldora */
 .tablero {

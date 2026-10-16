@@ -44,6 +44,17 @@ export default function FlotaEnVivo() {
   // Cada clic sobre la misma unidad vuelve a centrar el mapa en ella
   const [enfoques, setEnfoques] = useState(0);
   const [plegado, setPlegado] = useState(false);
+  // Pantalla completa con la API del navegador sobre el escenario (mapa + tablero)
+  const [completa, setCompleta] = useState(false);
+  useEffect(() => {
+    const al = () => setCompleta(Boolean(document.fullscreenElement));
+    document.addEventListener('fullscreenchange', al);
+    return () => document.removeEventListener('fullscreenchange', al);
+  }, []);
+  const alternarCompleta = () => {
+    if (document.fullscreenElement) void document.exitFullscreen();
+    else void escenarioRef.current?.requestFullscreen?.();
+  };
   const escenarioRef = useRef<HTMLDivElement>(null);
   const alto = useAltoRestante(escenarioRef);
 
@@ -127,6 +138,23 @@ export default function FlotaEnVivo() {
         radio={0}
         zoomEn="topright"
       />
+      {typeof document !== 'undefined' && document.fullscreenEnabled && (
+        <button
+          type="button"
+          className={styles.pantallaCompleta}
+          onClick={alternarCompleta}
+          aria-label={completa ? 'Salir de pantalla completa' : 'Ver a pantalla completa'}
+          title={completa ? 'Salir de pantalla completa' : 'Pantalla completa'}
+        >
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            {completa ? (
+              <path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" />
+            ) : (
+              <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+            )}
+          </svg>
+        </button>
+      )}
 
       <div
         ref={tableroRef}
