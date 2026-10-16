@@ -141,5 +141,6 @@ export function seccionDe(secciones: SeccionModulo[], pathname: string): string 
   const encontrada = [...secciones]
     .sort((a, b) => b.ruta.length - a.ruta.length)
     .find((s) => pathname === s.ruta || pathname.startsWith(s.ruta + '/'));
-  return encontrada?.id ?? secciones[0]?.id ?? '';
+  // Sin coincidencia (p. ej. /perfil) no se marca ninguna: antes caía en la primera
+  return encontrada?.id ?? '';
 }

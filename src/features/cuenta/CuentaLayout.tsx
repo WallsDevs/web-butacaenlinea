@@ -1,11 +1,8 @@
-import { useNavigate } from 'react-router';
 import { useAuth } from '../../stores/auth';
 
-/** Marco de la cuenta del cliente: título y cierre de sesión. Las secciones (wallet, boletos, métodos) viven en la barra superior. */
+/** Marco de la cuenta del cliente: el título. Las secciones viven en la barra del rol y el cierre de sesión en Perfil. */
 export function CuentaLayout({ children }: { activa?: 'boletos' | 'metodos'; children: React.ReactNode }) {
-  const navigate = useNavigate();
   const usuario = useAuth((s) => s.usuario);
-  const cerrarSesion = useAuth((s) => s.cerrarSesion);
 
   return (
     <div style={{ maxWidth: 760, margin: '0 auto', padding: '28px 16px 64px' }}>
@@ -16,15 +13,6 @@ export function CuentaLayout({ children }: { activa?: 'boletos' | 'metodos'; chi
             {usuario?.nombreCorto ?? usuario?.username} · {usuario?.email}
           </div>
         </div>
-        <button
-          style={{ marginLeft: 'auto', fontSize: 13, fontWeight: 600, color: 'var(--text-soft)' }}
-          onClick={() => {
-            cerrarSesion();
-            navigate('/');
-          }}
-        >
-          Cerrar sesión
-        </button>
       </div>
       <div style={{ marginTop: 18 }}>{children}</div>
     </div>

@@ -137,7 +137,7 @@ export function AppChrome() {
 
       {!esPaginaAcceso && (
       <span className={styles.right}>
-        <span style={{ position: 'relative' }}>
+        <span style={{ position: 'relative' }} className={nav ? styles.conBarra : undefined}>
           {usuario ? (
             <button className={styles.avatar} onClick={() => setMenuAbierto((m) => !m)}>
               {iniciales}

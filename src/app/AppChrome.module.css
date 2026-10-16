@@ -126,6 +126,8 @@
   .moduleNav { display: none; }
   .barraInferior { display: flex; }
   .bcv { display: none; }
+  /* Con barra inferior, el avatar de arriba sobra: Perfil está abajo */
+  .conBarra { display: none; }
 }
 
 .menuItem {
