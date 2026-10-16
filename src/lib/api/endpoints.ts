@@ -822,8 +822,23 @@ export const pagarCobroTaquilla = (documentId: string) =>
 export const solicitarRetiro = (montoBs: number, datosPago: string) =>
   api<{ movimientoId: string }>('/api/wallet/retiros', { method: 'POST', body: { montoBs, datosPago } });
 export const getWalletLinea = () => api<{ saldoBs: number; movimientos: MovimientoWallet[] }>('/api/empresa/wallet');
-export const retiroLinea = (montoBs: number, datosPago: string) =>
-  api<{ movimientoId: string }>('/api/empresa/wallet/retiros', { method: 'POST', body: { montoBs, datosPago } });
+/** Cuenta bancaria o pago móvil de la línea para recibir retiros; se guarda una vez. */
+export interface CuentaRetiro {
+  id: string;
+  tipo: 'pago_movil' | 'transferencia';
+  alias: string | null;
+  banco: string;
+  numero: string;
+  titular: string;
+  documento: string | null;
+  predeterminada: boolean;
+}
+export const getCuentasRetiro = () => api<CuentaRetiro[]>('/api/empresa/cuentas-retiro');
+export const guardarCuentaRetiro = (c: Partial<CuentaRetiro> & { tipo: CuentaRetiro['tipo']; banco: string; numero: string; titular: string }) =>
+  api<CuentaRetiro>('/api/empresa/cuentas-retiro', { method: 'POST', body: c });
+export const eliminarCuentaRetiro = (id: string) => api<{ eliminado: boolean }>(`/api/empresa/cuentas-retiro/${id}`, { method: 'DELETE' });
+export const retiroLinea = (montoBs: number, cuentaId: string) =>
+  api<{ movimientoId: string }>('/api/empresa/wallet/retiros', { method: 'POST', body: { montoBs, cuentaId } });
 export interface RetiroPendiente {
   documentId: string;
   montoBs: number;

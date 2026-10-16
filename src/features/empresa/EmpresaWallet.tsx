@@ -3,7 +3,7 @@ import { getWalletLinea } from '../../lib/api/endpoints';
 import { fechaCorta, hora } from '../../lib/time';
 import { StatusChip } from '../../components/ui/StatusChip';
 import { EncabezadoPantalla } from '../../components/ui/EncabezadoPantalla';
-import { WalletEmpresa } from './WalletEmpresa';
+import { CuentasRetiro, WalletEmpresa } from './WalletEmpresa';
 import ui from '../../components/ui/ui.module.css';
 import styles from '../flota/flota.module.css';
 
@@ -65,7 +65,10 @@ export default function EmpresaWallet() {
             </div>
           )}
         </div>
-        <WalletEmpresa />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <WalletEmpresa />
+          <CuentasRetiro />
+        </div>
       </div>
     </div>
   );

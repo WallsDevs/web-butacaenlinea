@@ -35,8 +35,8 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 18px 16px 10px;
-  min-height: 64px;
+  padding: 14px 16px 6px;
+  min-height: 56px;
 }
 .marca {
   display: flex;
@@ -75,8 +75,8 @@
 
 /* Quién soy: la línea (o la plataforma) y mi rol */
 .tarjeta {
-  margin: 6px 14px 14px;
-  padding: 12px;
+  margin: 4px 14px 8px;
+  padding: 10px;
   border-radius: 12px;
   background: var(--lat-bg-2);
   display: flex;
@@ -125,7 +125,7 @@
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--lat-titulo);
-  padding: 16px 12px 6px;
+  padding: 12px 12px 4px;
   white-space: nowrap;
 }
 /* Plegada, el título de sección se vuelve una rayita */
@@ -146,10 +146,10 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 12px;
+  padding: 8px 12px;
   border-radius: 10px;
   color: var(--lat-texto);
-  font-size: 15px;
+  font-size: 14.5px;
   font-weight: 500;
   text-align: left;
   white-space: nowrap;
@@ -226,7 +226,7 @@
 .pie {
   border-top: 1px solid var(--lat-bg-2);
   margin: 0 14px;
-  padding: 12px 0 16px;
+  padding: 8px 0 10px;
   position: relative;
 }
 .yo {
