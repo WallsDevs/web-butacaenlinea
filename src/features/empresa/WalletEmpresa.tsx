@@ -67,7 +67,8 @@ export function WalletEmpresa() {
         <div style={{ fontSize: 13, color: 'var(--bad-text)', marginTop: 14 }}>{error}</div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr auto', gap: 12, alignItems: 'end', marginTop: 16 }}>
+      {/* Apilado: esta tarjeta vive en una columna angosta */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12, marginTop: 16 }}>
         <Field label="Monto a retirar (Bs)" type="number" value={monto} onChange={(e) => setMonto(e.target.value)} />
         <Field
           label="Cuenta destino (banco, cuenta o pago móvil)"
@@ -77,7 +78,7 @@ export function WalletEmpresa() {
         />
         <button
           className={ui.btnPrimary}
-          style={{ fontSize: 14 }}
+          style={{ fontSize: 14, justifySelf: 'end' }}
           disabled={!(Number(monto) > 0) || !datosPago.trim() || retirar.isPending}
           onClick={() => retirar.mutate()}
         >

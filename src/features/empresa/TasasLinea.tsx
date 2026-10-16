@@ -44,7 +44,12 @@ export function TasasLinea() {
   });
 
   if (isLoading || !tasas) {
-    return <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-soft)' }}>Cargando tasas…</div>;
+    return (
+      <div className={ui.card} style={{ padding: 22 }}>
+        <div style={{ fontWeight: 700, fontSize: 17 }}>Tasas de cambio</div>
+        <div style={{ fontSize: 13, color: 'var(--text-soft)', marginTop: 6 }}>Cargando tasas…</div>
+      </div>
+    );
   }
 
   return (

@@ -7,6 +7,7 @@ import { StatusChip } from '../../components/ui/StatusChip';
 import { EncabezadoPantalla } from '../../components/ui/EncabezadoPantalla';
 
 import ui from '../../components/ui/ui.module.css';
+import marco from '../flota/flota.module.css';
 import styles from './pos.module.css';
 
 const NOMBRE_METODO: Record<string, string> = {
@@ -56,7 +57,7 @@ export default function VerificacionPagos() {
   });
 
   return (
-    <div className={styles.cierreContenido} style={{ maxWidth: 900 }}>
+    <div className={marco.contenido} style={{ maxWidth: 1100 }}>
       <EncabezadoPantalla
         titulo="Pagos"
         chip={!isLoading && <StatusChip tono={pendientes?.length ? 'warn' : 'ok'}>{pendientes?.length ?? 0} por verificar</StatusChip>}

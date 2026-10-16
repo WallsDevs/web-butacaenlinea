@@ -5,6 +5,19 @@
   margin: 0 auto;
   padding: 28px 28px 72px;
 }
+/* Con barra lateral el contenido se pega a ella: centrado quedaba un vacío enorme en pantallas anchas */
+:global(body.con-barra-lateral) .contenido { margin: 0; }
+
+/* Dos columnas: lo principal a la izquierda, tarjetas de apoyo a la derecha */
+.dosColumnas {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(320px, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+@media (max-width: 1000px) {
+  .dosColumnas { grid-template-columns: minmax(0, 1fr); }
+}
 
 /* Lista de unidades */
 .gridUnidades {

@@ -66,12 +66,11 @@ export default function EmpresaConfiguracion() {
   });
 
   return (
-    <div className={styles.contenido} style={{ maxWidth: 720, display: 'flex', flexDirection: 'column', gap: 18 }}>
-      <EncabezadoPantalla titulo="Configuración" descripcion="Tasas de cambio, wallet de la línea y los datos de la empresa." />
-      <TasasLinea />
-      <WalletEmpresa />
-      <h2 style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.02em' }}>Datos de la empresa</h2>
+    <div className={styles.contenido} style={{ maxWidth: 1240 }}>
+      <EncabezadoPantalla titulo="Configuración" descripcion="Los datos de la empresa, sus tasas de cambio y la wallet de la línea." />
+      <div className={styles.dosColumnas}>
       <div className={ui.card} style={{ padding: 24 }}>
+        <h2 style={{ fontSize: 17, fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 14 }}>Datos de la empresa</h2>
         {mensaje && (
           <div style={{ fontSize: 13, color: 'var(--blue-700)', background: 'var(--tint-50)', borderRadius: 12, padding: '10px 12px', marginBottom: 14 }}>
             {mensaje}
@@ -141,15 +140,18 @@ export default function EmpresaConfiguracion() {
           />
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 18 }}>
-          <button className={ui.btnPrimary} disabled={guardar.isPending || !form.nombre} onClick={() => guardar.mutate()}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 18, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>El porcentaje de comisión de la plataforma lo administra Butaca En Línea.</span>
+          <button className={ui.btnPrimary} style={{ marginLeft: 'auto' }} disabled={guardar.isPending || !form.nombre} onClick={() => guardar.mutate()}>
             {guardar.isPending ? 'Guardando…' : 'Guardar cambios'}
           </button>
         </div>
       </div>
-      <p style={{ fontSize: 12, color: 'var(--text-faint)', marginTop: 12 }}>
-        El porcentaje de comisión de la plataforma lo administra Butaca En Línea.
-      </p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <TasasLinea />
+        <WalletEmpresa />
+      </div>
+      </div>
     </div>
   );
 }
