@@ -78,7 +78,7 @@ export const SECCIONES_POS: SeccionModulo[] = [
   { id: 'ventas', label: 'Mis ventas', ruta: '/pos/ventas' },
   { id: 'tasas', label: 'Tasas', ruta: '/pos/tasas' },
   { id: 'reportes', label: 'Reportes', ruta: '/pos/reportes' },
-  { id: 'cierre', label: 'Cierre de turno', ruta: '/pos/cierre' },
+  // El cierre no es una sección: se llega desde «Cerrar turno» en la caja y lo cerrado queda en Reportes
 ];
 
 export const SECCIONES_CHOFER: SeccionModulo[] = [
