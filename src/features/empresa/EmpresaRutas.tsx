@@ -138,11 +138,31 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
   const selectorTipo = (
     <div style={{ marginBottom: 16 }}>
       <div className={ui.fieldLabel} style={{ marginBottom: 6 }}>Tipo de ruta</div>
-      <PillTabs<TipoRuta>
-        items={[...(integracionActiva ? [] : [{ id: 'nacional' as const, label: 'Nacional' }]), { id: 'urbana' as const, label: 'Urbana' }]}
-        value={tipo}
-        onChange={(id) => abrirNuevo(id)}
-      />
+      {/* Dos mitades iguales, como un interruptor: se ve igual de bien en el modal angosto y en el editor ancho */}
+      <div role="tablist" aria-label="Tipo de ruta" style={{ display: 'grid', gridTemplateColumns: integracionActiva ? '1fr' : '1fr 1fr', gap: 4, padding: 4, borderRadius: 12, background: 'var(--pill-bg, #EEF2F9)', maxWidth: 380 }}>
+        {([...(integracionActiva ? [] : [['nacional', 'Nacional']]), ['urbana', 'Urbana']] as [TipoRuta, string][]).map(([id, etiqueta]) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            aria-selected={tipo === id}
+            onClick={() => abrirNuevo(id)}
+            style={{
+              padding: '10px 14px',
+              borderRadius: 9,
+              fontSize: 14,
+              fontWeight: 700,
+              color: tipo === id ? 'var(--blue-700)' : 'var(--text-soft)',
+              background: tipo === id ? 'var(--surface)' : 'transparent',
+              boxShadow: tipo === id ? '0 1px 2px rgba(15, 23, 42, 0.08), 0 0 0 1px var(--border)' : 'none',
+              cursor: 'pointer',
+              transition: 'background .12s, color .12s',
+            }}
+          >
+            {etiqueta}
+          </button>
+        ))}
+      </div>
       <div style={{ fontSize: 13, color: 'var(--text-soft)', marginTop: 8 }}>
         {tipo === 'nacional'
           ? 'Entre ciudades: asientos numerados, salidas programadas y precio del pasaje en dólares.'
