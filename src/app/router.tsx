@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { createBrowserRouter, Navigate, Outlet } from 'react-router';
 import { AppChrome } from './AppChrome';
+import { PantallaCarga } from '../components/ui/PantallaCarga';
 import { ErrorPantalla } from '../features/public/NoEncontrada';
 import { RequireAuth } from './RequireAuth';
 
@@ -54,19 +55,11 @@ const PagoTaquilla = lazy(() => import('../features/caja/PagoTaquilla'));
 const PagoEquipaje = lazy(() => import('../features/equipaje/PagoEquipaje'));
 const Colector = lazy(() => import('../features/urbano/Colector'));
 
-function Cargando() {
-  return (
-    <div style={{ padding: 48, textAlign: 'center', color: 'var(--text-soft)', fontSize: 14 }}>
-      Cargando…
-    </div>
-  );
-}
-
 function AppLayout() {
   return (
     <>
       <AppChrome />
-      <Suspense fallback={<Cargando />}>
+      <Suspense fallback={<PantallaCarga />}>
         <Outlet />
       </Suspense>
     </>

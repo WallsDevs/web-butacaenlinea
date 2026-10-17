@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { PantallaCarga } from '../../components/ui/PantallaCarga';
 import { useNavigate } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -335,7 +336,7 @@ export default function Pos() {
   const divisas = arqueo?.porMetodo.find((m) => m.metodoPago === 'efectivo_usd')?.monto ?? 0;
 
   if (cargandoTurno) {
-    return <div style={{ padding: 48, textAlign: 'center', color: 'var(--text-soft)' }}>Cargando POS…</div>;
+    return <PantallaCarga mensaje="Abriendo la caja…" />;
   }
 
   return (

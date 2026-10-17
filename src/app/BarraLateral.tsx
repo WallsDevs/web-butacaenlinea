@@ -17,6 +17,7 @@ const NOMBRE_ROL: Record<string, string> = {
   cajero: 'Taquilla',
   chofer: 'Conductor',
   colector: 'Colector',
+  cliente: 'Pasajero',
 };
 
 /** Pendientes que merecen un número al lado del ítem: pagos por verificar, recargas por verificar. */
