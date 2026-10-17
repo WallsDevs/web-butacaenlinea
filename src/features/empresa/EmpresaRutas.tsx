@@ -35,7 +35,7 @@ const NUEVA: FormRuta = {
   destino: '',
   duracionMin: '',
   distanciaKm: '',
-  tarifas: [{ claseServicio: 'semicama', precioUsd: '' }],
+  tarifas: [{ claseServicio: 'estandar', precioUsd: '' }],
 };
 
 /** Rutas y tarifas por clase de servicio. */
@@ -245,12 +245,28 @@ export default function EmpresaRutas() {
               <Field label="Duración (min)" type="number" value={form.duracionMin} onChange={(e) => setForm({ ...form, duracionMin: e.target.value })} />
               <Field label="Distancia (km)" type="number" value={form.distanciaKm} onChange={(e) => setForm({ ...form, distanciaKm: e.target.value })} />
             </div>
-            <div style={{ marginTop: 14 }}>
-              <div style={{ fontSize: 12, color: 'var(--text-faint)', marginBottom: 8 }}>
-                Precio por clase de asiento — la salida solo se puede programar si la ruta tiene
-                tarifa para cada clase de la unidad.
-              </div>
-              {form.tarifas.map((t, i) => (
+            {/* Un precio para el pasaje; las clases especiales (VIP, cama) son opcionales. Ningún bus aquí. */}
+            <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <Field
+                label="Precio del pasaje (USD)"
+                type="number"
+                placeholder="12"
+                value={form.tarifas.find((t) => t.claseServicio === 'estandar')?.precioUsd ?? ''}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    tarifas: form.tarifas.some((t) => t.claseServicio === 'estandar')
+                      ? form.tarifas.map((t) => (t.claseServicio === 'estandar' ? { ...t, precioUsd: e.target.value } : t))
+                      : [{ claseServicio: 'estandar', precioUsd: e.target.value }, ...form.tarifas],
+                  })
+                }
+              />
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-faint)', marginTop: 6 }}>
+              Vale para todos los puestos. Si alguna unidad tiene clases especiales (VIP, cama), ponles su precio aquí abajo; las demás cobran el del pasaje.
+            </div>
+            <div style={{ marginTop: 10 }}>
+              {form.tarifas.map((t, i) => t.claseServicio === 'estandar' ? null : (
                 <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 120px 36px', gap: 8, marginBottom: 8 }}>
                   <select
                     className={ui.fieldInput}
@@ -260,7 +276,6 @@ export default function EmpresaRutas() {
                     }
                   >
                     <option value="">Clase de asiento…</option>
-                    <option value="estandar">Estándar</option>
                     <option value="semicama">Semicama</option>
                     <option value="vip">VIP Cama</option>
                     <option value="cama_ejecutivo">Cama Ejecutivo</option>
@@ -287,7 +302,7 @@ export default function EmpresaRutas() {
                 style={{ fontSize: 13 }}
                 onClick={() => setForm({ ...form, tarifas: [...form.tarifas, { claseServicio: '', precioUsd: '' }] })}
               >
-                + Agregar clase
+                + Precio para una clase especial
               </button>
             </div>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 18 }}>

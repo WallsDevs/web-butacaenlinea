@@ -80,7 +80,7 @@ export default function EmpresaSalidas() {
       };
       const cuando = (iso?: string) => (iso ? `el ${fechaCorta(iso)} a las ${hora(iso)}` : '');
       if (e instanceof ApiError && e.code === 'tarifas_incompletas') {
-        setMensaje(`La ruta no tiene tarifa para la clase de asientos "${(d.faltantes ?? []).join(', ')}" de esa unidad. Edita la ruta en la pestaña Rutas y agrega esa tarifa.`);
+        setMensaje(`La ruta no tiene precio para los puestos "${(d.faltantes ?? []).join(', ')}" de esa unidad. Edita la ruta en la pestaña Rutas y ponle un precio del pasaje (vale para todos) o uno para esa clase.`);
       } else if (e instanceof ApiError && e.code === 'fecha_invalida') {
         setMensaje('La fecha y hora ya pasaron. Programa una salida futura.');
       } else if (e instanceof ApiError && e.code === 'unidad_ocupada') {
