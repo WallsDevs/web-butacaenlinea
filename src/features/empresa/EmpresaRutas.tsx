@@ -106,19 +106,33 @@ export default function EmpresaRutas() {
       tarifas: (r.tarifas ?? []).map((t) => ({ claseServicio: t.claseServicio, precioUsd: String(t.precioUsd) })),
     });
 
+  // Las dos listas (viaje y urbana) se presentan igual: título con conteo, para qué sirve y su botón
+  const cabecera = (titulo: string, n: number | undefined, descripcion: string, accion: { texto: string; onClick: () => void } | null) => (
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, marginBottom: 12 }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <h2 style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: 10 }}>
+          {titulo}
+          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-soft)', background: 'var(--pill-bg, #F1F5F9)', borderRadius: 999, padding: '3px 9px' }}>{n ?? '…'}</span>
+        </h2>
+        <div style={{ fontSize: 13, color: 'var(--text-soft)', marginTop: 4 }}>{descripcion}</div>
+      </div>
+      {accion && (
+        <button className={ui.btnPrimary} style={{ fontSize: 14, padding: '11px 18px', flex: 'none' }} onClick={accion.onClick}>
+          {accion.texto}
+        </button>
+      )}
+    </div>
+  );
+
   return (
     <div className={styles.contenido}>
-      <div style={{ display: 'flex', alignItems: 'center', marginBottom: 16 }}>
-        <h2 style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-0.02em' }}>
-          {isLoading ? 'Cargando…' : `${rutas?.length ?? 0} rutas`}
-        </h2>
-        {!integracionActiva && (
-          <button className={ui.btnPrimary} style={{ marginLeft: 'auto', fontSize: 14, padding: '12px 20px' }} onClick={() => setForm(NUEVA)}>
-            Nueva ruta
-          </button>
-        )}
-      </div>
       {integracionActiva && <AvisoIntegracion que="rutas y tarifas" />}
+      {cabecera(
+        'Rutas de viaje',
+        isLoading ? undefined : rutas?.length ?? 0,
+        'Origen, destino y precio del pasaje. Con ellas programas las salidas que vende la taquilla y la web.',
+        integracionActiva ? null : { texto: 'Nueva ruta', onClick: () => setForm(NUEVA) }
+      )}
 
       <div className={ui.card} style={{ overflow: 'hidden' }}>
         <table className={styles.tabla}>
@@ -127,7 +141,7 @@ export default function EmpresaRutas() {
               <th style={{ width: 70 }}>Código</th>
               <th>Trayecto</th>
               <th>Duración</th>
-              <th>Tarifas (USD)</th>
+              <th>Precio (USD)</th>
               <th></th>
             </tr>
           </thead>
@@ -140,7 +154,7 @@ export default function EmpresaRutas() {
                 </td>
                 <td style={{ color: 'var(--text-soft)' }}>{r.duracionMin ? duracion(r.duracionMin) : '—'}</td>
                 <td style={{ color: 'var(--text-soft)', fontSize: 13 }}>
-                  {(r.tarifas ?? []).map((t) => `${t.claseServicio} $${t.precioUsd}`).join(' · ') || '—'}
+                  {(r.tarifas ?? []).map((t) => (t.claseServicio === 'estandar' ? `$${t.precioUsd}` : `${t.claseServicio} $${t.precioUsd}`)).join(' · ') || '—'}
                 </td>
                 <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                   <button className={ui.btnGhost} style={{ fontSize: 13, marginRight: 12 }} onClick={() => editar(r)} hidden={integracionActiva}>
@@ -158,24 +172,24 @@ export default function EmpresaRutas() {
                 </td>
               </tr>
             ))}
+            {!isLoading && !rutas?.length && (
+              <tr>
+                <td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-soft)', padding: 22 }}>
+                  Sin rutas de viaje todavía. Crea la primera con origen, destino y precio del pasaje.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', margin: '32px 0 16px' }}>
-        <div>
-          <h2 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>Rutas urbanas</h2>
-          <div style={{ fontSize: 13, color: 'var(--text-soft)' }}>
-            Tarifa plana en bolívares; el pasajero paga escaneando el QR de la unidad. Sin asientos, sin salidas, sin equipaje.
-          </div>
-        </div>
-        <button
-          className={ui.btnSecondary}
-          style={{ marginLeft: 'auto', fontSize: 14 }}
-          onClick={() => setFormUrbana(nuevaFormUrbana())}
-        >
-          Nueva ruta urbana
-        </button>
+      <div style={{ marginTop: 36 }}>
+        {cabecera(
+          'Rutas urbanas',
+          urbanas?.length ?? 0,
+          'Tarifa plana en bolívares; el pasajero paga escaneando el QR de la unidad. Sin asientos, sin salidas, sin equipaje.',
+          { texto: 'Nueva ruta urbana', onClick: () => setFormUrbana(nuevaFormUrbana()) }
+        )}
       </div>
       <div className={ui.card} style={{ overflow: 'hidden' }}>
         <table className={styles.tabla}>
