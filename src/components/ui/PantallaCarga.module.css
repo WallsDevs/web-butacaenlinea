@@ -1,12 +1,18 @@
 /* Pantalla de carga: la marca respira, la barra avanza */
+/* Centrada en lo que quede de ventana (bajo la barra superior o junto a la lateral) */
 .pantalla {
-  min-height: 60vh;
+  min-height: calc(100vh - 140px);
+  min-height: calc(100dvh - 140px);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 18px;
-  padding: 48px 24px;
+  padding: 24px;
+}
+:global(body.con-barra-lateral) .pantalla {
+  min-height: 100vh;
+  min-height: 100dvh;
 }
 .marca {
   display: flex;
