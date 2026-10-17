@@ -593,6 +593,8 @@ export interface UnidadUrbana {
     tarifaBs: number;
     /** Con tramos, el pasajero elige desde qué parada hasta cuál va. */
     tramos: import('../urbano').Tramo[];
+    /** La ruta da la vuelta y regresa al origen. */
+    circuito?: boolean;
     paradas: { orden: number; nombre: string; lat: number; lng: number }[];
     /** Parada más cercana a la buseta ahora: la propuesta para subirse. */
     paradaSugerida: number | null;
@@ -677,6 +679,8 @@ export interface RutaUrbanaDto {
   tarifaBs: number;
   /** Cortes de tarifa; vacío = tarifa plana. */
   tramos?: import('../urbano').Tramo[];
+  /** Sale y vuelve al mismo punto: el recorrido cierra de la última parada al origen. */
+  circuito?: boolean;
   activa: boolean;
   /** Trazo sobre las calles (lo calcula el editor entre paradas). */
   recorrido?: [number, number][] | null;

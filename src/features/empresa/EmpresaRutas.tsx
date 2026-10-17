@@ -11,6 +11,7 @@ import {
   guardarRutaUrbana,
 } from '../../lib/api/endpoints';
 import { useAuth } from '../../stores/auth';
+import { ApiError } from '../../lib/api/client';
 import { duracion } from '../../lib/time';
 import { Field } from '../../components/ui/Field';
 import { PillTabs } from '../../components/ui/PillTabs';
@@ -61,6 +62,16 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
 
   // Rutas urbanas: tarifa plana en Bs, sin asientos ni salidas (pasaje por QR)
   const [formUrbana, setFormUrbana] = useState<FormUrbana | null>(null);
+  const [errorUrbana, setErrorUrbana] = useState<string | null>(null);
+  // Un fallo al guardar se dice con su código: antes el modal se quedaba mudo
+  const explicar = (e: unknown) =>
+    e instanceof ApiError
+      ? e.status === 401
+        ? 'Tu sesión venció: vuelve a entrar y guarda de nuevo.'
+        : e.code === 'tramos_invalidos'
+          ? 'Revisa los cortes de tarifa: cada tramo necesita precio y deben ir en orden.'
+          : `No se pudo guardar (${e.status || 'sin conexión'} · ${e.code}).`
+      : 'No se pudo guardar.';
   const { data: urbanas } = useQuery({ queryKey: ['rutas-urbanas'], queryFn: getRutasUrbanas });
   const guardarUrbana = useMutation({
     mutationFn: (f: FormUrbana) =>
@@ -69,6 +80,7 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
         // Con tramos, la tarifa plana queda como «desde» (el tramo más barato) para pantallas viejas
         tarifaBs: f.porTramos ? Math.min(...tramosDe(f).map((t) => t.precioBs)) : Number(f.tarifaBs),
         tramos: tramosDe(f),
+        circuito: f.circuito,
         activa: true,
         // El trazo por las calles y las paradas con nombre: lo que ve el pasajero
         recorrido: f.recorrido,
@@ -77,7 +89,9 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rutas-urbanas'] });
       setFormUrbana(null);
+      setErrorUrbana(null);
     },
+    onError: (e) => setErrorUrbana(explicar(e)),
   });
   const eliminarUrbana = useMutation({
     mutationFn: (id: string) => eliminarRutaUrbana(id),
@@ -306,6 +320,7 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
         <EditorRutaUrbana
           inicial={formUrbana}
           cabecera={!formUrbana.documentId ? selectorTipo : undefined}
+          error={errorUrbana}
           guardando={guardarUrbana.isPending}
           onGuardar={(f) => guardarUrbana.mutate(f)}
           onCancelar={() => setFormUrbana(null)}

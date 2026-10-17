@@ -53,7 +53,7 @@ export default function PagoUrbano() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ruta?.documentId, porTramos]);
   const tramoListo = porTramos && desde !== null && hasta !== null && desde !== hasta;
-  const precioBs = ruta ? (tramoListo ? precioTramo(ruta.tramos, ruta.tarifaBs, ruta.paradas.map((p) => p.orden), desde!, hasta!) : porTramos ? 0 : ruta.tarifaBs) : 0;
+  const precioBs = ruta ? (tramoListo ? precioTramo(ruta.tramos, ruta.tarifaBs, ruta.paradas.map((p) => p.orden), desde!, hasta!, Boolean(ruta.circuito)) : porTramos ? 0 : ruta.tarifaBs) : 0;
   const nombreParada = (orden: number | null) => ruta?.paradas.find((p) => p.orden === orden)?.nombre ?? '';
 
   const pagar = useMutation({
@@ -206,6 +206,9 @@ export default function PagoUrbano() {
             </label>
             {desde !== null && hasta !== null && desde === hasta && (
               <div style={{ gridColumn: '1 / -1', fontSize: 12, color: 'var(--warn-text, #92400E)' }}>Elige una parada distinta para bajarte.</div>
+            )}
+            {info.ruta.circuito && desde !== null && hasta !== null && hasta < desde && (
+              <div style={{ gridColumn: '1 / -1', fontSize: 12, color: 'var(--text-soft)' }}>La buseta da la vuelta: pasa por el origen y sigue hasta {nombreParada(hasta)}.</div>
             )}
           </div>
         )}

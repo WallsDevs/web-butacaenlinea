@@ -20,6 +20,8 @@ export interface FormUrbana {
   tarifaBs: string;
   /** Pasaje por tramos: las paradas marcadas como corte llevan el precio del tramo que termina en ellas. */
   porTramos: boolean;
+  /** Circuito: la buseta vuelve al origen después de la última parada. */
+  circuito: boolean;
   paradas: ParadaUrbana[];
   recorrido: [number, number][];
 }
@@ -40,6 +42,7 @@ export function nuevaFormUrbana(u?: RutaUrbanaDto): FormUrbana {
     nombre: u?.nombre ?? '',
     tarifaBs: u ? String(u.tarifaBs) : '',
     porTramos: tramos.length > 0,
+    circuito: Boolean(u?.circuito),
     paradas,
     recorrido: u?.recorrido ?? [],
   };
@@ -56,6 +59,7 @@ export function tramosDe(f: FormUrbana): { hastaOrden: number; precioBs: number 
 export function EditorRutaUrbana({
   inicial,
   cabecera,
+  error,
   guardando,
   onGuardar,
   onCancelar,
@@ -63,6 +67,8 @@ export function EditorRutaUrbana({
   inicial: FormUrbana;
   /** Algo que va encima del título (p. ej. el selector Nacional / Urbana al crear). */
   cabecera?: ReactNode;
+  /** Por qué no se pudo guardar, si pasó. */
+  error?: string | null;
   guardando: boolean;
   onGuardar: (f: FormUrbana) => void;
   onCancelar: () => void;
@@ -72,11 +78,14 @@ export function EditorRutaUrbana({
   const [sobreCalles, setSobreCalles] = useState(true);
   const [calculando, setCalculando] = useState(false);
   const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // El trazador necesita saber si cierra al origen; se lee por ref para no recrear la función
+  const circuitoRef = useRef(inicial.circuito);
 
   const paradas = form.paradas;
 
-  /** Recalcula el trazo. Se agrupa con un respiro para no pedir en cada arrastre. */
-  const recalcular = useCallback((lista: ParadaUrbana[]) => {
+  /** Recalcula el trazo (cerrando al origen si es circuito). Se agrupa con un respiro para no pedir en cada arrastre. */
+  const recalcular = useCallback((lista: ParadaUrbana[], circuito = circuitoRef.current) => {
+    circuitoRef.current = circuito;
     if (temporizador.current) clearTimeout(temporizador.current);
     if (lista.length < 2) {
       setForm((f) => ({ ...f, recorrido: lista.map((p) => [p.lat, p.lng]) }));
@@ -86,7 +95,7 @@ export function EditorRutaUrbana({
     }
     setCalculando(true);
     temporizador.current = setTimeout(async () => {
-      const t = await trazarPorCalles(lista);
+      const t = await trazarPorCalles(circuito ? [...lista, lista[0]] : lista);
       setForm((f) => ({ ...f, recorrido: t.recorrido }));
       setDistanciaKm(t.distanciaKm);
       setSobreCalles(t.sobreCalles);
@@ -159,7 +168,7 @@ export function EditorRutaUrbana({
   const etiquetaDe = (i: number) =>
     i === 0 ? 'A' : i === paradas.length - 1 ? 'B' : String(i + 1);
   const papelDe = (i: number) =>
-    paradas.length < 2 ? 'Punto de partida' : i === 0 ? 'Origen' : i === paradas.length - 1 ? 'Destino' : 'Parada';
+    paradas.length < 2 ? 'Punto de partida' : i === 0 ? 'Origen' : i === paradas.length - 1 ? (form.circuito ? 'Última parada · vuelve al origen' : 'Destino') : 'Parada';
 
   const listo = form.nombre.trim().length > 0 && paradas.length >= 2 && (form.porTramos ? cortesValidos : Number(form.tarifaBs) > 0);
 
@@ -250,6 +259,23 @@ export function EditorRutaUrbana({
                   ? 'Marca en la lista las paradas donde cambia el precio (cortes) y ponle precio a cada tramo. El pasajero dice desde dónde hasta dónde va y paga los tramos que cruza; el colector ve dónde se baja.'
                   : 'Todos pagan lo mismo sin importar dónde suban o bajen.'}
               </div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, fontSize: 14, cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={form.circuito}
+                  onChange={(e) => {
+                    const circuito = e.target.checked;
+                    setForm((f) => ({ ...f, circuito }));
+                    recalcular(paradas, circuito);
+                  }}
+                />
+                <span>
+                  Es un circuito: vuelve al origen
+                  <span style={{ display: 'block', fontSize: 12, color: 'var(--text-soft)' }}>
+                    Después de la última parada la buseta regresa al punto de salida; el recorrido se cierra solo.
+                  </span>
+                </span>
+              </label>
             </div>
 
             <div style={estilos.filaResumen}>
@@ -373,6 +399,9 @@ export function EditorRutaUrbana({
               </div>
             )}
 
+            {error && (
+              <div style={{ ...estilos.avisoAmbar, background: 'var(--bad-bg, #FEF2F2)', color: 'var(--bad-text)', borderColor: 'var(--bad-text)' }}>{error}</div>
+            )}
             <div style={estilos.pie}>
               <button
                 className={ui.btnSecondary}
