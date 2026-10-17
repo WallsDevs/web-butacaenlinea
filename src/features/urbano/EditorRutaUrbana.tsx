@@ -3,6 +3,7 @@ import { MapaParadas } from './MapaParadas';
 import { MAX_PARADAS, trazarPorCalles } from './trazado';
 import { Field } from '../../components/ui/Field';
 import { StatusChip } from '../../components/ui/StatusChip';
+import { Letrero } from '../../components/ui/Letrero';
 import type { ParadaUrbana, RutaUrbanaDto } from '../../lib/api/endpoints';
 import ui from '../../components/ui/ui.module.css';
 
@@ -22,6 +23,8 @@ export interface FormUrbana {
   porTramos: boolean;
   /** Circuito: la buseta vuelve al origen después de la última parada. */
   circuito: boolean;
+  /** El cartel del parabrisas: etiquetas cortas de por dónde pasa. */
+  letreros: string[];
   paradas: ParadaUrbana[];
   recorrido: [number, number][];
 }
@@ -43,6 +46,7 @@ export function nuevaFormUrbana(u?: RutaUrbanaDto): FormUrbana {
     tarifaBs: u ? String(u.tarifaBs) : '',
     porTramos: tramos.length > 0,
     circuito: Boolean(u?.circuito),
+    letreros: u?.letreros ?? [],
     paradas,
     recorrido: u?.recorrido ?? [],
   };
@@ -74,7 +78,20 @@ export function EditorRutaUrbana({
   onCancelar: () => void;
 }) {
   const [form, setForm] = useState<FormUrbana>(inicial);
+  const [letreroNuevo, setLetreroNuevo] = useState('');
   const [distanciaKm, setDistanciaKm] = useState(0);
+  // Letreros: se agregan con Enter o coma, se quitan con la ×, máximo 8
+  const agregarLetrero = (texto: string) => {
+    const partes = texto.split(',').map((t) => t.trim().replace(/\s+/g, ' ')).filter(Boolean);
+    if (!partes.length) return;
+    setForm((f) => {
+      const vistos = new Set(f.letreros.map((l) => l.toLowerCase()));
+      const nuevos = partes.filter((p) => !vistos.has(p.toLowerCase()) && vistos.add(p.toLowerCase())).map((p) => p.slice(0, 30));
+      return { ...f, letreros: [...f.letreros, ...nuevos].slice(0, 8) };
+    });
+    setLetreroNuevo('');
+  };
+  const quitarLetrero = (l: string) => setForm((f) => ({ ...f, letreros: f.letreros.filter((x) => x !== l) }));
   const [sobreCalles, setSobreCalles] = useState(true);
   const [calculando, setCalculando] = useState(false);
   const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -226,6 +243,36 @@ export function EditorRutaUrbana({
                   onChange={(e) => setForm({ ...form, tarifaBs: e.target.value })}
                 />
               )}
+            </div>
+
+            {/* El cartel del parabrisas: lo que el pasajero ve cuando viene la buseta */}
+            <div style={{ marginTop: 12 }}>
+              <div className={ui.fieldLabel} style={{ marginBottom: 6 }}>Letreros del parabrisas</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', padding: form.letreros.length ? '8px 10px' : 0, border: form.letreros.length ? '1px solid var(--border)' : 'none', borderRadius: 10, marginBottom: 8 }}>
+                {form.letreros.map((l) => (
+                  <span key={l} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    <Letrero letreros={[l]} />
+                    <button type="button" onClick={() => quitarLetrero(l)} aria-label={`Quitar ${l}`} style={{ color: 'var(--text-faint)', fontWeight: 700, cursor: 'pointer', fontSize: 13 }}>×</button>
+                  </span>
+                ))}
+              </div>
+              <input
+                className={ui.fieldInput}
+                placeholder="5ta Avenida, Centro, Terminal, Directo… (Enter para agregar)"
+                value={letreroNuevo}
+                disabled={form.letreros.length >= 8}
+                onChange={(e) => (e.target.value.includes(',') ? agregarLetrero(e.target.value) : setLetreroNuevo(e.target.value))}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    agregarLetrero(letreroNuevo);
+                  }
+                }}
+                onBlur={() => letreroNuevo.trim() && agregarLetrero(letreroNuevo)}
+              />
+              <div style={{ fontSize: 12, color: 'var(--text-soft)', marginTop: 6 }}>
+                Como el cartel de la buseta: por dónde pasa y si es directa. Los pasajeros lo ven cuando viene la buseta.
+              </div>
             </div>
 
             {/* Cómo se cobra: un solo pasaje, o por tramos entre paradas marcadas como corte */}

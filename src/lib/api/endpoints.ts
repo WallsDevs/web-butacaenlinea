@@ -595,6 +595,8 @@ export interface UnidadUrbana {
     tramos: import('../urbano').Tramo[];
     /** La ruta da la vuelta y regresa al origen. */
     circuito?: boolean;
+    /** El cartel del parabrisas: por dónde pasa la buseta. */
+    letreros?: string[];
     paradas: { orden: number; nombre: string; lat: number; lng: number }[];
     /** Parada más cercana a la buseta ahora: la propuesta para subirse. */
     paradaSugerida: number | null;
@@ -628,6 +630,7 @@ export interface MapaRutaUrbana {
   linea: string;
   tarifaBs: number;
   tramos?: import('../urbano').Tramo[];
+  letreros?: string[];
   recorrido: [number, number][];
   /** Dónde para la buseta: la primera es el origen y la última el destino. */
   paradas?: { nombre: string; orden: number; lat: number; lng: number }[];
@@ -642,6 +645,8 @@ export interface RutaUrbanaPublica {
   /** Con tramos: el pasaje más caro (tarifaBs es el más barato). */
   tarifaHastaBs?: number;
   porTramos?: boolean;
+  /** El cartel del parabrisas. */
+  letreros?: string[];
   origen: string | null;
   destino: string | null;
   paradas: number;
@@ -681,6 +686,8 @@ export interface RutaUrbanaDto {
   tramos?: import('../urbano').Tramo[];
   /** Sale y vuelve al mismo punto: el recorrido cierra de la última parada al origen. */
   circuito?: boolean;
+  /** El cartel del parabrisas («5ta Avenida», «Centro», «Directo»…). */
+  letreros?: string[];
   activa: boolean;
   /** Trazo sobre las calles (lo calcula el editor entre paradas). */
   recorrido?: [number, number][] | null;

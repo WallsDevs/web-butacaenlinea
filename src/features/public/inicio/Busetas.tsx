@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getRutasUrbanasPublicas } from '../../../lib/api/endpoints';
 import { useAuth } from '../../../stores/auth';
 import { H2 } from './piezas';
+import { Letrero } from '../../../components/ui/Letrero';
 
 const bs = (n: number) => `Bs ${n.toLocaleString('es-VE', { minimumFractionDigits: 2 })}`;
 
@@ -67,6 +68,7 @@ export function BusetasEnVivo() {
               <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#22A35A', flex: 'none' }} />
               <span style={{ fontSize: 17, fontWeight: 700, letterSpacing: '-0.01em' }}>{r.nombre}</span>
             </span>
+            {r.letreros?.length ? <Letrero letreros={r.letreros} tamano="sm" /> : null}
             <span style={{ fontSize: 13, color: '#7C8AA5' }}>{r.linea ?? 'Línea afiliada'}{r.origen && r.destino ? ` · ${r.origen} → ${r.destino}` : ''}</span>
             <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
               <span style={{ fontSize: 13, fontWeight: 600, color: '#166534' }}>

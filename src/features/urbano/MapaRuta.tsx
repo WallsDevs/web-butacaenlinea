@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getMapaRutaUrbana } from '../../lib/api/endpoints';
 import { MapaRecorrido } from './MapaRecorrido';
 import { useSeo } from '../../lib/seo';
+import { Letrero } from '../../components/ui/Letrero';
 import ui from '../../components/ui/ui.module.css';
 
 const bs = (n: number) => `Bs ${n.toLocaleString('es-VE', { minimumFractionDigits: 2 })}`;
@@ -120,6 +121,7 @@ export default function MapaRuta() {
       <div style={{ textAlign: 'center', marginBottom: 12 }}>
         <div style={{ fontSize: 13, color: 'var(--text-faint)' }}>{mapa.linea}</div>
         <h2 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>{mapa.nombre}</h2>
+        {mapa.letreros?.length ? <div style={{ margin: '6px 0 4px', display: 'flex', justifyContent: 'center' }}><Letrero letreros={mapa.letreros} /></div> : null}
         <div style={{ fontSize: 14, color: 'var(--text-soft)' }}>Pasaje {mapa.tramos?.length ? `desde ${bs(mapa.tarifaBs)} según el tramo` : bs(mapa.tarifaBs)}</div>
       </div>
 

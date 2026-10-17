@@ -7,6 +7,7 @@ import { hora } from '../../lib/time';
 import { useAuth } from '../../stores/auth';
 import { useSeo } from '../../lib/seo';
 import { precioTramo } from '../../lib/urbano';
+import { Letrero } from '../../components/ui/Letrero';
 import ui from '../../components/ui/ui.module.css';
 
 const bs = (n: number) => `Bs ${n.toLocaleString('es-VE', { minimumFractionDigits: 2 })}`;
@@ -185,7 +186,8 @@ export default function PagoUrbano() {
       <div className={ui.card} style={{ padding: 26, textAlign: 'center' }}>
         <div style={{ fontSize: 13, color: 'var(--text-faint)' }}>{info.linea.nombre}</div>
         <div style={{ fontSize: 22, fontWeight: 700, margin: '4px 0' }}>Unidad {info.unidad.numero}</div>
-        <div style={{ fontSize: 14, color: 'var(--text-soft)', marginBottom: 18 }}>{info.ruta.nombre}</div>
+        <div style={{ fontSize: 14, color: 'var(--text-soft)', marginBottom: info.ruta.letreros?.length ? 8 : 18 }}>{info.ruta.nombre}</div>
+        {info.ruta.letreros?.length ? <div style={{ marginBottom: 18, display: 'flex', justifyContent: 'center' }}><Letrero letreros={info.ruta.letreros} /></div> : null}
         {porTramos && (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, textAlign: 'left', marginBottom: 14 }}>
             <label className={ui.field}>

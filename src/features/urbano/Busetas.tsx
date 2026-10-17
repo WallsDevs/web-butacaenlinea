@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getRutasUrbanasPublicas } from '../../lib/api/endpoints';
 import { useSeo } from '../../lib/seo';
 import ui from '../../components/ui/ui.module.css';
+import { Letrero } from '../../components/ui/Letrero';
 
 const bs = (n: number) => `Bs ${n.toLocaleString('es-VE', { minimumFractionDigits: 2 })}`;
 
@@ -142,6 +143,7 @@ export default function Busetas() {
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 16, fontWeight: 700 }}>{r.nombre}</span>
+                {r.letreros?.length ? <Letrero letreros={r.letreros} tamano="sm" /> : null}
                 <span style={estilos.chipVivo}>
                   <span style={estilos.punto} />
                   {r.busetasEnCamino} en camino

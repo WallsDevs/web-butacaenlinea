@@ -16,6 +16,7 @@ import { duracion } from '../../lib/time';
 import { Field } from '../../components/ui/Field';
 import { PillTabs } from '../../components/ui/PillTabs';
 import { StatusChip } from '../../components/ui/StatusChip';
+import { Letrero } from '../../components/ui/Letrero';
 import { EditorRutaUrbana, nuevaFormUrbana, tramosDe, type FormUrbana } from '../urbano/EditorRutaUrbana';
 import type { RutaDto } from '../../lib/api/types';
 import ui from '../../components/ui/ui.module.css';
@@ -81,6 +82,7 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
         tarifaBs: f.porTramos ? Math.min(...tramosDe(f).map((t) => t.precioBs)) : Number(f.tarifaBs),
         tramos: tramosDe(f),
         circuito: f.circuito,
+        letreros: f.letreros,
         activa: true,
         // El trazo por las calles y las paradas con nombre: lo que ve el pasajero
         recorrido: f.recorrido,
@@ -193,6 +195,7 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
     tipo: TipoRuta;
     titulo: string;
     sub: string;
+    letreros?: string[];
     medida: string;
     precio: string;
     texto: string;
@@ -220,6 +223,7 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
       tipo: 'urbana',
       titulo: u.nombre,
       sub: u.paradas?.length ? `${u.paradas[0]?.nombre ?? ''} → ${u.paradas[u.paradas.length - 1]?.nombre ?? ''}` : '',
+      letreros: u.letreros,
       medida: u.paradas?.length ? `${u.paradas.length} paradas` : '—',
       precio: u.tramos?.length ? `por tramos · desde Bs ${Number(u.tarifaBs).toLocaleString('es-VE', { minimumFractionDigits: 2 })}` : `Bs ${Number(u.tarifaBs).toLocaleString('es-VE', { minimumFractionDigits: 2 })}`,
       texto: `${u.nombre} ${(u.paradas ?? []).map((p) => p.nombre).join(' ')}`.toLowerCase(),
@@ -284,6 +288,7 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
                 <td>
                   <div style={{ fontWeight: 600 }}>{f.titulo}</div>
                   {f.sub && <div style={{ fontSize: 12, color: 'var(--text-faint)' }}>{f.sub}</div>}
+                  {f.letreros?.length ? <div style={{ marginTop: 4 }}><Letrero letreros={f.letreros} tamano="sm" /></div> : null}
                 </td>
                 <td style={{ color: 'var(--text-soft)' }}>{f.medida}</td>
                 <td style={{ color: 'var(--text-soft)', fontSize: 13 }}>{f.precio}</td>
