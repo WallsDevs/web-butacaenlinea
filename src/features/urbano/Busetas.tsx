@@ -155,7 +155,7 @@ export default function Busetas() {
                 </div>
               )}
               <div style={{ fontSize: 13, color: 'var(--text-faint)', marginTop: 4 }}>
-                {r.linea} · pasaje {bs(r.tarifaBs)}
+                {r.linea} · pasaje {r.porTramos ? `desde ${bs(r.tarifaBs)}` : bs(r.tarifaBs)}
                 {r.kmALaParadaMasCercana !== null &&
                   ` · parada más cerca a ${r.kmALaParadaMasCercana.toLocaleString('es-VE')} km`}
               </div>

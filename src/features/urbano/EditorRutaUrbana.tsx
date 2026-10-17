@@ -18,18 +18,39 @@ export interface FormUrbana {
   documentId: string | null;
   nombre: string;
   tarifaBs: string;
+  /** Pasaje por tramos: las paradas marcadas como corte llevan el precio del tramo que termina en ellas. */
+  porTramos: boolean;
   paradas: ParadaUrbana[];
   recorrido: [number, number][];
 }
 
 export function nuevaFormUrbana(u?: RutaUrbanaDto): FormUrbana {
+  const tramos = u?.tramos ?? [];
+  const paradas: ParadaUrbana[] = [...(u?.paradas ?? [])].sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0)).map((p) => ({ ...p, cortePrecioBs: undefined }));
+  // Los cortes guardados vuelven a su parada; el último tramo siempre cierra en la última parada
+  for (const t of tramos) {
+    const p = paradas.find((x) => x.orden === t.hastaOrden);
+    if (p) p.cortePrecioBs = String(t.precioBs);
+  }
+  if (tramos.length && paradas.length && paradas[paradas.length - 1].cortePrecioBs === undefined) {
+    paradas[paradas.length - 1].cortePrecioBs = String(tramos[tramos.length - 1].precioBs);
+  }
   return {
     documentId: u?.documentId ?? null,
     nombre: u?.nombre ?? '',
     tarifaBs: u ? String(u.tarifaBs) : '',
-    paradas: [...(u?.paradas ?? [])].sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0)),
+    porTramos: tramos.length > 0,
+    paradas,
     recorrido: u?.recorrido ?? [],
   };
+}
+
+/** Los tramos que se mandan al servidor: cada parada-corte cierra el tramo con su precio. */
+export function tramosDe(f: FormUrbana): { hastaOrden: number; precioBs: number }[] {
+  if (!f.porTramos) return [];
+  return f.paradas
+    .filter((p, i) => i > 0 && p.cortePrecioBs !== undefined && Number(p.cortePrecioBs) > 0)
+    .map((p) => ({ hastaOrden: p.orden, precioBs: Number(p.cortePrecioBs) }));
 }
 
 export function EditorRutaUrbana({
@@ -107,6 +128,21 @@ export function EditorRutaUrbana({
 
   const eliminar = (i: number) => fijarParadas(paradas.filter((_, j) => j !== i));
 
+  // Cortes de tarifa: la última parada siempre es corte; las demás se marcan a mano
+  const esUltima = (i: number) => i === paradas.length - 1;
+  const esCorte = (i: number) => i > 0 && (esUltima(i) || paradas[i].cortePrecioBs !== undefined);
+  const marcarCorte = (i: number, activo: boolean) =>
+    setForm((f) => ({ ...f, paradas: f.paradas.map((p, j) => (j === i ? { ...p, cortePrecioBs: activo ? (p.cortePrecioBs ?? '') : undefined } : p)) }));
+  const precioCorte = (i: number, v: string) =>
+    setForm((f) => ({ ...f, paradas: f.paradas.map((p, j) => (j === i ? { ...p, cortePrecioBs: v } : p)) }));
+  const corteAnterior = (i: number) => {
+    for (let j = i - 1; j > 0; j--) if (paradas[j].cortePrecioBs !== undefined) return paradas[j].nombre;
+    return paradas[0]?.nombre ?? 'el origen';
+  };
+  const cortesValidos =
+    paradas.length >= 2 &&
+    paradas.every((p, i) => !esCorte(i) || Number(esUltima(i) ? (p.cortePrecioBs ?? '') : p.cortePrecioBs) > 0);
+
   const subir = (i: number) => {
     if (i === 0) return;
     const l = [...paradas];
@@ -125,7 +161,7 @@ export function EditorRutaUrbana({
   const papelDe = (i: number) =>
     paradas.length < 2 ? 'Punto de partida' : i === 0 ? 'Origen' : i === paradas.length - 1 ? 'Destino' : 'Parada';
 
-  const listo = form.nombre.trim().length > 0 && Number(form.tarifaBs) > 0 && paradas.length >= 2;
+  const listo = form.nombre.trim().length > 0 && paradas.length >= 2 && (form.porTramos ? cortesValidos : Number(form.tarifaBs) > 0);
 
   return (
     <div className={ui.velo ?? ''} style={estilos.velo}>
@@ -166,19 +202,54 @@ export function EditorRutaUrbana({
           </div>
 
           <div style={estilos.columnaLado}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 130px', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: form.porTramos ? '1fr' : '1fr 130px', gap: 12 }}>
               <Field
                 label="Nombre de la ruta"
                 value={form.nombre}
                 onChange={(e) => setForm({ ...form, nombre: e.target.value })}
               />
-              <Field
-                label="Pasaje (Bs)"
-                type="number"
-                min={0}
-                value={form.tarifaBs}
-                onChange={(e) => setForm({ ...form, tarifaBs: e.target.value })}
-              />
+              {!form.porTramos && (
+                <Field
+                  label="Pasaje (Bs)"
+                  type="number"
+                  min={0}
+                  value={form.tarifaBs}
+                  onChange={(e) => setForm({ ...form, tarifaBs: e.target.value })}
+                />
+              )}
+            </div>
+
+            {/* Cómo se cobra: un solo pasaje, o por tramos entre paradas marcadas como corte */}
+            <div style={{ marginTop: 12 }}>
+              <div className={ui.fieldLabel} style={{ marginBottom: 6 }}>Cómo se cobra el pasaje</div>
+              <div role="tablist" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4, padding: 4, borderRadius: 12, background: 'var(--pill-bg, #EEF2F9)' }}>
+                {([[false, 'Pasaje único'], [true, 'Por tramos']] as [boolean, string][]).map(([valor, etiqueta]) => (
+                  <button
+                    key={etiqueta}
+                    type="button"
+                    role="tab"
+                    aria-selected={form.porTramos === valor}
+                    onClick={() => setForm((f) => ({ ...f, porTramos: valor }))}
+                    style={{
+                      padding: '9px 12px',
+                      borderRadius: 9,
+                      fontSize: 13,
+                      fontWeight: 700,
+                      color: form.porTramos === valor ? 'var(--blue-700)' : 'var(--text-soft)',
+                      background: form.porTramos === valor ? 'var(--surface)' : 'transparent',
+                      boxShadow: form.porTramos === valor ? '0 1px 2px rgba(15, 23, 42, 0.08), 0 0 0 1px var(--border)' : 'none',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {etiqueta}
+                  </button>
+                ))}
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text-soft)', marginTop: 6, lineHeight: 1.45 }}>
+                {form.porTramos
+                  ? 'Marca en la lista las paradas donde cambia el precio (cortes) y ponle precio a cada tramo. El pasajero dice desde dónde hasta dónde va y paga los tramos que cruza; el colector ve dónde se baja.'
+                  : 'Todos pagan lo mismo sin importar dónde suban o bajen.'}
+              </div>
             </div>
 
             <div style={estilos.filaResumen}>
@@ -244,6 +315,27 @@ export function EditorRutaUrbana({
                       <div style={estilos.coords}>
                         {papelDe(i)} · {p.lat.toFixed(4)}, {p.lng.toFixed(4)}
                       </div>
+                      {form.porTramos && i > 0 && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-soft)' }}>
+                            <input type="checkbox" checked={esCorte(i)} disabled={esUltima(i)} onChange={(e) => marcarCorte(i, e.target.checked)} />
+                            Corte de tarifa
+                          </label>
+                          {esCorte(i) && (
+                            <>
+                              <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>{corteAnterior(i)} → aquí</span>
+                              <input
+                                type="number"
+                                min={0}
+                                placeholder="Bs"
+                                value={p.cortePrecioBs ?? ''}
+                                onChange={(e) => precioCorte(i, e.target.value)}
+                                style={{ ...estilos.inputNombre, width: 96, fontSize: 13, padding: '5px 8px', border: '1px solid var(--border-input)', borderRadius: 8 }}
+                              />
+                            </>
+                          )}
+                        </div>
+                      )}
                     </div>
                     <div style={{ display: 'flex', gap: 2 }}>
                       <button
@@ -302,9 +394,11 @@ export function EditorRutaUrbana({
               <div style={estilos.pista}>
                 {!form.nombre.trim()
                   ? 'Ponle nombre a la ruta.'
-                  : !(Number(form.tarifaBs) > 0)
-                    ? 'Falta el pasaje en bolívares.'
-                    : 'Marca al menos el origen y el destino.'}
+                  : paradas.length < 2
+                    ? 'Marca al menos el origen y el destino.'
+                    : form.porTramos
+                      ? 'Ponle precio a cada tramo (incluido el que termina en el destino).'
+                      : 'Falta el pasaje en bolívares.'}
               </div>
             )}
           </div>

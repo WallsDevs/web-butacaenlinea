@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getUnidadUrbana, getWallet, pagarPasajeUrbano } from '../../lib/api/endpoints';
@@ -6,6 +6,7 @@ import { ApiError } from '../../lib/api/client';
 import { hora } from '../../lib/time';
 import { useAuth } from '../../stores/auth';
 import { useSeo } from '../../lib/seo';
+import { precioTramo } from '../../lib/urbano';
 import ui from '../../components/ui/ui.module.css';
 
 const bs = (n: number) => `Bs ${n.toLocaleString('es-VE', { minimumFractionDigits: 2 })}`;
@@ -40,13 +41,31 @@ export default function PagoUrbano() {
     enabled: Boolean(usuario),
   });
 
+  // Con tarifa por tramos el pasajero dice desde dónde hasta dónde va; el precio sale de ahí
+  const ruta = info?.ruta ?? null;
+  const porTramos = Boolean(ruta?.tramos?.length);
+  const [desde, setDesde] = useState<number | null>(null);
+  const [hasta, setHasta] = useState<number | null>(null);
+  useEffect(() => {
+    if (!ruta || !porTramos) return;
+    setDesde((d) => d ?? ruta.paradaSugerida ?? ruta.paradas[0]?.orden ?? null);
+    setHasta((h) => h ?? ruta.paradas[ruta.paradas.length - 1]?.orden ?? null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ruta?.documentId, porTramos]);
+  const tramoListo = porTramos && desde !== null && hasta !== null && desde !== hasta;
+  const precioBs = ruta ? (tramoListo ? precioTramo(ruta.tramos, ruta.tarifaBs, ruta.paradas.map((p) => p.orden), desde!, hasta!) : porTramos ? 0 : ruta.tarifaBs) : 0;
+  const nombreParada = (orden: number | null) => ruta?.paradas.find((p) => p.orden === orden)?.nombre ?? '';
+
   const pagar = useMutation({
-    mutationFn: () => pagarPasajeUrbano(unidadId!),
+    mutationFn: () => pagarPasajeUrbano(unidadId!, tramoListo ? { desdeOrden: desde!, hastaOrden: hasta! } : undefined),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['wallet'] }),
     onError: (e) => {
       if (e instanceof ApiError && e.code === 'saldo_insuficiente') {
         const d = e.details as { saldoBs?: number; requeridoBs?: number };
         setError(`Saldo insuficiente: tienes ${bs(d.saldoBs ?? 0)} y el pasaje es ${bs(d.requeridoBs ?? 0)}. Recarga tu wallet.`);
+      } else if (e instanceof ApiError && e.code === 'tramo_requerido') {
+        setError('Dinos desde qué parada hasta cuál vas para calcular tu pasaje.');
+        queryClient.invalidateQueries({ queryKey: ['unidad-urbana', unidadId] });
       } else if (e instanceof ApiError && e.code === 'buseta_fuera_de_servicio') {
         setError('Esta buseta acaba de salir de servicio. Pregúntale al colector.');
         queryClient.invalidateQueries({ queryKey: ['unidad-urbana', unidadId] });
@@ -102,11 +121,17 @@ export default function PagoUrbano() {
             {r.linea} · Unidad {r.unidad}
           </div>
           <div style={{ fontSize: 14, color: 'var(--text-soft)' }}>{r.ruta}</div>
+          {r.desde && r.hasta && (
+            <div style={{ marginTop: 12, background: 'var(--surface)', borderRadius: 12, padding: '10px 14px', fontSize: 14 }}>
+              <div style={{ color: 'var(--text-soft)' }}>{r.desde.nombre} → {r.hasta.nombre}</div>
+              <div style={{ fontWeight: 700, marginTop: 2 }}>Te bajas en {r.hasta.nombre}</div>
+            </div>
+          )}
           <div style={{ fontSize: 30, fontWeight: 700, letterSpacing: '0.04em', marginTop: 12 }}>
             {hora(r.hora)}
           </div>
           <div style={{ fontSize: 12, color: 'var(--text-faint)', marginTop: 10 }}>
-            El colector ve tu pago en su pantalla al instante.
+            {r.hasta ? 'El colector y el conductor ven tu pago y dónde te bajas.' : 'El colector ve tu pago en su pantalla al instante.'}
           </div>
         </div>
         <div style={{ textAlign: 'center', marginTop: 16, fontSize: 14, color: 'var(--text-soft)' }}>
@@ -161,9 +186,32 @@ export default function PagoUrbano() {
         <div style={{ fontSize: 13, color: 'var(--text-faint)' }}>{info.linea.nombre}</div>
         <div style={{ fontSize: 22, fontWeight: 700, margin: '4px 0' }}>Unidad {info.unidad.numero}</div>
         <div style={{ fontSize: 14, color: 'var(--text-soft)', marginBottom: 18 }}>{info.ruta.nombre}</div>
-        <div style={{ fontSize: 13, color: 'var(--text-faint)' }}>Pasaje</div>
+        {porTramos && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, textAlign: 'left', marginBottom: 14 }}>
+            <label className={ui.field}>
+              <span className={ui.fieldLabel}>Me subo en</span>
+              <select className={ui.fieldInput} value={desde ?? ''} onChange={(e) => setDesde(Number(e.target.value))}>
+                {info.ruta.paradas.map((p) => (
+                  <option key={p.orden} value={p.orden}>{p.nombre}</option>
+                ))}
+              </select>
+            </label>
+            <label className={ui.field}>
+              <span className={ui.fieldLabel}>Me bajo en</span>
+              <select className={ui.fieldInput} value={hasta ?? ''} onChange={(e) => setHasta(Number(e.target.value))}>
+                {info.ruta.paradas.map((p) => (
+                  <option key={p.orden} value={p.orden}>{p.nombre}</option>
+                ))}
+              </select>
+            </label>
+            {desde !== null && hasta !== null && desde === hasta && (
+              <div style={{ gridColumn: '1 / -1', fontSize: 12, color: 'var(--warn-text, #92400E)' }}>Elige una parada distinta para bajarte.</div>
+            )}
+          </div>
+        )}
+        <div style={{ fontSize: 13, color: 'var(--text-faint)' }}>{porTramos ? `Pasaje ${nombreParada(desde)} → ${nombreParada(hasta)}` : 'Pasaje'}</div>
         <div style={{ fontSize: 44, fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 18 }}>
-          {bs(info.ruta.tarifaBs)}
+          {tramoListo || !porTramos ? bs(precioBs) : '—'}
         </div>
 
         {!usuario ? (
@@ -179,7 +227,7 @@ export default function PagoUrbano() {
             <button
               className={`${ui.btnPrimary} ${ui.btnPrimaryLg}`}
               style={{ width: '100%' }}
-              disabled={pagar.isPending}
+              disabled={pagar.isPending || (porTramos && !tramoListo)}
               onClick={() => {
                 setError(null);
                 pagar.mutate();

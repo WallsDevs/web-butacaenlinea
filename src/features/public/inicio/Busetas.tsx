@@ -72,7 +72,7 @@ export function BusetasEnVivo() {
               <span style={{ fontSize: 13, fontWeight: 600, color: '#166534' }}>
                 {r.busetasEnCamino} {r.busetasEnCamino === 1 ? 'buseta' : 'busetas'} en camino
               </span>
-              <span style={{ fontSize: 15, fontWeight: 700, color: '#2563EB' }}>{bs(r.tarifaBs)}</span>
+              <span style={{ fontSize: 15, fontWeight: 700, color: '#2563EB' }}>{r.porTramos ? `desde ${bs(r.tarifaBs)}` : bs(r.tarifaBs)}</span>
             </span>
           </button>
         ))}

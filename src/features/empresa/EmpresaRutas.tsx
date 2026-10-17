@@ -15,7 +15,7 @@ import { duracion } from '../../lib/time';
 import { Field } from '../../components/ui/Field';
 import { PillTabs } from '../../components/ui/PillTabs';
 import { StatusChip } from '../../components/ui/StatusChip';
-import { EditorRutaUrbana, nuevaFormUrbana, type FormUrbana } from '../urbano/EditorRutaUrbana';
+import { EditorRutaUrbana, nuevaFormUrbana, tramosDe, type FormUrbana } from '../urbano/EditorRutaUrbana';
 import type { RutaDto } from '../../lib/api/types';
 import ui from '../../components/ui/ui.module.css';
 import styles from '../flota/flota.module.css';
@@ -66,7 +66,9 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
     mutationFn: (f: FormUrbana) =>
       guardarRutaUrbana(f.documentId, {
         nombre: f.nombre.trim(),
-        tarifaBs: Number(f.tarifaBs),
+        // Con tramos, la tarifa plana queda como «desde» (el tramo más barato) para pantallas viejas
+        tarifaBs: f.porTramos ? Math.min(...tramosDe(f).map((t) => t.precioBs)) : Number(f.tarifaBs),
+        tramos: tramosDe(f),
         activa: true,
         // El trazo por las calles y las paradas con nombre: lo que ve el pasajero
         recorrido: f.recorrido,
@@ -205,7 +207,7 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
       titulo: u.nombre,
       sub: u.paradas?.length ? `${u.paradas[0]?.nombre ?? ''} → ${u.paradas[u.paradas.length - 1]?.nombre ?? ''}` : '',
       medida: u.paradas?.length ? `${u.paradas.length} paradas` : '—',
-      precio: `Bs ${Number(u.tarifaBs).toLocaleString('es-VE', { minimumFractionDigits: 2 })}`,
+      precio: u.tramos?.length ? `por tramos · desde Bs ${Number(u.tarifaBs).toLocaleString('es-VE', { minimumFractionDigits: 2 })}` : `Bs ${Number(u.tarifaBs).toLocaleString('es-VE', { minimumFractionDigits: 2 })}`,
       texto: `${u.nombre} ${(u.paradas ?? []).map((p) => p.nombre).join(' ')}`.toLowerCase(),
       editar: () => {
         setTipo('urbana');

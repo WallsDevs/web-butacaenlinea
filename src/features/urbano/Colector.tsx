@@ -137,8 +137,13 @@ export default function Colector() {
                   ✓
                 </span>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, fontSize: 14 }}>{p.pasajero}</div>
-                  <div style={{ fontSize: 12, color: 'var(--text-faint)' }}>{hora(p.hora)}</div>
+                  <div style={{ fontWeight: 600, fontSize: 14 }}>
+                    {p.pasajero}
+                    {p.hasta && <span style={{ fontWeight: 700, color: 'var(--blue-700)' }}> · se baja en {p.hasta.nombre}</span>}
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--text-faint)' }}>
+                    {hora(p.hora)}{p.desde && p.hasta ? ` · ${p.desde.nombre} → ${p.hasta.nombre}` : ''}
+                  </div>
                 </div>
                 <div style={{ fontWeight: 700 }}>{bs(p.montoBs)}</div>
               </div>

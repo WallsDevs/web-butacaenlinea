@@ -587,21 +587,35 @@ export interface UnidadUrbana {
   unidad: { documentId: string; numero: string };
   linea: { nombre: string };
   /** `null` = la unidad no tiene ruta urbana guardada: no cobra. */
-  ruta: { documentId?: string; nombre: string; tarifaBs: number } | null;
+  ruta: {
+    documentId?: string;
+    nombre: string;
+    tarifaBs: number;
+    /** Con tramos, el pasajero elige desde qué parada hasta cuál va. */
+    tramos: import('../urbano').Tramo[];
+    paradas: { orden: number; nombre: string; lat: number; lng: number }[];
+    /** Parada más cercana a la buseta ahora: la propuesta para subirse. */
+    paradaSugerida: number | null;
+  } | null;
   enServicio: boolean;
 }
 export const getUnidadUrbana = (documentId: string) =>
   api<UnidadUrbana>(`/api/urbano/unidad/${documentId}`, { auth: false });
-export const pagarPasajeUrbano = (unidadId: string) =>
-  api<{ pagado: boolean; tarifaBs: number; ruta: string; unidad: string; linea: string; hora: string; saldoBs: number }>(
+export interface ParadaTramo {
+  orden: number;
+  nombre: string;
+}
+export const pagarPasajeUrbano = (unidadId: string, tramo?: { desdeOrden: number; hastaOrden: number }) =>
+  api<{ pagado: boolean; tarifaBs: number; ruta: string; unidad: string; linea: string; desde: ParadaTramo | null; hasta: ParadaTramo | null; hora: string; saldoBs: number }>(
     '/api/urbano/pagar',
-    { method: 'POST', body: { unidadId } }
+    { method: 'POST', body: { unidadId, ...(tramo ?? {}) } }
   );
 export interface CobrosUrbanos {
   unidad: string;
   ruta: string | null;
   tarifaBs: number;
-  pagos: { documentId: string; hora: string; pasajero: string; montoBs: number }[];
+  porTramos?: boolean;
+  pagos: { documentId: string; hora: string; pasajero: string; montoBs: number; desde?: ParadaTramo | null; hasta?: ParadaTramo | null }[];
   totalHoy: number;
   recaudoHoyBs: number;
 }
@@ -611,6 +625,7 @@ export interface MapaRutaUrbana {
   nombre: string;
   linea: string;
   tarifaBs: number;
+  tramos?: import('../urbano').Tramo[];
   recorrido: [number, number][];
   /** Dónde para la buseta: la primera es el origen y la última el destino. */
   paradas?: { nombre: string; orden: number; lat: number; lng: number }[];
@@ -622,6 +637,9 @@ export interface RutaUrbanaPublica {
   nombre: string;
   linea: string | null;
   tarifaBs: number;
+  /** Con tramos: el pasaje más caro (tarifaBs es el más barato). */
+  tarifaHastaBs?: number;
+  porTramos?: boolean;
   origen: string | null;
   destino: string | null;
   paradas: number;
@@ -650,11 +668,15 @@ export interface ParadaUrbana {
   orden: number;
   lat: number;
   lng: number;
+  /** Solo en el editor: precio del tramo que termina aquí (si esta parada es un corte de tarifa). */
+  cortePrecioBs?: string;
 }
 export interface RutaUrbanaDto {
   documentId: string;
   nombre: string;
   tarifaBs: number;
+  /** Cortes de tarifa; vacío = tarifa plana. */
+  tramos?: import('../urbano').Tramo[];
   activa: boolean;
   /** Trazo sobre las calles (lo calcula el editor entre paradas). */
   recorrido?: [number, number][] | null;
