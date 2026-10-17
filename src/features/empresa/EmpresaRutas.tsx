@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useModulos } from '../../lib/useModulos';
 import { AvisoIntegracion } from '../../components/ui/AvisoIntegracion';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -13,6 +13,8 @@ import {
 import { useAuth } from '../../stores/auth';
 import { duracion } from '../../lib/time';
 import { Field } from '../../components/ui/Field';
+import { PillTabs } from '../../components/ui/PillTabs';
+import { StatusChip } from '../../components/ui/StatusChip';
 import { EditorRutaUrbana, nuevaFormUrbana, type FormUrbana } from '../urbano/EditorRutaUrbana';
 import type { RutaDto } from '../../lib/api/types';
 import ui from '../../components/ui/ui.module.css';
@@ -38,11 +40,21 @@ const NUEVA: FormRuta = {
   tarifas: [{ claseServicio: 'estandar', precioUsd: '' }],
 };
 
-/** Rutas y tarifas por clase de servicio. */
-export default function EmpresaRutas() {
+type TipoRuta = 'nacional' | 'urbana';
+type Filtro = 'todas' | 'nacionales' | 'urbanas';
+
+/**
+ * Todas las rutas de la línea en una sola tabla: las de viaje (entre
+ * ciudades, con asientos y salidas) y las urbanas (tarifa plana por QR), con
+ * filtro por tipo y búsqueda. Un solo «Nueva ruta» pregunta el tipo.
+ */
+export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }) {
   const queryClient = useQueryClient();
   const { integracionActiva } = useModulos();
   const [form, setForm] = useState<FormRuta | null>(null);
+  const [tipo, setTipo] = useState<TipoRuta>('nacional');
+  const [filtro, setFiltro] = useState<Filtro>('todas');
+  const [buscar, setBuscar] = useState('');
 
   const slug = useAuth((s) => s.usuario)?.linea?.slug;
   const { data: rutas, isLoading } = useQuery({ queryKey: ['rutas', slug], queryFn: () => getRutas(slug) });
@@ -106,128 +118,161 @@ export default function EmpresaRutas() {
       tarifas: (r.tarifas ?? []).map((t) => ({ claseServicio: t.claseServicio, precioUsd: String(t.precioUsd) })),
     });
 
-  // Las dos listas (viaje y urbana) se presentan igual: título con conteo, para qué sirve y su botón
-  const cabecera = (titulo: string, n: number | undefined, descripcion: string, accion: { texto: string; onClick: () => void } | null) => (
-    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, marginBottom: 12 }}>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <h2 style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: 10 }}>
-          {titulo}
-          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-soft)', background: 'var(--pill-bg, #F1F5F9)', borderRadius: 999, padding: '3px 9px' }}>{n ?? '…'}</span>
-        </h2>
-        <div style={{ fontSize: 13, color: 'var(--text-soft)', marginTop: 4 }}>{descripcion}</div>
+  // Abrir el modal de creación del tipo pedido (con integración, solo urbanas: las de viaje vienen del sistema de la línea)
+  const abrirNuevo = (t: TipoRuta = integracionActiva ? 'urbana' : 'nacional') => {
+    setTipo(t);
+    if (t === 'urbana') {
+      setForm(null);
+      setFormUrbana(nuevaFormUrbana());
+    } else {
+      setFormUrbana(null);
+      setForm(NUEVA);
+    }
+  };
+  useEffect(() => {
+    if (abrirNueva > 0) abrirNuevo();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [abrirNueva]);
+
+  // El selector de tipo va arriba del formulario, solo al crear
+  const selectorTipo = (
+    <div style={{ marginBottom: 16 }}>
+      <div className={ui.fieldLabel} style={{ marginBottom: 6 }}>Tipo de ruta</div>
+      <PillTabs<TipoRuta>
+        items={[...(integracionActiva ? [] : [{ id: 'nacional' as const, label: 'Nacional' }]), { id: 'urbana' as const, label: 'Urbana' }]}
+        value={tipo}
+        onChange={(id) => abrirNuevo(id)}
+      />
+      <div style={{ fontSize: 13, color: 'var(--text-soft)', marginTop: 8 }}>
+        {tipo === 'nacional'
+          ? 'Entre ciudades: asientos numerados, salidas programadas y precio del pasaje en dólares.'
+          : 'Dentro de la ciudad: tarifa plana en bolívares y pago escaneando el QR de la buseta. Sin asientos ni salidas.'}
       </div>
-      {accion && (
-        <button className={ui.btnPrimary} style={{ fontSize: 14, padding: '11px 18px', flex: 'none' }} onClick={accion.onClick}>
-          {accion.texto}
-        </button>
-      )}
     </div>
   );
 
+  // Una sola lista con las dos clases de ruta
+  interface Fila {
+    clave: string;
+    tipo: TipoRuta;
+    titulo: string;
+    sub: string;
+    medida: string;
+    precio: string;
+    texto: string;
+    editar: () => void;
+    eliminar: () => void;
+    bloqueada: boolean;
+  }
+  const filas: Fila[] = [
+    ...(rutas ?? []).map((r): Fila => ({
+      clave: `n-${r.documentId}`,
+      tipo: 'nacional',
+      titulo: `${r.origen} → ${r.destino}`,
+      sub: r.codigo ? `Código ${r.codigo}` : '',
+      medida: r.duracionMin ? duracion(r.duracionMin) : '—',
+      precio: (r.tarifas ?? []).map((t) => (t.claseServicio === 'estandar' ? `$${t.precioUsd}` : `${t.claseServicio} $${t.precioUsd}`)).join(' · ') || '—',
+      texto: `${r.codigo} ${r.origen} ${r.destino}`.toLowerCase(),
+      editar: () => editar(r),
+      eliminar: () => {
+        if (confirm(`¿Eliminar la ruta ${r.origen} → ${r.destino}?`)) eliminar.mutate(r.documentId);
+      },
+      bloqueada: integracionActiva,
+    })),
+    ...(urbanas ?? []).map((u): Fila => ({
+      clave: `u-${u.documentId}`,
+      tipo: 'urbana',
+      titulo: u.nombre,
+      sub: u.paradas?.length ? `${u.paradas[0]?.nombre ?? ''} → ${u.paradas[u.paradas.length - 1]?.nombre ?? ''}` : '',
+      medida: u.paradas?.length ? `${u.paradas.length} paradas` : '—',
+      precio: `Bs ${Number(u.tarifaBs).toLocaleString('es-VE', { minimumFractionDigits: 2 })}`,
+      texto: `${u.nombre} ${(u.paradas ?? []).map((p) => p.nombre).join(' ')}`.toLowerCase(),
+      editar: () => {
+        setTipo('urbana');
+        setFormUrbana(nuevaFormUrbana(u));
+      },
+      eliminar: () => {
+        if (confirm(`¿Eliminar la ruta urbana ${u.nombre}?`)) eliminarUrbana.mutate(u.documentId);
+      },
+      bloqueada: false,
+    })),
+  ];
+  const q = buscar.trim().toLowerCase();
+  const visibles = filas
+    .filter((f) => (filtro === 'todas' ? true : filtro === 'nacionales' ? f.tipo === 'nacional' : f.tipo === 'urbana'))
+    .filter((f) => !q || f.texto.includes(q));
+  const n = { todas: filas.length, nacionales: (rutas ?? []).length, urbanas: (urbanas ?? []).length };
+  const cargando = isLoading && !rutas;
+
   return (
     <div className={styles.contenido}>
-      {integracionActiva && <AvisoIntegracion que="rutas y tarifas" />}
-      {cabecera(
-        'Rutas de viaje',
-        isLoading ? undefined : rutas?.length ?? 0,
-        'Origen, destino y precio del pasaje. Con ellas programas las salidas que vende la taquilla y la web.',
-        integracionActiva ? null : { texto: 'Nueva ruta', onClick: () => setForm(NUEVA) }
-      )}
+      {integracionActiva && <AvisoIntegracion que="rutas de viaje y tarifas" />}
+
+      {/* Filtros a la izquierda, búsqueda a la derecha; el botón vive en la cabecera de la pantalla */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
+        <PillTabs<Filtro>
+          items={[
+            { id: 'todas', label: `Todas · ${n.todas}` },
+            { id: 'nacionales', label: `Nacionales · ${n.nacionales}` },
+            { id: 'urbanas', label: `Urbanas · ${n.urbanas}` },
+          ]}
+          value={filtro}
+          onChange={setFiltro}
+        />
+        <input
+          className={ui.fieldInput}
+          style={{ marginLeft: 'auto', width: 'min(100%, 300px)' }}
+          placeholder="Buscar ciudad, código o nombre"
+          value={buscar}
+          onChange={(e) => setBuscar(e.target.value)}
+        />
+      </div>
 
       <div className={ui.card} style={{ overflow: 'hidden' }}>
         <table className={styles.tabla}>
           <thead>
             <tr>
-              <th style={{ width: 70 }}>Código</th>
-              <th>Trayecto</th>
-              <th>Duración</th>
-              <th>Precio (USD)</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {(rutas ?? []).map((r) => (
-              <tr key={r.documentId}>
-                <td style={{ fontWeight: 700 }}>{r.codigo}</td>
-                <td style={{ fontWeight: 600 }}>
-                  {r.origen} → {r.destino}
-                </td>
-                <td style={{ color: 'var(--text-soft)' }}>{r.duracionMin ? duracion(r.duracionMin) : '—'}</td>
-                <td style={{ color: 'var(--text-soft)', fontSize: 13 }}>
-                  {(r.tarifas ?? []).map((t) => (t.claseServicio === 'estandar' ? `$${t.precioUsd}` : `${t.claseServicio} $${t.precioUsd}`)).join(' · ') || '—'}
-                </td>
-                <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                  <button className={ui.btnGhost} style={{ fontSize: 13, marginRight: 12 }} onClick={() => editar(r)} hidden={integracionActiva}>
-                    Editar
-                  </button>
-                  <button
-                    hidden={integracionActiva}
-                    style={{ fontSize: 13, fontWeight: 600, color: 'var(--bad-text)' }}
-                    onClick={() => {
-                      if (confirm(`¿Eliminar la ruta ${r.origen} → ${r.destino}?`)) eliminar.mutate(r.documentId);
-                    }}
-                  >
-                    Eliminar
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {!isLoading && !rutas?.length && (
-              <tr>
-                <td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-soft)', padding: 22 }}>
-                  Sin rutas de viaje todavía. Crea la primera con origen, destino y precio del pasaje.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      <div style={{ marginTop: 36 }}>
-        {cabecera(
-          'Rutas urbanas',
-          urbanas?.length ?? 0,
-          'Tarifa plana en bolívares; el pasajero paga escaneando el QR de la unidad. Sin asientos, sin salidas, sin equipaje.',
-          { texto: 'Nueva ruta urbana', onClick: () => setFormUrbana(nuevaFormUrbana()) }
-        )}
-      </div>
-      <div className={ui.card} style={{ overflow: 'hidden' }}>
-        <table className={styles.tabla}>
-          <thead>
-            <tr>
+              <th style={{ width: 96 }}>Tipo</th>
               <th>Ruta</th>
-              <th>Pasaje (Bs)</th>
+              <th>Duración</th>
+              <th>Precio</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
-            {(urbanas ?? []).map((u) => (
-              <tr key={u.documentId}>
-                <td style={{ fontWeight: 600 }}>{u.nombre}</td>
-                <td>Bs {Number(u.tarifaBs).toLocaleString('es-VE', { minimumFractionDigits: 2 })}</td>
+            {visibles.map((f) => (
+              <tr key={f.clave}>
+                <td>
+                  <StatusChip tono={f.tipo === 'nacional' ? 'info' : 'ok'} size="sm">{f.tipo === 'nacional' ? 'Nacional' : 'Urbana'}</StatusChip>
+                </td>
+                <td>
+                  <div style={{ fontWeight: 600 }}>{f.titulo}</div>
+                  {f.sub && <div style={{ fontSize: 12, color: 'var(--text-faint)' }}>{f.sub}</div>}
+                </td>
+                <td style={{ color: 'var(--text-soft)' }}>{f.medida}</td>
+                <td style={{ color: 'var(--text-soft)', fontSize: 13 }}>{f.precio}</td>
                 <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                  <button
-                    className={ui.btnGhost}
-                    style={{ fontSize: 13, marginRight: 12 }}
-                    onClick={() => setFormUrbana(nuevaFormUrbana(u))}
-                  >
-                    Editar
-                  </button>
-                  <button
-                    style={{ fontSize: 13, fontWeight: 600, color: 'var(--bad-text)' }}
-                    onClick={() => {
-                      if (confirm(`¿Eliminar la ruta urbana ${u.nombre}?`)) eliminarUrbana.mutate(u.documentId);
-                    }}
-                  >
-                    Eliminar
-                  </button>
+                  {!f.bloqueada && (
+                    <>
+                      <button className={ui.btnGhost} style={{ fontSize: 13, marginRight: 12 }} onClick={f.editar}>
+                        Editar
+                      </button>
+                      <button style={{ fontSize: 13, fontWeight: 600, color: 'var(--bad-text)' }} onClick={f.eliminar}>
+                        Eliminar
+                      </button>
+                    </>
+                  )}
                 </td>
               </tr>
             ))}
-            {!urbanas?.length && (
+            {!cargando && !visibles.length && (
               <tr>
-                <td colSpan={3} style={{ textAlign: 'center', color: 'var(--text-soft)', padding: 22 }}>
-                  Sin rutas urbanas. Crea una y asígnala a tus unidades en la ficha de cada bus.
+                <td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-soft)', padding: 28 }}>
+                  {q
+                    ? 'Ninguna ruta coincide con la búsqueda.'
+                    : filas.length
+                      ? 'No hay rutas de ese tipo.'
+                      : 'Todavía no tienes rutas. Crea la primera con «Nueva ruta»: de viaje entre ciudades o urbana por QR.'}
                 </td>
               </tr>
             )}
@@ -238,6 +283,7 @@ export default function EmpresaRutas() {
       {formUrbana && (
         <EditorRutaUrbana
           inicial={formUrbana}
+          cabecera={!formUrbana.documentId ? selectorTipo : undefined}
           guardando={guardarUrbana.isPending}
           onGuardar={(f) => guardarUrbana.mutate(f)}
           onCancelar={() => setFormUrbana(null)}
@@ -248,8 +294,9 @@ export default function EmpresaRutas() {
         <div className={styles.velo}>
           <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
             <h3 style={{ fontSize: 20, fontWeight: 700, marginBottom: 16 }}>
-              {form.documentId ? 'Editar ruta' : 'Nueva ruta'}
+              {form.documentId ? 'Editar ruta de viaje' : 'Nueva ruta'}
             </h3>
+            {!form.documentId && selectorTipo}
             <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr 1fr', gap: 12 }}>
               <Field label="Código" value={form.codigo} onChange={(e) => setForm({ ...form, codigo: e.target.value })} />
               <Field label="Origen" value={form.origen} onChange={(e) => setForm({ ...form, origen: e.target.value })} />

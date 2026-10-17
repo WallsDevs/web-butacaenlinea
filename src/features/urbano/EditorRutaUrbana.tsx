@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { MapaParadas } from './MapaParadas';
 import { MAX_PARADAS, trazarPorCalles } from './trazado';
 import { Field } from '../../components/ui/Field';
@@ -34,11 +34,14 @@ export function nuevaFormUrbana(u?: RutaUrbanaDto): FormUrbana {
 
 export function EditorRutaUrbana({
   inicial,
+  cabecera,
   guardando,
   onGuardar,
   onCancelar,
 }: {
   inicial: FormUrbana;
+  /** Algo que va encima del título (p. ej. el selector Nacional / Urbana al crear). */
+  cabecera?: ReactNode;
   guardando: boolean;
   onGuardar: (f: FormUrbana) => void;
   onCancelar: () => void;
@@ -128,14 +131,16 @@ export function EditorRutaUrbana({
     <div className={ui.velo ?? ''} style={estilos.velo}>
       <div style={estilos.panel} onClick={(e) => e.stopPropagation()}>
         <div style={estilos.cabecera}>
-          <div>
+          <div style={{ minWidth: 0, flex: 1 }}>
             <h3 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>
-              {form.documentId ? 'Editar ruta urbana' : 'Nueva ruta urbana'}
+              {form.documentId ? 'Editar ruta urbana' : 'Nueva ruta'}
             </h3>
-            <p style={{ fontSize: 13, color: 'var(--text-soft)', marginTop: 4 }}>
-              Marca el origen, las paradas del camino y el destino. El recorrido por las calles
-              se calcula solo.
-            </p>
+            {cabecera ? <div style={{ marginTop: 12 }}>{cabecera}</div> : (
+              <p style={{ fontSize: 13, color: 'var(--text-soft)', marginTop: 4 }}>
+                Marca el origen, las paradas del camino y el destino. El recorrido por las calles
+                se calcula solo.
+              </p>
+            )}
           </div>
           <button className={ui.btnSecondary} onClick={onCancelar} style={{ fontSize: 14 }}>
             Cerrar
