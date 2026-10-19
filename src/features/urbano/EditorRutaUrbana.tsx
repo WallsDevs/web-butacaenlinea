@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { MapaParadas } from './MapaParadas';
 import { MAX_PARADAS, trazarPorCalles } from './trazado';
 import { Field } from '../../components/ui/Field';
+import { ApiError } from '../../lib/api/client';
 import { StatusChip } from '../../components/ui/StatusChip';
 import { Letrero } from '../../components/ui/Letrero';
 import { borrarEtiquetaRuta, getEtiquetasRutas, guardarEtiquetaRuta, type ParadaUrbana, type RutaUrbanaDto } from '../../lib/api/endpoints';
@@ -94,27 +95,47 @@ export function EditorRutaUrbana({
   const quitarLetrero = (l: string) => setForm((f) => ({ ...f, letreros: f.letreros.filter((x) => x.toLowerCase() !== l.toLowerCase()) }));
   // El catálogo guardado de la línea (más las de esta ruta, por si alguna aún no estaba)
   const [guardadas, setGuardadas] = useState<string[]>([]);
+  const [errorEtiquetas, setErrorEtiquetas] = useState<string | null>(null);
+  const [creandoEtiqueta, setCreandoEtiqueta] = useState(false);
+  // Un fallo con la lista se dice: antes se callaba y la etiqueta parecía guardada sin estarlo
+  const motivo = (e: unknown) =>
+    e instanceof ApiError
+      ? e.status === 404
+        ? 'El servidor todavía no tiene la lista de etiquetas: hay que actualizar el API.'
+        : e.status === 401
+          ? 'Tu sesión venció: vuelve a entrar.'
+          : `El servidor respondió ${e.status || 'sin conexión'} · ${e.code}.`
+      : 'Sin conexión con el servidor.';
   useEffect(() => {
-    getEtiquetasRutas().then(setGuardadas).catch(() => {});
+    getEtiquetasRutas()
+      .then(setGuardadas)
+      .catch((e) => setErrorEtiquetas(`No se pudo cargar la lista de etiquetas. ${motivo(e)}`));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const catalogo = [...new Map([...guardadas, ...form.letreros].map((l) => [l.toLowerCase(), l])).values()];
+  // Crear guarda la etiqueta en la base en ese momento, sin esperar a guardar la ruta
   const crearEtiqueta = async () => {
     const texto = letreroNuevo.trim().replace(/\s+/g, ' ');
-    if (!texto) return;
+    if (!texto || creandoEtiqueta) return;
+    setCreandoEtiqueta(true);
     try {
       setGuardadas(await guardarEtiquetaRuta(texto));
-    } catch {
-      /* sin red: igual queda en la ruta y se guarda en el catálogo al guardar la ruta */
+      setErrorEtiquetas(null);
+      agregarLetrero(texto);
+      setLetreroNuevo('');
+    } catch (e) {
+      setErrorEtiquetas(`No se pudo crear «${texto}». ${motivo(e)}`);
+    } finally {
+      setCreandoEtiqueta(false);
     }
-    agregarLetrero(texto);
-    setLetreroNuevo('');
   };
   const borrarEtiqueta = async (l: string) => {
-    quitarLetrero(l);
     try {
       setGuardadas(await borrarEtiquetaRuta(l));
-    } catch {
-      /* se reintenta la próxima vez */
+      quitarLetrero(l);
+      setErrorEtiquetas(null);
+    } catch (e) {
+      setErrorEtiquetas(`No se pudo borrar «${l}». ${motivo(e)}`);
     }
   };
   const [sobreCalles, setSobreCalles] = useState(true);
@@ -310,8 +331,8 @@ export function EditorRutaUrbana({
                       <>
                         {q && !exacta && (
                           <button type="button" onClick={() => void crearEtiqueta()} disabled={form.letreros.length >= 8} style={estilos.filaEtiqueta}>
-                            <span style={{ color: 'var(--blue-600)', fontWeight: 700 }}>+ Crear «{letreroNuevo.trim()}»</span>
-                            <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>se guarda para tus otras rutas</span>
+                            <span style={{ color: 'var(--blue-600)', fontWeight: 700 }}>{creandoEtiqueta ? 'Creando…' : `+ Crear «${letreroNuevo.trim()}»`}</span>
+                            <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>se guarda ya, para esta y tus otras rutas</span>
                           </button>
                         )}
                         {filtradas.map((l) => {
@@ -335,6 +356,7 @@ export function EditorRutaUrbana({
                   })()}
                 </div>
               </div>
+              {errorEtiquetas && <div style={{ fontSize: 12, color: 'var(--bad-text)', marginTop: 6 }}>{errorEtiquetas}</div>}
               <div style={{ fontSize: 12, color: 'var(--text-soft)', marginTop: 6 }}>
                 Marca hasta 8: por dónde pasa la buseta y si es directa. Los pasajeros las ven cuando viene.
               </div>
