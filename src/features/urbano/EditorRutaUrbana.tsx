@@ -3,6 +3,7 @@ import { MapaParadas } from './MapaParadas';
 import { MAX_PARADAS, trazarPorCalles } from './trazado';
 import { Field } from '../../components/ui/Field';
 import { StatusChip } from '../../components/ui/StatusChip';
+import { Letrero } from '../../components/ui/Letrero';
 import { borrarEtiquetaRuta, getEtiquetasRutas, guardarEtiquetaRuta, type ParadaUrbana, type RutaUrbanaDto } from '../../lib/api/endpoints';
 import ui from '../../components/ui/ui.module.css';
 
@@ -106,6 +107,7 @@ export function EditorRutaUrbana({
       /* sin red: igual queda en la ruta y se guarda en el catálogo al guardar la ruta */
     }
     agregarLetrero(texto);
+    setLetreroNuevo('');
   };
   const borrarEtiqueta = async (l: string) => {
     quitarLetrero(l);
@@ -268,57 +270,73 @@ export function EditorRutaUrbana({
               )}
             </div>
 
-            {/* Etiquetas: por dónde pasa la buseta. Se guardan en el catálogo de la línea y se reutilizan */}
+            {/* Etiquetas: se eligen de la lista guardada de la línea (con buscador) o se crean ahí mismo */}
             <div style={{ marginTop: 12 }}>
-              <div className={ui.fieldLabel} style={{ marginBottom: 6 }}>Etiquetas</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {catalogo.map((l) => {
-                  const puesta = form.letreros.some((x) => x.toLowerCase() === l.toLowerCase());
-                  return (
-                    <span key={l} style={{ display: 'inline-flex', alignItems: 'center', borderRadius: 6, border: puesta ? '1.5px solid var(--navy)' : '1px dashed var(--border-input)', background: puesta ? '#fff' : 'transparent' }}>
-                      <button
-                        type="button"
-                        aria-pressed={puesta}
-                        onClick={() => (puesta ? quitarLetrero(l) : agregarLetrero(l))}
-                        disabled={!puesta && form.letreros.length >= 8}
-                        style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase', padding: '4px 4px 4px 8px', color: puesta ? 'var(--navy)' : 'var(--text-soft)', cursor: 'pointer' }}
-                      >
-                        {puesta ? '✓ ' : '+ '}{l}
-                      </button>
-                      <button
-                        type="button"
-                        title="Borrar del catálogo"
-                        aria-label={`Borrar ${l} del catálogo`}
-                        onClick={() => void borrarEtiqueta(l)}
-                        style={{ fontSize: 12, color: 'var(--text-faint)', padding: '2px 7px 2px 3px', cursor: 'pointer' }}
-                      >
-                        ×
-                      </button>
+              <div className={ui.fieldLabel} style={{ marginBottom: 6 }}>Etiquetas de la ruta</div>
+              {form.letreros.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                  {form.letreros.map((l) => (
+                    <span key={l} style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+                      <Letrero letreros={[l]} />
+                      <button type="button" onClick={() => quitarLetrero(l)} aria-label={`Quitar ${l} de la ruta`} style={{ color: 'var(--text-faint)', fontWeight: 700, cursor: 'pointer', fontSize: 13, padding: '0 4px' }}>×</button>
                     </span>
-                  );
-                })}
-                {!catalogo.length && <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>Todavía no hay etiquetas guardadas.</span>}
-              </div>
-              <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                  ))}
+                </div>
+              )}
+              <div style={{ border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
                 <input
                   className={ui.fieldInput}
-                  placeholder="Nueva etiqueta: 5ta Avenida, Centro, Directo…"
+                  placeholder="Buscar o crear etiqueta…"
                   value={letreroNuevo}
                   onChange={(e) => setLetreroNuevo(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault();
-                      void crearEtiqueta();
+                      const exacta = catalogo.find((l) => l.toLowerCase() === letreroNuevo.trim().toLowerCase());
+                      if (exacta) {
+                        agregarLetrero(exacta);
+                        setLetreroNuevo('');
+                      } else void crearEtiqueta();
                     }
                   }}
-                  style={{ flex: 1 }}
+                  style={{ border: 'none', borderRadius: 0, borderBottom: '1px solid var(--border)', width: '100%' }}
                 />
-                <button type="button" className={ui.btnSecondary} style={{ fontSize: 13 }} disabled={!letreroNuevo.trim()} onClick={() => void crearEtiqueta()}>
-                  Guardar
-                </button>
+                <div style={{ maxHeight: 180, overflowY: 'auto' }}>
+                  {(() => {
+                    const q = letreroNuevo.trim().toLowerCase();
+                    const filtradas = catalogo.filter((l) => !q || l.toLowerCase().includes(q));
+                    const exacta = catalogo.some((l) => l.toLowerCase() === q);
+                    return (
+                      <>
+                        {q && !exacta && (
+                          <button type="button" onClick={() => void crearEtiqueta()} disabled={form.letreros.length >= 8} style={estilos.filaEtiqueta}>
+                            <span style={{ color: 'var(--blue-600)', fontWeight: 700 }}>+ Crear «{letreroNuevo.trim()}»</span>
+                            <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>se guarda para tus otras rutas</span>
+                          </button>
+                        )}
+                        {filtradas.map((l) => {
+                          const puesta = form.letreros.some((x) => x.toLowerCase() === l.toLowerCase());
+                          return (
+                            <div key={l} style={{ ...estilos.filaEtiqueta, background: puesta ? 'var(--tint-50)' : undefined }}>
+                              <label style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, cursor: 'pointer' }}>
+                                <input type="checkbox" checked={puesta} disabled={!puesta && form.letreros.length >= 8} onChange={() => (puesta ? quitarLetrero(l) : agregarLetrero(l))} />
+                                <span style={{ fontSize: 13, fontWeight: 600 }}>{l}</span>
+                              </label>
+                              <button type="button" title="Borrar de la lista" aria-label={`Borrar ${l} de la lista`} onClick={() => void borrarEtiqueta(l)} style={{ fontSize: 12, color: 'var(--text-faint)', cursor: 'pointer', padding: '0 4px' }}>
+                                Borrar
+                              </button>
+                            </div>
+                          );
+                        })}
+                        {!filtradas.length && !q && <div style={{ ...estilos.filaEtiqueta, color: 'var(--text-faint)', fontSize: 12 }}>Todavía no hay etiquetas. Escribe una arriba para crearla.</div>}
+                        {!filtradas.length && q && exacta === false && null}
+                      </>
+                    );
+                  })()}
+                </div>
               </div>
               <div style={{ fontSize: 12, color: 'var(--text-soft)', marginTop: 6 }}>
-                Toca una etiqueta para ponerla o quitarla de esta ruta (máximo 8). Quedan guardadas para tus otras rutas; los pasajeros las ven cuando viene la buseta.
+                Marca hasta 8: por dónde pasa la buseta y si es directa. Los pasajeros las ven cuando viene.
               </div>
             </div>
 
@@ -532,6 +550,7 @@ export function EditorRutaUrbana({
 }
 
 const estilos: Record<string, React.CSSProperties> = {
+  filaEtiqueta: { display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', padding: '8px 12px', borderBottom: '1px solid var(--divider)', cursor: 'pointer', background: 'transparent' },
   velo: {
     position: 'fixed',
     inset: 0,
