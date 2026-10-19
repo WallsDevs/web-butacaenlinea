@@ -326,6 +326,7 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
           inicial={formUrbana}
           cabecera={!formUrbana.documentId ? selectorTipo : undefined}
           error={errorUrbana}
+          sugerenciasLetreros={[...new Map((urbanas ?? []).flatMap((u) => u.letreros ?? []).map((l) => [l.toLowerCase(), l])).values()]}
           guardando={guardarUrbana.isPending}
           onGuardar={(f) => guardarUrbana.mutate(f)}
           onCancelar={() => setFormUrbana(null)}

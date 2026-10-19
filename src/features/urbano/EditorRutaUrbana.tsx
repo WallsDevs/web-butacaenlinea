@@ -64,6 +64,7 @@ export function EditorRutaUrbana({
   inicial,
   cabecera,
   error,
+  sugerenciasLetreros = [],
   guardando,
   onGuardar,
   onCancelar,
@@ -73,6 +74,8 @@ export function EditorRutaUrbana({
   cabecera?: ReactNode;
   /** Por qué no se pudo guardar, si pasó. */
   error?: string | null;
+  /** Letreros ya usados en otras rutas de la línea: se reutilizan con un toque. */
+  sugerenciasLetreros?: string[];
   guardando: boolean;
   onGuardar: (f: FormUrbana) => void;
   onCancelar: () => void;
@@ -245,9 +248,9 @@ export function EditorRutaUrbana({
               )}
             </div>
 
-            {/* El cartel del parabrisas: lo que el pasajero ve cuando viene la buseta */}
+            {/* Los letreros de la buseta: lo que el pasajero ve cuando viene */}
             <div style={{ marginTop: 12 }}>
-              <div className={ui.fieldLabel} style={{ marginBottom: 6 }}>Letreros del parabrisas</div>
+              <div className={ui.fieldLabel} style={{ marginBottom: 6 }}>Letreros</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', padding: form.letreros.length ? '8px 10px' : 0, border: form.letreros.length ? '1px solid var(--border)' : 'none', borderRadius: 10, marginBottom: 8 }}>
                 {form.letreros.map((l) => (
                   <span key={l} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
@@ -258,6 +261,7 @@ export function EditorRutaUrbana({
               </div>
               <input
                 className={ui.fieldInput}
+                list="letreros-sugeridos"
                 placeholder="5ta Avenida, Centro, Terminal, Directo… (Enter para agregar)"
                 value={letreroNuevo}
                 disabled={form.letreros.length >= 8}
@@ -270,8 +274,33 @@ export function EditorRutaUrbana({
                 }}
                 onBlur={() => letreroNuevo.trim() && agregarLetrero(letreroNuevo)}
               />
+              <datalist id="letreros-sugeridos">
+                {sugerenciasLetreros.map((l) => (
+                  <option key={l} value={l} />
+                ))}
+              </datalist>
+              {(() => {
+                // Los ya usados en otras rutas, listos para reutilizar con un toque
+                const usados = new Set(form.letreros.map((l) => l.toLowerCase()));
+                const reutilizables = sugerenciasLetreros.filter((l) => !usados.has(l.toLowerCase()));
+                return reutilizables.length > 0 && form.letreros.length < 8 ? (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginTop: 8 }}>
+                    <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>De tus otras rutas:</span>
+                    {reutilizables.map((l) => (
+                      <button
+                        key={l}
+                        type="button"
+                        onClick={() => agregarLetrero(l)}
+                        style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', padding: '3px 8px', borderRadius: 4, border: '1px dashed var(--border-input)', color: 'var(--text-soft)', background: 'transparent', cursor: 'pointer' }}
+                      >
+                        + {l}
+                      </button>
+                    ))}
+                  </div>
+                ) : null;
+              })()}
               <div style={{ fontSize: 12, color: 'var(--text-soft)', marginTop: 6 }}>
-                Como el cartel de la buseta: por dónde pasa y si es directa. Los pasajeros lo ven cuando viene la buseta.
+                Por dónde pasa la buseta y si es directa. Los pasajeros lo ven cuando viene.
               </div>
             </div>
 
