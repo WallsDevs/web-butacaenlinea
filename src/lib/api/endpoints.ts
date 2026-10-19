@@ -693,6 +693,10 @@ export interface RutaUrbanaDto {
   recorrido?: [number, number][] | null;
   paradas?: ParadaUrbana[];
 }
+/** Catálogo de etiquetas de rutas de la línea («5ta Avenida», «Centro», «Directo»). */
+export const getEtiquetasRutas = () => api<string[]>('/api/empresa/etiquetas-rutas');
+export const guardarEtiquetaRuta = (texto: string) => api<string[]>('/api/empresa/etiquetas-rutas', { method: 'POST', body: { texto } });
+export const borrarEtiquetaRuta = (texto: string) => api<string[]>(`/api/empresa/etiquetas-rutas/${encodeURIComponent(texto)}`, { method: 'DELETE' });
 export const getRutasUrbanas = () =>
   api<RutaUrbanaDto[]>(
     '/api/rutas-urbanas?populate[paradas]=true&sort=nombre&pagination[pageSize]=100'

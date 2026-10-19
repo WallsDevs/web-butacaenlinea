@@ -3,8 +3,7 @@ import { MapaParadas } from './MapaParadas';
 import { MAX_PARADAS, trazarPorCalles } from './trazado';
 import { Field } from '../../components/ui/Field';
 import { StatusChip } from '../../components/ui/StatusChip';
-import { Letrero } from '../../components/ui/Letrero';
-import type { ParadaUrbana, RutaUrbanaDto } from '../../lib/api/endpoints';
+import { borrarEtiquetaRuta, getEtiquetasRutas, guardarEtiquetaRuta, type ParadaUrbana, type RutaUrbanaDto } from '../../lib/api/endpoints';
 import ui from '../../components/ui/ui.module.css';
 
 /**
@@ -64,7 +63,6 @@ export function EditorRutaUrbana({
   inicial,
   cabecera,
   error,
-  sugerenciasLetreros = [],
   guardando,
   onGuardar,
   onCancelar,
@@ -74,8 +72,6 @@ export function EditorRutaUrbana({
   cabecera?: ReactNode;
   /** Por qué no se pudo guardar, si pasó. */
   error?: string | null;
-  /** Letreros ya usados en otras rutas de la línea: se reutilizan con un toque. */
-  sugerenciasLetreros?: string[];
   guardando: boolean;
   onGuardar: (f: FormUrbana) => void;
   onCancelar: () => void;
@@ -94,7 +90,31 @@ export function EditorRutaUrbana({
     });
     setLetreroNuevo('');
   };
-  const quitarLetrero = (l: string) => setForm((f) => ({ ...f, letreros: f.letreros.filter((x) => x !== l) }));
+  const quitarLetrero = (l: string) => setForm((f) => ({ ...f, letreros: f.letreros.filter((x) => x.toLowerCase() !== l.toLowerCase()) }));
+  // El catálogo guardado de la línea (más las de esta ruta, por si alguna aún no estaba)
+  const [guardadas, setGuardadas] = useState<string[]>([]);
+  useEffect(() => {
+    getEtiquetasRutas().then(setGuardadas).catch(() => {});
+  }, []);
+  const catalogo = [...new Map([...guardadas, ...form.letreros].map((l) => [l.toLowerCase(), l])).values()];
+  const crearEtiqueta = async () => {
+    const texto = letreroNuevo.trim().replace(/\s+/g, ' ');
+    if (!texto) return;
+    try {
+      setGuardadas(await guardarEtiquetaRuta(texto));
+    } catch {
+      /* sin red: igual queda en la ruta y se guarda en el catálogo al guardar la ruta */
+    }
+    agregarLetrero(texto);
+  };
+  const borrarEtiqueta = async (l: string) => {
+    quitarLetrero(l);
+    try {
+      setGuardadas(await borrarEtiquetaRuta(l));
+    } catch {
+      /* se reintenta la próxima vez */
+    }
+  };
   const [sobreCalles, setSobreCalles] = useState(true);
   const [calculando, setCalculando] = useState(false);
   const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -248,59 +268,57 @@ export function EditorRutaUrbana({
               )}
             </div>
 
-            {/* Los letreros de la buseta: lo que el pasajero ve cuando viene */}
+            {/* Etiquetas: por dónde pasa la buseta. Se guardan en el catálogo de la línea y se reutilizan */}
             <div style={{ marginTop: 12 }}>
-              <div className={ui.fieldLabel} style={{ marginBottom: 6 }}>Letreros</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', padding: form.letreros.length ? '8px 10px' : 0, border: form.letreros.length ? '1px solid var(--border)' : 'none', borderRadius: 10, marginBottom: 8 }}>
-                {form.letreros.map((l) => (
-                  <span key={l} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                    <Letrero letreros={[l]} />
-                    <button type="button" onClick={() => quitarLetrero(l)} aria-label={`Quitar ${l}`} style={{ color: 'var(--text-faint)', fontWeight: 700, cursor: 'pointer', fontSize: 13 }}>×</button>
-                  </span>
-                ))}
-              </div>
-              <input
-                className={ui.fieldInput}
-                list="letreros-sugeridos"
-                placeholder="5ta Avenida, Centro, Terminal, Directo… (Enter para agregar)"
-                value={letreroNuevo}
-                disabled={form.letreros.length >= 8}
-                onChange={(e) => (e.target.value.includes(',') ? agregarLetrero(e.target.value) : setLetreroNuevo(e.target.value))}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    agregarLetrero(letreroNuevo);
-                  }
-                }}
-                onBlur={() => letreroNuevo.trim() && agregarLetrero(letreroNuevo)}
-              />
-              <datalist id="letreros-sugeridos">
-                {sugerenciasLetreros.map((l) => (
-                  <option key={l} value={l} />
-                ))}
-              </datalist>
-              {(() => {
-                // Los ya usados en otras rutas, listos para reutilizar con un toque
-                const usados = new Set(form.letreros.map((l) => l.toLowerCase()));
-                const reutilizables = sugerenciasLetreros.filter((l) => !usados.has(l.toLowerCase()));
-                return reutilizables.length > 0 && form.letreros.length < 8 ? (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginTop: 8 }}>
-                    <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>De tus otras rutas:</span>
-                    {reutilizables.map((l) => (
+              <div className={ui.fieldLabel} style={{ marginBottom: 6 }}>Etiquetas</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {catalogo.map((l) => {
+                  const puesta = form.letreros.some((x) => x.toLowerCase() === l.toLowerCase());
+                  return (
+                    <span key={l} style={{ display: 'inline-flex', alignItems: 'center', borderRadius: 6, border: puesta ? '1.5px solid var(--navy)' : '1px dashed var(--border-input)', background: puesta ? '#fff' : 'transparent' }}>
                       <button
-                        key={l}
                         type="button"
-                        onClick={() => agregarLetrero(l)}
-                        style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', padding: '3px 8px', borderRadius: 4, border: '1px dashed var(--border-input)', color: 'var(--text-soft)', background: 'transparent', cursor: 'pointer' }}
+                        aria-pressed={puesta}
+                        onClick={() => (puesta ? quitarLetrero(l) : agregarLetrero(l))}
+                        disabled={!puesta && form.letreros.length >= 8}
+                        style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase', padding: '4px 4px 4px 8px', color: puesta ? 'var(--navy)' : 'var(--text-soft)', cursor: 'pointer' }}
                       >
-                        + {l}
+                        {puesta ? '✓ ' : '+ '}{l}
                       </button>
-                    ))}
-                  </div>
-                ) : null;
-              })()}
+                      <button
+                        type="button"
+                        title="Borrar del catálogo"
+                        aria-label={`Borrar ${l} del catálogo`}
+                        onClick={() => void borrarEtiqueta(l)}
+                        style={{ fontSize: 12, color: 'var(--text-faint)', padding: '2px 7px 2px 3px', cursor: 'pointer' }}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  );
+                })}
+                {!catalogo.length && <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>Todavía no hay etiquetas guardadas.</span>}
+              </div>
+              <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                <input
+                  className={ui.fieldInput}
+                  placeholder="Nueva etiqueta: 5ta Avenida, Centro, Directo…"
+                  value={letreroNuevo}
+                  onChange={(e) => setLetreroNuevo(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      void crearEtiqueta();
+                    }
+                  }}
+                  style={{ flex: 1 }}
+                />
+                <button type="button" className={ui.btnSecondary} style={{ fontSize: 13 }} disabled={!letreroNuevo.trim()} onClick={() => void crearEtiqueta()}>
+                  Guardar
+                </button>
+              </div>
               <div style={{ fontSize: 12, color: 'var(--text-soft)', marginTop: 6 }}>
-                Por dónde pasa la buseta y si es directa. Los pasajeros lo ven cuando viene.
+                Toca una etiqueta para ponerla o quitarla de esta ruta (máximo 8). Quedan guardadas para tus otras rutas; los pasajeros las ven cuando viene la buseta.
               </div>
             </div>
 
