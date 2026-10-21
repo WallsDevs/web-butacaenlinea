@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { MapaParadas, type Referencia } from './MapaParadas';
-import { MAX_PARADAS, trazarPorCalles } from './trazado';
+import { MAX_PARADAS, indiceParaInsertar, trazarRecorrido } from './trazado';
 import { Field } from '../../components/ui/Field';
 import { ApiError } from '../../lib/api/client';
 import { StatusChip } from '../../components/ui/StatusChip';
 import { Letrero } from '../../components/ui/Letrero';
-import { borrarEtiquetaRuta, getEtiquetasRutas, guardarEtiquetaRuta, lugarEn, type LugarMapa, type ParadaUrbana, type RutaUrbanaDto } from '../../lib/api/endpoints';
+import { borrarEtiquetaRuta, getEtiquetasRutas, guardarEtiquetaRuta, lugarEn, type LugarMapa, type ParadaUrbana, type RutaUrbanaDto, type TramoTrazado } from '../../lib/api/endpoints';
 import ui from '../../components/ui/ui.module.css';
 
 /**
@@ -38,6 +38,11 @@ export function nuevaFormUrbana(u?: RutaUrbanaDto): FormUrbana {
     const p = paradas.find((x) => x.orden === t.hastaOrden);
     if (p) p.cortePrecioBs = String(t.precioBs);
   }
+  // Cómo va cada tramo (puntos de paso o a mano) vuelve a la parada donde empieza
+  for (const t of u?.trazado ?? []) {
+    const p = paradas.find((x) => x.orden === t.desde);
+    if (p) p.tramo = { modo: t.modo, puntos: t.puntos };
+  }
   if (tramos.length && paradas.length && paradas[paradas.length - 1].cortePrecioBs === undefined) {
     paradas[paradas.length - 1].cortePrecioBs = String(tramos[tramos.length - 1].precioBs);
   }
@@ -51,6 +56,19 @@ export function nuevaFormUrbana(u?: RutaUrbanaDto): FormUrbana {
     paradas,
     recorrido: u?.recorrido ?? [],
   };
+}
+
+/** Cómo se arma cada tramo, para el servidor (el último solo cuenta si es circuito: va de vuelta al origen). */
+export function trazadoDe(f: FormUrbana): (TramoTrazado & { desde: number })[] {
+  return f.paradas
+    .map((p, i) => ({ p, i }))
+    .filter(({ p, i }) => p.tramo && (p.tramo.modo === 'mano' || p.tramo.puntos.length) && (i < f.paradas.length - 1 || f.circuito))
+    .map(({ p, i }) => ({ desde: i + 1, modo: p.tramo!.modo, puntos: p.tramo!.puntos }));
+}
+
+/** Las paradas para el servidor, sin lo que solo usa el editor. */
+export function paradasParaGuardar(f: FormUrbana) {
+  return f.paradas.map((x, i) => ({ nombre: x.nombre, lat: x.lat, lng: x.lng, orden: i + 1 }));
 }
 
 /** Los tramos que se mandan al servidor: cada parada-corte cierra el tramo con su precio. */
@@ -142,6 +160,9 @@ export function EditorRutaUrbana({
     }
   };
   const [sobreCalles, setSobreCalles] = useState(true);
+  // La línea de cada tramo y el tramo que se está dibujando a mano (los toques del mapa van a él)
+  const [segmentos, setSegmentos] = useState<[number, number][][]>([]);
+  const [dibujando, setDibujando] = useState<number | null>(null);
   const [calculando, setCalculando] = useState(false);
   const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
   // El trazador necesita saber si cierra al origen; se lee por ref para no recrear la función
@@ -155,14 +176,16 @@ export function EditorRutaUrbana({
     if (temporizador.current) clearTimeout(temporizador.current);
     if (lista.length < 2) {
       setForm((f) => ({ ...f, recorrido: lista.map((p) => [p.lat, p.lng]) }));
+      setSegmentos([]);
       setDistanciaKm(0);
       setSobreCalles(true);
       return;
     }
     setCalculando(true);
     temporizador.current = setTimeout(async () => {
-      const t = await trazarPorCalles(circuito ? [...lista, lista[0]] : lista);
+      const t = await trazarRecorrido(lista, circuito);
       setForm((f) => ({ ...f, recorrido: t.recorrido }));
+      setSegmentos(t.segmentos);
       setDistanciaKm(t.distanciaKm);
       setSobreCalles(t.sobreCalles);
       setCalculando(false);
@@ -186,9 +209,15 @@ export function EditorRutaUrbana({
 
   const nombrePorDefecto = (n: string) => /^Parada \d+$/.test(n);
   const agregar = (lat: number, lng: number, nombre?: string) => {
+    // Dibujando un tramo a mano: el toque es un punto del dibujo, no una parada
+    if (dibujando !== null) {
+      fijarTramo(dibujando, (t) => ({ modo: 'mano', puntos: [...t.puntos, [lat, lng]] }));
+      return;
+    }
     if (paradas.length >= MAX_PARADAS) return;
+    // La que era la última deja de serlo: su tramo (si cerraba el circuito) ya no aplica
     fijarParadas([
-      ...paradas,
+      ...paradas.map((p, i) => (i === paradas.length - 1 ? { ...p, tramo: undefined } : p)),
       { nombre: nombre || `Parada ${paradas.length + 1}`, orden: paradas.length + 1, lat, lng },
     ]);
     if (nombre) return;
@@ -203,6 +232,29 @@ export function EditorRutaUrbana({
   // Un sitio del buscador se agrega como parada con su nombre
   const agregarSitio = (l: LugarMapa) => agregar(l.lat, l.lng, l.nombre ?? undefined);
 
+  /** Cambia el tramo que sale de la parada i (el de vuelta al origen si es la última de un circuito). */
+  const fijarTramo = (i: number, cambio: (t: TramoTrazado) => TramoTrazado | undefined) =>
+    fijarParadas(paradas.map((p, j) => (j === i ? { ...p, tramo: cambio(p.tramo ?? { modo: 'calles', puntos: [] }) } : p)));
+  const destinoDe = (i: number) => paradas[(i + 1) % paradas.length];
+  // Tocar la línea: un punto de paso (o del dibujo) donde menos desvía
+  const tocarLinea = (i: number, lat: number, lng: number) =>
+    fijarTramo(i, (t) => {
+      const k = indiceParaInsertar(paradas[i], t.puntos, destinoDe(i), { lat, lng });
+      const puntos = [...t.puntos];
+      puntos.splice(k, 0, [lat, lng]);
+      return { ...t, puntos };
+    });
+  const moverPaso = (i: number, k: number, lat: number, lng: number) =>
+    fijarTramo(i, (t) => ({ ...t, puntos: t.puntos.map((x, j) => (j === k ? [lat, lng] : x)) }));
+  const quitarPaso = (i: number, k: number) => fijarTramo(i, (t) => ({ ...t, puntos: t.puntos.filter((_, j) => j !== k) }));
+  const cambiarModo = (i: number, modo: 'calles' | 'mano') => {
+    fijarTramo(i, (t) => ({ ...t, modo }));
+    setDibujando(modo === 'mano' ? i : null);
+  };
+  const cuantosTramos = paradas.length < 2 ? 0 : form.circuito ? paradas.length : paradas.length - 1;
+  const pasos = paradas.flatMap((p, i) => (i < cuantosTramos ? (p.tramo?.puntos ?? []).map(([lat, lng], k) => ({ tramo: i, indice: k, lat, lng })) : []));
+  const modos = paradas.slice(0, cuantosTramos).map((p) => p.tramo?.modo ?? 'calles');
+
   const mover = (i: number, lat: number, lng: number) =>
     fijarParadas(paradas.map((p, j) => (j === i ? { ...p, lat, lng } : p)));
 
@@ -212,7 +264,12 @@ export function EditorRutaUrbana({
       paradas: f.paradas.map((p, j) => (j === i ? { ...p, nombre } : p)),
     }));
 
-  const eliminar = (i: number) => fijarParadas(paradas.filter((_, j) => j !== i));
+  /** Al cambiar el orden o quitar una parada, los tramos que la tocaban se vuelven a calcular por calles. */
+  const sinTramos = (lista: ParadaUrbana[], indices: number[]) => lista.map((p, j) => (indices.includes(j) ? { ...p, tramo: undefined } : p));
+  const eliminar = (i: number) => {
+    setDibujando(null);
+    fijarParadas(sinTramos(paradas, [i - 1, i, paradas.length - 1]).filter((_, j) => j !== i));
+  };
 
   // Cortes de tarifa: la última parada siempre es corte; las demás se marcan a mano
   const esUltima = (i: number) => i === paradas.length - 1;
@@ -231,13 +288,15 @@ export function EditorRutaUrbana({
 
   const subir = (i: number) => {
     if (i === 0) return;
-    const l = [...paradas];
+    setDibujando(null);
+    const l = sinTramos(paradas, [i - 2, i - 1, i, paradas.length - 1]);
     [l[i - 1], l[i]] = [l[i], l[i - 1]];
     fijarParadas(l);
   };
   const bajar = (i: number) => {
     if (i >= paradas.length - 1) return;
-    const l = [...paradas];
+    setDibujando(null);
+    const l = sinTramos(paradas, [i - 1, i, i + 1, paradas.length - 1]);
     [l[i], l[i + 1]] = [l[i + 1], l[i]];
     fijarParadas(l);
   };
@@ -278,14 +337,23 @@ export function EditorRutaUrbana({
               onMover={mover}
               onBuscar={agregarSitio}
               referencias={referencias}
+              segmentos={segmentos}
+              modos={modos}
+              tramoActivo={dibujando}
+              pasos={pasos}
+              onLinea={tocarLinea}
+              onMoverPaso={moverPaso}
+              onQuitarPaso={quitarPaso}
               pista={
-                paradas.length === 0
+                dibujando !== null
+                  ? `Dibujando a mano ${etiquetaDe(dibujando)} → ${etiquetaDe((dibujando + 1) % paradas.length)}: toca el mapa por donde va la buseta. Toca «Listo» en la lista al terminar.`
+                  : paradas.length === 0
                   ? referencias?.length
                     ? 'Busca un sitio, toca el mapa o una parada de tus otras rutas (los puntos) para arrancar.'
                     : 'Busca un sitio o toca el mapa donde arranca la ruta.'
                   : paradas.length === 1
                     ? 'Ahora busca o toca la siguiente parada.'
-                    : 'Busca o toca para agregar otra parada · arrastra las marcas para corregir.'
+                    : 'Toca para agregar una parada · si la línea no va por donde va la buseta, tócala y arrastra el punto de paso a la calle correcta.'
               }
               alto={0}
             />
@@ -514,6 +582,50 @@ export function EditorRutaUrbana({
                           )}
                         </div>
                       )}
+                      {i < cuantosTramos && (() => {
+                        const t = p.tramo;
+                        const mano = t?.modo === 'mano';
+                        const n = t?.puntos.length ?? 0;
+                        const hacia = i === paradas.length - 1 ? 'el origen' : paradas[i + 1].nombre || etiquetaDe(i + 1);
+                        return (
+                          <div style={estilos.tramo}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                              <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>Hacia {hacia}</span>
+                              <div role="radiogroup" aria-label={`Cómo va el tramo hacia ${hacia}`} style={estilos.modos}>
+                                {(['calles', 'mano'] as const).map((m) => (
+                                  <button
+                                    key={m}
+                                    type="button"
+                                    role="radio"
+                                    aria-checked={(t?.modo ?? 'calles') === m}
+                                    onClick={() => cambiarModo(i, m)}
+                                    style={{ ...estilos.modo, ...((t?.modo ?? 'calles') === m ? estilos.modoActivo : {}) }}
+                                  >
+                                    {m === 'calles' ? 'Por calles' : 'A mano'}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginTop: 4 }}>
+                              <span style={{ fontSize: 12, color: 'var(--text-soft)' }}>
+                                {mano
+                                  ? n ? `Dibujado con ${n} punto${n === 1 ? '' : 's'}` : 'En línea recta'
+                                  : n ? `${n} punto${n === 1 ? '' : 's'} de paso` : 'El camino más corto'}
+                              </span>
+                              {mano && (
+                                <button type="button" style={estilos.enlace} onClick={() => setDibujando(dibujando === i ? null : i)}>
+                                  {dibujando === i ? 'Listo' : 'Seguir dibujando'}
+                                </button>
+                              )}
+                              {n > 0 && (
+                                <button type="button" style={{ ...estilos.enlace, color: 'var(--text-soft)' }} onClick={() => fijarTramo(i, (x) => ({ ...x, puntos: [] }))}>
+                                  Quitar {mano ? 'dibujo' : 'puntos'}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
                     <div style={{ display: 'flex', gap: 2 }}>
                       <button
@@ -642,7 +754,8 @@ const estilos: Record<string, React.CSSProperties> = {
   lista: { display: 'flex', flexDirection: 'column', gap: 8 },
   parada: {
     display: 'flex',
-    alignItems: 'center',
+    // Arriba, junto al nombre: debajo puede venir el corte de tarifa y el tramo
+    alignItems: 'flex-start',
     gap: 10,
     border: '1px solid var(--border)',
     borderRadius: 13,
@@ -687,4 +800,9 @@ const estilos: Record<string, React.CSSProperties> = {
   },
   pie: { display: 'flex', gap: 10, marginTop: 'auto', paddingTop: 8 },
   pista: { fontSize: 12, color: 'var(--text-faint)', textAlign: 'right' },
+  tramo: { marginTop: 8, paddingTop: 8, borderTop: '1px dashed var(--border)' },
+  modos: { display: 'inline-flex', padding: 2, gap: 2, borderRadius: 8, background: 'var(--pill-bg, #EEF2F9)' },
+  modo: { border: 0, background: 'transparent', borderRadius: 6, padding: '3px 9px', fontSize: 12, fontWeight: 600, color: 'var(--text-soft)', cursor: 'pointer' },
+  modoActivo: { background: 'var(--surface)', color: 'var(--navy)', boxShadow: '0 1px 3px rgba(15,23,42,0.12)' },
+  enlace: { border: 0, background: 'transparent', padding: 0, fontSize: 12, fontWeight: 700, color: 'var(--blue-600)', cursor: 'pointer' },
 };

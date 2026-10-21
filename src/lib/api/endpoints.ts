@@ -706,6 +706,13 @@ export interface ParadaUrbana {
   lng: number;
   /** Solo en el editor: precio del tramo que termina aquí (si esta parada es un corte de tarifa). */
   cortePrecioBs?: string;
+  /** Solo en el editor: cómo va el tramo de esta parada a la siguiente (puntos de paso o a mano). */
+  tramo?: TramoTrazado;
+}
+/** Un tramo del recorrido entre dos paradas: por las calles pasando por los puntos de paso, o dibujado a mano. */
+export interface TramoTrazado {
+  modo: 'calles' | 'mano';
+  puntos: [number, number][];
 }
 export interface RutaUrbanaDto {
   documentId: string;
@@ -720,6 +727,8 @@ export interface RutaUrbanaDto {
   activa: boolean;
   /** Trazo sobre las calles (lo calcula el editor entre paradas). */
   recorrido?: [number, number][] | null;
+  /** Cómo se arma cada tramo: `desde` es el orden de la parada donde empieza. */
+  trazado?: (TramoTrazado & { desde: number })[];
   paradas?: ParadaUrbana[];
 }
 /** Catálogo de etiquetas de rutas de la línea («5ta Avenida», «Centro», «Directo»). */

@@ -53,6 +53,10 @@ function iconoParada(etiqueta: string, papel: 'origen' | 'destino' | 'media') {
   });
 }
 
+/** Punto de paso: no es parada; se arrastra para corregir por dónde va el tramo y se toca para quitarlo. */
+const iconoPaso = (mano: boolean) =>
+  L.divIcon({ className: '', html: `<div class="${mano ? styles.pasoMano : styles.paso}"></div>`, iconSize: [16, 16], iconAnchor: [8, 8] });
+
 const escapar = (t: string) => t.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 
 export function MapaParadas({
@@ -63,6 +67,13 @@ export function MapaParadas({
   onBuscar,
   referencias = [],
   pista,
+  segmentos,
+  modos = [],
+  tramoActivo = null,
+  pasos = [],
+  onLinea,
+  onMoverPaso,
+  onQuitarPaso,
   alto = 560,
 }: {
   paradas: ParadaUrbana[];
@@ -75,6 +86,18 @@ export function MapaParadas({
   referencias?: Referencia[];
   /** La indicación de qué hacer ahora, dentro del mapa (como en el de viaje). */
   pista?: ReactNode;
+  /** La línea de cada tramo (de la parada i a la siguiente); si no viene, se dibuja `recorrido` entero. */
+  segmentos?: [number, number][][];
+  /** Cómo va cada tramo: por calles o dibujado a mano (este se ve punteado). */
+  modos?: ('calles' | 'mano')[];
+  /** El tramo que se está dibujando a mano (resaltado). */
+  tramoActivo?: number | null;
+  /** Puntos de paso de todos los tramos. */
+  pasos?: { tramo: number; indice: number; lat: number; lng: number }[];
+  /** Tocar la línea de un tramo: ahí va un punto de paso nuevo. */
+  onLinea?: (tramo: number, lat: number, lng: number) => void;
+  onMoverPaso?: (tramo: number, indice: number, lat: number, lng: number) => void;
+  onQuitarPaso?: (tramo: number, indice: number) => void;
   /** Alto fijo en px, o 0 para que ocupe todo el espacio disponible. */
   alto?: number;
 }) {
@@ -83,6 +106,10 @@ export function MapaParadas({
   const lineaRef = useRef<L.Polyline | null>(null);
   const capaParadas = useRef<L.LayerGroup | null>(null);
   const capaReferencias = useRef<L.LayerGroup | null>(null);
+  const capaTramos = useRef<L.LayerGroup | null>(null);
+  const capaPasos = useRef<L.LayerGroup | null>(null);
+  const lineaRefs = useRef({ onLinea, onMoverPaso, onQuitarPaso });
+  lineaRefs.current = { onLinea, onMoverPaso, onQuitarPaso };
   const ajustado = useRef(false);
   /** Encuadre pendiente hasta que el mapa tenga tamaño (el modal se anima al abrir). */
   const pendiente = useRef<{ b: L.LatLngBounds; o: L.FitBoundsOptions } | null>(null);
@@ -103,6 +130,8 @@ export function MapaParadas({
     }).addTo(mapa);
     capaReferencias.current = L.layerGroup().addTo(mapa);
     lineaRef.current = L.polyline([], { color: '#2563EB', weight: 6, opacity: 0.85 }).addTo(mapa);
+    capaTramos.current = L.layerGroup().addTo(mapa);
+    capaPasos.current = L.layerGroup().addTo(mapa);
     capaParadas.current = L.layerGroup().addTo(mapa);
     mapa.on('click', (e: L.LeafletMouseEvent) => {
       agregarRef.current?.(Number(e.latlng.lat.toFixed(6)), Number(e.latlng.lng.toFixed(6)));
@@ -136,10 +165,57 @@ export function MapaParadas({
     return () => clearTimeout(t);
   }, [alto]);
 
-  // Línea del recorrido
+  // Línea del recorrido: entera, o un trazo por tramo que se puede tocar para corregirlo
   useEffect(() => {
-    lineaRef.current?.setLatLngs(recorrido);
-  }, [recorrido]);
+    const capa = capaTramos.current;
+    capa?.clearLayers();
+    if (!segmentos) {
+      lineaRef.current?.setLatLngs(recorrido);
+      return;
+    }
+    lineaRef.current?.setLatLngs([]);
+    segmentos.forEach((linea, i) => {
+      if (linea.length < 2 || !capa) return;
+      const mano = modos[i] === 'mano';
+      const activo = tramoActivo === i;
+      L.polyline(linea, {
+        color: activo ? '#D97706' : '#2563EB',
+        weight: 6,
+        opacity: 0.85,
+        dashArray: mano ? '10 8' : undefined,
+      }).addTo(capa);
+      // Una franja invisible más ancha, para que tocar la línea sea fácil también con el dedo
+      if (lineaRefs.current.onLinea) {
+        L.polyline(linea, { color: '#000', weight: 22, opacity: 0, interactive: true })
+          .bindTooltip(mano ? 'Toca para agregar un punto al dibujo' : 'Toca para agregar un punto de paso y arrástralo a la calle correcta', { sticky: true, direction: 'top' })
+          .on('click', (e: L.LeafletMouseEvent) => {
+            L.DomEvent.stopPropagation(e);
+            lineaRefs.current.onLinea?.(i, Number(e.latlng.lat.toFixed(6)), Number(e.latlng.lng.toFixed(6)));
+          })
+          .addTo(capa);
+      }
+    });
+  }, [segmentos, recorrido, modos, tramoActivo]);
+
+  // Puntos de paso: se arrastran para corregir; tocarlos los quita
+  useEffect(() => {
+    const capa = capaPasos.current;
+    if (!capa) return;
+    capa.clearLayers();
+    for (const p of pasos) {
+      const m = L.marker([p.lat, p.lng], { icon: iconoPaso(modos[p.tramo] === 'mano'), draggable: true, autoPan: true, zIndexOffset: 500 })
+        .bindTooltip('Punto de paso · arrástralo o tócalo para quitarlo', { direction: 'top', offset: [0, -8] })
+        .addTo(capa);
+      m.on('click', (e) => {
+        L.DomEvent.stopPropagation(e);
+        lineaRefs.current.onQuitarPaso?.(p.tramo, p.indice);
+      });
+      m.on('dragend', () => {
+        const ll = m.getLatLng();
+        lineaRefs.current.onMoverPaso?.(p.tramo, p.indice, Number(ll.lat.toFixed(6)), Number(ll.lng.toFixed(6)));
+      });
+    }
+  }, [pasos, modos]);
 
   // Puntos de referencia: las paradas de las otras rutas (las que ya están en esta no se repiten)
   useEffect(() => {

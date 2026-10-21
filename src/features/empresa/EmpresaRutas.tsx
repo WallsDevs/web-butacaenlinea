@@ -18,7 +18,7 @@ import { PillTabs } from '../../components/ui/PillTabs';
 import { ModalRutaViaje, type FormRuta } from './ModalRutaViaje';
 import { StatusChip } from '../../components/ui/StatusChip';
 import { Letrero } from '../../components/ui/Letrero';
-import { EditorRutaUrbana, nuevaFormUrbana, tramosDe, type FormUrbana } from '../urbano/EditorRutaUrbana';
+import { EditorRutaUrbana, nuevaFormUrbana, paradasParaGuardar, tramosDe, trazadoDe, type FormUrbana } from '../urbano/EditorRutaUrbana';
 import type { Referencia } from '../urbano/MapaParadas';
 import type { RutaUrbanaDto } from '../../lib/api/endpoints';
 import type { RutaDto } from '../../lib/api/types';
@@ -117,7 +117,9 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
         activa: true,
         // El trazo por las calles y las paradas con nombre: lo que ve el pasajero
         recorrido: f.recorrido,
-        paradas: f.paradas.map((x, i) => ({ ...x, orden: i + 1 })),
+        // Cómo se arma cada tramo (puntos de paso o a mano), para poder seguir editándolo
+        trazado: trazadoDe(f),
+        paradas: paradasParaGuardar(f),
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rutas-urbanas'] });

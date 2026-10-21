@@ -93,3 +93,93 @@ export async function trazarPorCalles(paradas: PuntoParada[]): Promise<Trazado> 
     clearTimeout(alarma);
   }
 }
+
+// ── Recorrido por tramos ────────────────────────────────────────────────────
+//
+// Cada tramo va de una parada a la siguiente (y, en un circuito, de la última
+// al origen). Por defecto sigue las calles por el camino más corto; si ese no
+// es el que hace la buseta, se le ponen PUNTOS DE PASO (no son paradas) o se
+// dibuja A MANO, en línea recta entre los puntos que se toquen.
+
+export interface TramoEntrada {
+  modo: 'calles' | 'mano';
+  puntos: [number, number][];
+}
+export interface ParadaConTramo extends PuntoParada {
+  tramo?: TramoEntrada;
+}
+export interface RecorridoPorTramos {
+  /** La línea de cada tramo, en orden: tramo i = de la parada i a la siguiente. */
+  segmentos: [number, number][][];
+  recorrido: [number, number][];
+  distanciaKm: number;
+  /** false = algún tramo por calles no se pudo calcular y va derecho. */
+  sobreCalles: boolean;
+}
+
+/** Lo ya calculado por tramo: mover un punto de paso solo recalcula su tramo. */
+const memoria = new Map<string, Trazado>();
+const MAX_MEMORIA = 300;
+const SIMULTANEOS = 3;
+
+async function porCallesRecordado(puntos: PuntoParada[]): Promise<Trazado> {
+  const clave = puntos.map((p) => `${p.lat.toFixed(6)},${p.lng.toFixed(6)}`).join(';');
+  const guardado = memoria.get(clave);
+  if (guardado) return guardado;
+  const t = await trazarPorCalles(puntos);
+  // Lo que salió en línea recta por un fallo no se recuerda: se reintenta la próxima vez
+  if (t.sobreCalles) {
+    if (memoria.size >= MAX_MEMORIA) memoria.delete(memoria.keys().next().value!);
+    memoria.set(clave, t);
+  }
+  return t;
+}
+
+export async function trazarRecorrido(paradas: ParadaConTramo[], circuito: boolean): Promise<RecorridoPorTramos> {
+  if (paradas.length < 2) {
+    return { segmentos: [], recorrido: paradas.map((p) => [p.lat, p.lng]), distanciaKm: 0, sobreCalles: true };
+  }
+  const n = paradas.length;
+  const cuantos = circuito ? n : n - 1;
+  const piezas = Array.from({ length: cuantos }, (_, i) => {
+    const a = paradas[i];
+    const b = paradas[(i + 1) % n];
+    const t = a.tramo;
+    const medio = (t?.puntos ?? []).map(([lat, lng]) => ({ lat, lng }));
+    // El servidor de calles se queja con muchos puntos: los de paso se recortan
+    return { modo: t?.modo ?? 'calles', puntos: [a, ...(t?.modo === 'mano' ? medio : medio.slice(0, MAX_PARADAS - 2)), b] };
+  });
+
+  const resultados: Trazado[] = new Array(cuantos);
+  let siguiente = 0;
+  const trabajar = async () => {
+    while (siguiente < cuantos) {
+      const i = siguiente++;
+      const p = piezas[i];
+      resultados[i] = p.modo === 'mano' ? enLineaRecta(p.puntos) : await porCallesRecordado(p.puntos);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(SIMULTANEOS, cuantos) }, trabajar));
+
+  const segmentos = resultados.map((r) => r.recorrido);
+  const recorrido: [number, number][] = [];
+  for (const s of segmentos) recorrido.push(...(recorrido.length ? s.slice(1) : s));
+  return {
+    segmentos,
+    recorrido,
+    distanciaKm: Math.round(resultados.reduce((t, r) => t + r.distanciaKm, 0) * 10) / 10,
+    sobreCalles: resultados.every((r, i) => piezas[i].modo === 'mano' || r.sobreCalles),
+  };
+}
+
+/** Dónde meter un punto nuevo entre los de un tramo para que no haga zigzag: donde menos alarga. */
+export function indiceParaInsertar(inicio: PuntoParada, puntos: [number, number][], fin: PuntoParada, nuevo: PuntoParada): number {
+  const lista: PuntoParada[] = [inicio, ...puntos.map(([lat, lng]) => ({ lat, lng })), fin];
+  let mejor = 0;
+  let menor = Infinity;
+  for (let i = 0; i < lista.length - 1; i++) {
+    const extra = haversine(lista[i], nuevo) + haversine(nuevo, lista[i + 1]) - haversine(lista[i], lista[i + 1]);
+    if (extra < menor) [menor, mejor] = [extra, i];
+  }
+  return mejor;
+}
