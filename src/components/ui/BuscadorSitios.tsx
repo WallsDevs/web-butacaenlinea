@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { buscarLugares, type Ciudad, type LugarMapa } from '../../lib/api/endpoints';
 import styles from './BuscadorSitios.module.css';
 
@@ -19,6 +19,7 @@ export function BuscadorSitios({
   etiqueta,
   ciudades,
   zona,
+  locales,
   modo = 'pais',
 }: {
   onElegir: (l: LugarMapa) => void;
@@ -29,12 +30,18 @@ export function BuscadorSitios({
   /** Lo que está en pantalla, leído al buscar (modo ciudad). */
   zona?: () => Zona | null;
   modo?: 'pais' | 'ciudad';
+  /** Sitios propios que salen primero y al instante (p. ej. las paradas comunes de la línea). */
+  locales?: LugarMapa[];
 }) {
   const [texto, setTexto] = useState('');
   const [resultados, setResultados] = useState<LugarMapa[] | null>(null);
   const [buscando, setBuscando] = useState(false);
   const [activo, setActivo] = useState(0);
   const [fallo, setFallo] = useState(false);
+  // Se lee por ref: el que llama puede pasar un arreglo nuevo en cada render sin relanzar la búsqueda
+  const localesRef = useRef(locales);
+  localesRef.current = locales;
+  const claveLocales = (locales ?? []).map((l) => `${l.nombre}@${l.lat},${l.lng}`).join('|');
 
   useEffect(() => {
     const q = texto.trim();
@@ -42,31 +49,32 @@ export function BuscadorSitios({
       setResultados(null);
       return;
     }
-    const locales: LugarMapa[] =
+    const propios = (localesRef.current ?? []).filter((l) => normalizar(l.nombre ?? '').includes(normalizar(q))).slice(0, 5);
+    const deCiudades: LugarMapa[] =
       modo === 'pais'
         ? (ciudades ?? [])
             .filter((c) => c.lat != null && c.lng != null && normalizar(c.nombre).startsWith(normalizar(q)))
             .slice(0, 3)
             .map((c) => ({ nombre: c.nombre, detalle: c.estado ? `Ciudad · ${c.estado}` : 'Ciudad', lat: c.lat!, lng: c.lng!, ciudad: c.nombre }))
         : [];
-    setResultados(locales);
+    setResultados([...propios, ...deCiudades]);
     setActivo(0);
     setBuscando(true);
     setFallo(false);
     // Se espera a que se deje de escribir: el servidor consulta una vez por segundo
     const t = setTimeout(() => {
       buscarLugares(q, modo === 'ciudad' ? zona?.() : null)
-        .then((r) => setResultados(r.lugares))
+        .then((r) => setResultados([...propios, ...r.lugares]))
         .catch(() => {
-          setFallo(true);
-          setResultados((prev) => prev ?? []);
+          setFallo(!propios.length);
+          setResultados(propios);
         })
         .finally(() => setBuscando(false));
     }, 450);
     return () => clearTimeout(t);
     // `zona` se lee al buscar; no debe relanzar la búsqueda
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [texto, ciudades, modo]);
+  }, [texto, ciudades, modo, claveLocales]);
 
   const elegir = (l: LugarMapa) => {
     setTexto('');

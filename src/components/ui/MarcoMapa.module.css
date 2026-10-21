@@ -121,6 +121,31 @@
 }
 .pasoMano { border-radius: 4px; border-color: var(--navy, #0B2A6B); }
 
+/* Parada común de la línea: punto con su nombre */
+.comun { position: relative; width: 14px; height: 14px; cursor: pointer; }
+.comun i {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--navy, #0B2A6B);
+  border: 2.5px solid #fff;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.4);
+}
+.comun span {
+  position: absolute;
+  left: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  white-space: nowrap;
+  font: 700 11px/1 'Space Grotesk', system-ui, sans-serif;
+  color: var(--navy, #0B2A6B);
+  background: rgba(255, 255, 255, 0.92);
+  padding: 3px 6px;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.2);
+}
+.lejos .comun span { display: none; }
+
 /* Parada del medio (ruta urbana): círculo numerado, más chico que las puntas */
 .pinMedio {
   width: 26px;

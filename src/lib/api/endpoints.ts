@@ -709,6 +709,18 @@ export interface ParadaUrbana {
   /** Solo en el editor: cómo va el tramo de esta parada a la siguiente (puntos de paso o a mano). */
   tramo?: TramoTrazado;
 }
+/** Parada común de la línea: con nombre, se reusa en varias rutas. */
+export interface ParadaComun {
+  id: number;
+  nombre: string;
+  lat: number;
+  lng: number;
+}
+export const getParadasComunes = () => api<ParadaComun[]>('/api/empresa/paradas-urbanas');
+export const crearParadaComun = (p: { nombre: string; lat: number; lng: number }) => api<ParadaComun>('/api/empresa/paradas-urbanas', { method: 'POST', body: p });
+export const editarParadaComun = (id: number, p: { nombre?: string; lat?: number; lng?: number }) => api<ParadaComun>(`/api/empresa/paradas-urbanas/${id}`, { method: 'PUT', body: p });
+export const borrarParadaComun = (id: number) => api<{ borrada: boolean }>(`/api/empresa/paradas-urbanas/${id}`, { method: 'DELETE' });
+
 /** Un tramo del recorrido entre dos paradas: por las calles pasando por los puntos de paso, o dibujado a mano. */
 export interface TramoTrazado {
   modo: 'calles' | 'mano';

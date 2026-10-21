@@ -17,6 +17,8 @@ export interface Referencia {
   rutas: string[];
   /** Arranca o termina alguna ruta ahí. */
   terminal?: boolean;
+  /** Parada común de la línea (con nombre, guardada para reusarla). */
+  comun?: boolean;
 }
 
 /** Con más paradas que esto, solo se muestran las principales (como las ciudades en el mapa de viaje). */
@@ -25,7 +27,7 @@ const MAX_REFERENCIAS = 25;
 /** Las referencias que se dibujan: todas si son pocas; si no, donde arrancan o terminan rutas y donde paran varias. */
 export function referenciasVisibles(refs: Referencia[]): Referencia[] {
   if (refs.length <= MAX_REFERENCIAS) return refs;
-  return refs.filter((r) => r.terminal || r.rutas.length > 1);
+  return refs.filter((r) => r.comun || r.terminal || r.rutas.length > 1);
 }
 
 /**
@@ -57,6 +59,15 @@ function iconoParada(etiqueta: string, papel: 'origen' | 'destino' | 'media') {
 const iconoPaso = (mano: boolean) =>
   L.divIcon({ className: '', html: `<div class="${mano ? styles.pasoMano : styles.paso}"></div>`, iconSize: [16, 16], iconAnchor: [8, 8] });
 
+/** Parada común: punto con su nombre a la vista (el nombre se esconde al alejarse). */
+const iconoComun = (nombre: string) =>
+  L.divIcon({
+    className: '',
+    html: `<div class="${styles.comun}"><i></i><span>${escapar(nombre)}</span></div>`,
+    iconSize: [14, 14],
+    iconAnchor: [7, 7],
+  });
+
 const escapar = (t: string) => t.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 
 export function MapaParadas({
@@ -75,6 +86,7 @@ export function MapaParadas({
   onMoverPaso,
   onQuitarPaso,
   herramientas,
+  sitiosPropios,
   alto = 560,
 }: {
   paradas: ParadaUrbana[];
@@ -99,6 +111,8 @@ export function MapaParadas({
   onLinea?: (tramo: number, lat: number, lng: number) => void;
   onMoverPaso?: (tramo: number, indice: number, lat: number, lng: number) => void;
   onQuitarPaso?: (tramo: number, indice: number) => void;
+  /** Sitios propios que el buscador ofrece primero (las paradas comunes de la línea). */
+  sitiosPropios?: LugarMapa[];
   /** Controles junto al buscador (qué agrega el próximo toque). */
   herramientas?: ReactNode;
   /** Alto fijo en px, o 0 para que ocupe todo el espacio disponible. */
@@ -139,6 +153,10 @@ export function MapaParadas({
     mapa.on('click', (e: L.LeafletMouseEvent) => {
       agregarRef.current?.(Number(e.latlng.lat.toFixed(6)), Number(e.latlng.lng.toFixed(6)));
     });
+    // Lejos, los nombres de las paradas comunes se taparían entre sí: solo el punto
+    const marcarLejos = () => divRef.current?.classList.toggle(styles.lejos, mapa.getZoom() < 14);
+    mapa.on('zoomend', marcarLejos);
+    marcarLejos();
     mapaRef.current = mapa;
     // Un mapa nuevo (también el segundo montaje de React en desarrollo) se encuadra de nuevo
     ajustado.current = false;
@@ -228,6 +246,16 @@ export function MapaParadas({
     const usada = (r: Referencia) => paradas.some((p) => Math.abs(p.lat - r.lat) < 1e-5 && Math.abs(p.lng - r.lng) < 1e-5);
     for (const r of referenciasVisibles(referencias)) {
       if (usada(r)) continue;
+      if (r.comun) {
+        L.marker([r.lat, r.lng], { icon: iconoComun(r.nombre), zIndexOffset: -100 })
+          .bindTooltip(`<strong>${escapar(r.nombre)}</strong><br><span style="opacity:.7">Parada común${r.rutas.length ? ` · ${escapar(r.rutas.join(' · '))}` : ''}</span>`, { direction: 'top', offset: [0, -6] })
+          .on('click', (e) => {
+            L.DomEvent.stopPropagation(e);
+            agregarRef.current?.(r.lat, r.lng, r.nombre);
+          })
+          .addTo(capa);
+        continue;
+      }
       L.circleMarker([r.lat, r.lng], { radius: 5, color: '#fff', weight: 1.5, fillColor: '#0B2A6B', fillOpacity: 0.55 })
         .bindTooltip(`<strong>${escapar(r.nombre)}</strong><br><span style="opacity:.7">${escapar(r.rutas.join(' · '))}</span>`, { direction: 'top', offset: [0, -4] })
         .on('click', (e) => {
@@ -291,6 +319,7 @@ export function MapaParadas({
           {onBuscar && <BuscadorSitios
             modo="ciudad"
             zona={zona}
+            locales={sitiosPropios}
             etiqueta="Buscar un sitio en esta zona"
             placeholder="Buscar parada: plaza, calle, sector…"
             onElegir={(l) => {
@@ -305,7 +334,12 @@ export function MapaParadas({
         <div className={styles.abajo} aria-live="polite">
           {referencias.length > 0 && (
             <span className={styles.leyenda}>
-              <i aria-hidden /> {referencias.length > MAX_REFERENCIAS ? 'Paradas principales de tus otras rutas' : 'Paradas de tus otras rutas'}
+              <i aria-hidden />{' '}
+              {referencias.some((r) => r.comun)
+                ? 'Paradas comunes y de tus otras rutas'
+                : referencias.length > MAX_REFERENCIAS
+                  ? 'Paradas principales de tus otras rutas'
+                  : 'Paradas de tus otras rutas'}
             </span>
           )}
           {pista && <span>{pista}</span>}

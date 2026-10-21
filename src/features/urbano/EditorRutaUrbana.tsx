@@ -6,7 +6,7 @@ import { Field } from '../../components/ui/Field';
 import { ApiError } from '../../lib/api/client';
 import { StatusChip } from '../../components/ui/StatusChip';
 import { Letrero } from '../../components/ui/Letrero';
-import { borrarEtiquetaRuta, getEtiquetasRutas, guardarEtiquetaRuta, lugarEn, type LugarMapa, type ParadaUrbana, type RutaUrbanaDto, type TramoTrazado } from '../../lib/api/endpoints';
+import { borrarEtiquetaRuta, crearParadaComun, getEtiquetasRutas, getParadasComunes, guardarEtiquetaRuta, lugarEn, type ParadaComun, type LugarMapa, type ParadaUrbana, type RutaUrbanaDto, type TramoTrazado } from '../../lib/api/endpoints';
 import ui from '../../components/ui/ui.module.css';
 
 /**
@@ -134,6 +134,41 @@ export function EditorRutaUrbana({
       .catch((e) => setErrorEtiquetas(`No se pudo cargar la lista de etiquetas. ${motivo(e)}`));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  // Paradas comunes de la línea: con nombre, se reusan en varias rutas (como las etiquetas)
+  const [comunes, setComunes] = useState<ParadaComun[]>([]);
+  const [errorParada, setErrorParada] = useState<string | null>(null);
+  useEffect(() => {
+    getParadasComunes()
+      .then(setComunes)
+      .catch(() => {});
+  }, []);
+  const normal = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+  const esComun = (p: ParadaUrbana) => comunes.some((c) => normal(c.nombre) === normal(p.nombre));
+  const guardarComun = async (p: ParadaUrbana) => {
+    setErrorParada(null);
+    try {
+      const c = await crearParadaComun({ nombre: p.nombre.trim(), lat: p.lat, lng: p.lng });
+      setComunes((l) => [...l, c].sort((a, b) => a.nombre.localeCompare(b.nombre)));
+    } catch (e) {
+      setErrorParada(
+        e instanceof ApiError && e.code === 'nombre_generico'
+          ? `Ponle a «${p.nombre}» un nombre que diga dónde queda (p. ej. «Plaza Bolívar») para guardarla como común.`
+          : e instanceof ApiError && e.code === 'parada_repetida'
+            ? `Ya hay una parada común llamada «${(e.details as { existente?: string }).existente}». Cámbiale el nombre a esta.`
+            : e instanceof ApiError && e.code === 'nombre_requerido'
+              ? 'Ponle nombre a la parada para guardarla como común.'
+              : `No se pudo guardar la parada común. ${motivo(e)}`
+      );
+    }
+  };
+  // En el mapa: las comunes (con nombre) y las de las otras rutas que no son comunes
+  const cerca = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => Math.abs(a.lat - b.lat) < 3e-4 && Math.abs(a.lng - b.lng) < 3e-4;
+  const todasReferencias: Referencia[] = [
+    ...comunes.map((c) => ({ nombre: c.nombre, lat: c.lat, lng: c.lng, comun: true, rutas: (referencias ?? []).filter((r) => cerca(r, c)).flatMap((r) => r.rutas) })),
+    ...(referencias ?? []).filter((r) => !comunes.some((c) => cerca(r, c) || normal(c.nombre) === normal(r.nombre))),
+  ];
+  const sitiosPropios = comunes.map((c) => ({ nombre: c.nombre, detalle: 'Parada común de la línea', lat: c.lat, lng: c.lng, ciudad: null }));
+
   const catalogo = [...new Map([...guardadas, ...form.letreros].map((l) => [l.toLowerCase(), l])).values()];
   // Crear guarda la etiqueta en la base en ese momento, sin esperar a guardar la ruta
   const crearEtiqueta = async () => {
@@ -346,7 +381,8 @@ export function EditorRutaUrbana({
               onAgregar={agregar}
               onMover={mover}
               onBuscar={agregarSitio}
-              referencias={referencias}
+              referencias={todasReferencias}
+              sitiosPropios={sitiosPropios}
               segmentos={segmentos}
               modos={modos}
               herramientas={
@@ -383,7 +419,7 @@ export function EditorRutaUrbana({
                     ? 'Toca por donde va la buseta: el tramo más cercano se dibuja en línea recta entre tus puntos (para calles que el mapa no conoce).'
                     : paradas.length === 0
                   ? referencias?.length
-                    ? 'Busca un sitio, toca el mapa o una parada de tus otras rutas (los puntos) para arrancar.'
+                    ? 'Busca un sitio, toca el mapa o una parada ya hecha (los puntos; las de nombre son comunes) para arrancar.'
                     : 'Busca un sitio o toca el mapa donde arranca la ruta.'
                   : paradas.length === 1
                     ? 'Ahora busca o toca la siguiente parada.'
@@ -637,6 +673,17 @@ export function EditorRutaUrbana({
                       })()}
                     </div>
                     <div style={{ display: 'flex', gap: 2 }}>
+                      {/* Guardarla como común: queda con su nombre para otras rutas */}
+                      <button
+                        type="button"
+                        style={{ ...estilos.botonIcono, color: esComun(p) ? 'var(--warn-text, #B45309)' : 'var(--text-faint)' }}
+                        disabled={esComun(p)}
+                        onClick={() => void guardarComun(p)}
+                        title={esComun(p) ? 'Ya es una parada común de la línea' : 'Guardar como parada común para usarla en otras rutas'}
+                        aria-label={esComun(p) ? 'Ya es parada común' : 'Guardar como parada común'}
+                      >
+                        {esComun(p) ? '★' : '☆'}
+                      </button>
                       <button
                         style={estilos.botonIcono}
                         disabled={i === 0}
@@ -665,6 +712,8 @@ export function EditorRutaUrbana({
                 ))}
               </div>
             )}
+
+            {errorParada && <div style={estilos.avisoAmbar}>{errorParada}</div>}
 
             {paradas.length >= MAX_PARADAS && (
               <div style={estilos.avisoAmbar}>
