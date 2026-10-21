@@ -33,11 +33,12 @@ const NUEVA: FormRuta = {
   distanciaKm: '',
   tarifas: [{ claseServicio: 'estandar', precioUsd: '' }],
   idaYVuelta: true,
-  precioVuelta: '',
 };
 
 /** «San Cristóbal», «san cristobal» y «SAN CRISTÓBAL» son la misma ciudad. */
 const normalizar = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+
+const NOMBRE_CLASE: Record<string, string> = { semicama: 'Semicama', vip: 'VIP Cama', cama_ejecutivo: 'Cama Ejecutivo' };
 
 type TipoRuta = 'nacional' | 'urbana';
 type Filtro = 'todas' | 'nacionales' | 'urbanas';
@@ -114,12 +115,12 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
         origen: ciudadOficial(f.origen) ?? f.origen,
         destino: ciudadOficial(f.destino) ?? f.destino,
         idaYVuelta: f.idaYVuelta,
-        // La vuelta con su propio precio base si es distinto; si no, el mismo de la ida
+        // Cada clase con su precio de vuelta si es distinto; si no, el mismo de la ida
         ...(f.idaYVuelta
           ? {
               tarifasVuelta: f.tarifas
                 .filter((t) => t.claseServicio && Number(t.precioUsd) > 0)
-                .map((t) => ({ claseServicio: t.claseServicio, precioUsd: t.claseServicio === 'estandar' && Number(f.precioVuelta) > 0 ? Number(f.precioVuelta) : Number(t.precioUsd) })),
+                .map((t) => ({ claseServicio: t.claseServicio, precioUsd: Number(t.precioVuelta) > 0 ? Number(t.precioVuelta) : Number(t.precioUsd) })),
             }
           : {}),
         duracionMin: Number(f.duracionMin) || 0,
@@ -161,14 +162,12 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
       destino: r.destino,
       duracionMin: String(r.duracionMin ?? ''),
       distanciaKm: String(r.distanciaKm ?? ''),
-      tarifas: (r.tarifas ?? []).map((t) => ({ claseServicio: t.claseServicio, precioUsd: String(t.precioUsd) })),
+      // El precio de vuelta de cada clase sale de la ruta enlazada ('' = el mismo de la ida)
+      tarifas: (r.tarifas ?? []).map((t) => {
+        const pv = (rutas ?? []).find((x) => x.id === r.inversaId)?.tarifas?.find((v) => v.claseServicio === t.claseServicio)?.precioUsd;
+        return { claseServicio: t.claseServicio, precioUsd: String(t.precioUsd), precioVuelta: pv != null && pv !== t.precioUsd ? String(pv) : '' };
+      }),
       idaYVuelta: Boolean(r.idaYVuelta),
-      precioVuelta: (() => {
-        const vuelta = (rutas ?? []).find((x) => x.id === r.inversaId);
-        const pv = vuelta?.tarifas?.find((t) => t.claseServicio === 'estandar')?.precioUsd;
-        const pi = r.tarifas?.find((t) => t.claseServicio === 'estandar')?.precioUsd;
-        return pv != null && pv !== pi ? String(pv) : '';
-      })(),
     });
 
   // Abrir el modal de creación del tipo pedido (con integración, solo urbanas: las de viaje vienen del sistema de la línea)
@@ -249,10 +248,17 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
       sub: [r.codigo ? `Código ${r.codigo}` : '', r.idaYVuelta ? 'Ida y vuelta' : 'Solo ida'].filter(Boolean).join(' · '),
       medida: r.duracionMin ? duracion(r.duracionMin) : '—',
       precio: (() => {
-        const base = (r.tarifas ?? []).map((t) => (t.claseServicio === 'estandar' ? `$${t.precioUsd}` : `${t.claseServicio} $${t.precioUsd}`)).join(' · ') || '—';
-        const vuelta = r.idaYVuelta ? (rutas ?? []).find((x) => x.id === r.inversaId)?.tarifas?.find((t) => t.claseServicio === 'estandar')?.precioUsd : undefined;
-        const ida = r.tarifas?.find((t) => t.claseServicio === 'estandar')?.precioUsd;
-        return vuelta != null && vuelta !== ida ? `ida ${base} · vuelta $${vuelta}` : base;
+        // «$12» o «$12 / $10» (ida / vuelta) por clase
+        const vuelta = r.idaYVuelta ? (rutas ?? []).find((x) => x.id === r.inversaId)?.tarifas : undefined;
+        return (
+          (r.tarifas ?? [])
+            .map((t) => {
+              const pv = vuelta?.find((v) => v.claseServicio === t.claseServicio)?.precioUsd;
+              const monto = pv != null && pv !== t.precioUsd ? `$${t.precioUsd} / $${pv}` : `$${t.precioUsd}`;
+              return t.claseServicio === 'estandar' ? monto : `${NOMBRE_CLASE[t.claseServicio] ?? t.claseServicio} ${monto}`;
+            })
+            .join(' · ') || '—'
+        );
       })(),
       texto: `${r.codigo} ${r.origen} ${r.destino}`.toLowerCase(),
       editar: () => editar(r),

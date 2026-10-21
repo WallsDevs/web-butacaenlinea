@@ -12,11 +12,10 @@ export interface FormRuta {
   destino: string;
   duracionMin: string;
   distanciaKm: string;
-  tarifas: { claseServicio: string; precioUsd: string }[];
+  /** Precio por clase de asiento; `precioVuelta` es el de la vuelta si cambia ('' = el mismo de la ida). */
+  tarifas: { claseServicio: string; precioUsd: string; precioVuelta?: string }[];
   /** Ida y vuelta: una sola ruta; el sistema mantiene la vuelta y el sentido se elige al programar. */
   idaYVuelta: boolean;
-  /** Precio del pasaje de la vuelta si es distinto al de la ida ('' = el mismo). */
-  precioVuelta: string;
 }
 
 const CLASES = [
@@ -62,17 +61,13 @@ export function ModalRutaViaje({
   const origen = ciudadOficial(form.origen);
   const destino = ciudadOficial(form.destino);
   const precioIda = form.tarifas.find((t) => t.claseServicio === 'estandar')?.precioUsd ?? '';
-  const fijarPrecioIda = (v: string) =>
-    cambiar({
-      tarifas: form.tarifas.some((t) => t.claseServicio === 'estandar')
-        ? form.tarifas.map((t) => (t.claseServicio === 'estandar' ? { ...t, precioUsd: v } : t))
-        : [{ claseServicio: 'estandar', precioUsd: v }, ...form.tarifas],
-    });
+  // El pasaje base siempre es la primera fila; las clases especiales van debajo
+  const tarifas = form.tarifas.some((t) => t.claseServicio === 'estandar') ? form.tarifas : [{ claseServicio: 'estandar', precioUsd: '' }, ...form.tarifas];
+  const fijar = (i: number, cambios: Partial<FormRuta['tarifas'][number]>) => cambiar({ tarifas: tarifas.map((t, j) => (j === i ? { ...t, ...cambios } : t)) });
   const fijarDuracion = (h: string, m: string) => {
     const total = (Number(h) || 0) * 60 + (Number(m) || 0);
     cambiar({ duracionMin: total > 0 ? String(total) : '' });
   };
-  const especiales = form.tarifas.map((t, i) => ({ t, i })).filter(({ t }) => t.claseServicio !== 'estandar');
   const escritoSinLista = !avisoCiudades && [form.origen, form.destino].some((c) => c.trim() && !ciudadOficial(c));
   const listo = Boolean(origen && destino && Number(precioIda) > 0);
   const pista = !origen || !destino ? 'Elige el origen y el destino.' : !(Number(precioIda) > 0) ? 'Ponle precio al pasaje.' : null;
@@ -80,7 +75,9 @@ export function ModalRutaViaje({
   const tramoIda = origen && destino ? `${origen} → ${destino}` : 'Ida';
   const tramoVuelta = origen && destino ? `${destino} → ${origen}` : 'Vuelta';
   const duracion = duracionTexto(Number(form.duracionMin) || 0);
-  const vuelta = Number(form.precioVuelta) > 0 ? form.precioVuelta : precioIda;
+  const base = tarifas.find((t) => t.claseServicio === 'estandar');
+  const vuelta = Number(base?.precioVuelta) > 0 ? base!.precioVuelta! : precioIda;
+  const usadas = new Set(tarifas.map((t) => t.claseServicio));
 
   return (
     <div className={styles.panel} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label={form.documentId ? 'Editar ruta de viaje' : 'Nueva ruta'}>
@@ -105,7 +102,7 @@ export function ModalRutaViaje({
                 type="button"
                 className={`${styles.sentido} ${form.idaYVuelta ? styles.sentidoIdaVuelta : ''}`}
                 aria-pressed={form.idaYVuelta}
-                onClick={() => cambiar({ idaYVuelta: !form.idaYVuelta, precioVuelta: form.idaYVuelta ? '' : form.precioVuelta })}
+                onClick={() => cambiar({ idaYVuelta: !form.idaYVuelta })}
                 title={form.idaYVuelta ? 'Hace los dos sentidos: toca para que sea solo de ida' : 'Solo de ida: toca para que haga también la vuelta'}
               >
                 <span className={styles.flecha} aria-hidden>{form.idaYVuelta ? '⇄' : '→'}</span>
@@ -134,74 +131,74 @@ export function ModalRutaViaje({
           </div>
         </section>
 
-        {/* El precio, una fila por sentido; la vuelta repite el de la ida si no se cambia */}
+        {/* El precio: una fila por clase de asiento y una columna por sentido.
+            La vuelta repite el de la ida mientras no se escriba otro. */}
         <section className={styles.seccion}>
           <div className={styles.rotulo}>Precio del pasaje · USD</div>
-          <div className={styles.tarifa}>
-            <div className={styles.fila}>
-              <span className={styles.filaTramo}>
-                {tramoIda}
-                <span className={styles.filaSub}>Todos los puestos</span>
-              </span>
-              <label className={styles.monto}>
-                <span>$</span>
-                <input className={ui.fieldInput} type="number" min={0} placeholder="12" aria-label={`Precio ${tramoIda}`} value={precioIda} onChange={(e) => fijarPrecioIda(e.target.value)} />
-              </label>
+          <div className={`${styles.tarifa} ${form.idaYVuelta ? styles.tarifaDoble : ''}`}>
+            <div className={`${styles.fila} ${styles.filaCabeza}`}>
+              <span>Puestos</span>
+              <span title={tramoIda}>{form.idaYVuelta ? `Ida · ${origen ?? 'A'} →` : 'Precio'}</span>
+              {form.idaYVuelta && <span title={tramoVuelta}>Vuelta · {destino ?? 'B'} →</span>}
+              <span />
             </div>
-            {form.idaYVuelta && (
-              <div className={styles.fila}>
-                <span className={styles.filaTramo}>
-                  {tramoVuelta}
-                  <span className={styles.filaSub}>{Number(form.precioVuelta) > 0 ? 'Precio propio de la vuelta' : 'El mismo de la ida · escribe otro si cambia'}</span>
-                </span>
-                <label className={styles.monto}>
-                  <span>$</span>
-                  <input
-                    className={ui.fieldInput}
-                    type="number"
-                    min={0}
-                    placeholder={precioIda || '12'}
-                    aria-label={`Precio ${tramoVuelta}`}
-                    value={form.precioVuelta}
-                    onChange={(e) => cambiar({ precioVuelta: e.target.value })}
-                  />
-                </label>
-              </div>
-            )}
-            {especiales.map(({ t, i }) => (
-              <div key={i} className={styles.especial}>
-                <select
-                  className={ui.fieldInput}
-                  aria-label="Clase de asiento"
-                  value={t.claseServicio}
-                  onChange={(e) => cambiar({ tarifas: form.tarifas.map((x, j) => (j === i ? { ...x, claseServicio: e.target.value } : x)) })}
-                >
-                  <option value="">Clase de asiento…</option>
-                  {CLASES.map((c) => (
-                    <option key={c.valor} value={c.valor}>{c.nombre}</option>
-                  ))}
-                </select>
-                <label className={styles.monto}>
-                  <span>$</span>
-                  <input
-                    className={ui.fieldInput}
-                    type="number"
-                    min={0}
-                    aria-label="Precio de la clase"
-                    value={t.precioUsd}
-                    onChange={(e) => cambiar({ tarifas: form.tarifas.map((x, j) => (j === i ? { ...x, precioUsd: e.target.value } : x)) })}
-                  />
-                </label>
-                <button type="button" className={styles.quitar} aria-label="Quitar la clase" onClick={() => cambiar({ tarifas: form.tarifas.filter((_, j) => j !== i) })}>
-                  ✕
-                </button>
-              </div>
-            ))}
+            {tarifas.map((t, i) => {
+              const esBase = t.claseServicio === 'estandar';
+              const nombre = esBase ? 'Todos los puestos' : (CLASES.find((c) => c.valor === t.claseServicio)?.nombre ?? 'Clase especial');
+              return (
+                <div key={i} className={`${styles.fila} ${esBase ? '' : styles.filaEspecial}`}>
+                  {esBase ? (
+                    <span className={styles.filaTramo}>
+                      Todos los puestos
+                      <span className={styles.filaSub}>El pasaje normal</span>
+                    </span>
+                  ) : (
+                    <select className={ui.fieldInput} aria-label="Clase de asiento" value={t.claseServicio} onChange={(e) => fijar(i, { claseServicio: e.target.value })}>
+                      <option value="">Clase de asiento…</option>
+                      {CLASES.filter((c) => c.valor === t.claseServicio || !usadas.has(c.valor)).map((c) => (
+                        <option key={c.valor} value={c.valor}>{c.nombre}</option>
+                      ))}
+                    </select>
+                  )}
+                  <label className={styles.monto}>
+                    <span>$</span>
+                    <input className={ui.fieldInput} type="number" min={0} placeholder={esBase ? '12' : ''} aria-label={`${nombre}: precio de ida`} value={t.precioUsd} onChange={(e) => fijar(i, { precioUsd: e.target.value })} />
+                  </label>
+                  {form.idaYVuelta && (
+                    <label className={styles.monto}>
+                      <span>$</span>
+                      <input
+                        className={ui.fieldInput}
+                        type="number"
+                        min={0}
+                        placeholder={t.precioUsd || (esBase ? '12' : '')}
+                        title="Vacío = el mismo de la ida"
+                        aria-label={`${nombre}: precio de vuelta`}
+                        value={t.precioVuelta ?? ''}
+                        onChange={(e) => fijar(i, { precioVuelta: e.target.value })}
+                      />
+                    </label>
+                  )}
+                  {esBase ? (
+                    <span />
+                  ) : (
+                    <button type="button" className={styles.quitar} aria-label={`Quitar ${nombre}`} onClick={() => cambiar({ tarifas: tarifas.filter((_, j) => j !== i) })}>
+                      ✕
+                    </button>
+                  )}
+                </div>
+              );
+            })}
           </div>
-          <button type="button" className={styles.agregar} onClick={() => cambiar({ tarifas: [...form.tarifas, { claseServicio: '', precioUsd: '' }] })}>
-            + Precio para una clase especial (VIP, cama)
-          </button>
-          <div className={styles.nota}>Las unidades con clases especiales cobran su precio en esos puestos; el resto, el del pasaje.</div>
+          {CLASES.some((c) => !usadas.has(c.valor)) && (
+            <button type="button" className={styles.agregar} onClick={() => cambiar({ tarifas: [...tarifas, { claseServicio: '', precioUsd: '' }] })}>
+              + Precio para una clase especial (VIP, cama)
+            </button>
+          )}
+          <div className={styles.nota}>
+            Cada clase cobra su propio precio, no se suma al pasaje: solo en unidades que tengan esos puestos; el resto paga el pasaje normal.
+            {form.idaYVuelta && ' Si dejas la vuelta vacía, cobra lo mismo que la ida.'}
+          </div>
         </section>
       </div>
 

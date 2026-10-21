@@ -111,12 +111,26 @@
 }
 .fila {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 128px;
+  grid-template-columns: minmax(0, 1fr) 116px 28px;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   padding: 10px 12px 10px 16px;
 }
+.tarifaDoble .fila { grid-template-columns: minmax(0, 1fr) 116px 116px 28px; }
 .fila + .fila { border-top: 1px dashed var(--border); }
+.filaCabeza {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  background: var(--tint-50);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.filaCabeza span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.filaCabeza span:nth-child(2), .filaCabeza span:nth-child(3) { text-align: right; }
+.filaEspecial { background: var(--surface-alt, #f8fafc); }
 .filaTramo { font-size: 14px; font-weight: 600; min-width: 0; }
 .filaSub { display: block; font-size: 12px; font-weight: 500; color: var(--text-faint); margin-top: 1px; }
 .monto { position: relative; }
@@ -131,15 +145,9 @@
   pointer-events: none;
 }
 .monto input { padding-left: 26px; text-align: right; font-weight: 700; width: 100%; }
-.especial {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 128px 32px;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px 8px 16px;
-  border-top: 1px dashed var(--border);
-  background: var(--surface-alt, #f8fafc);
-}
+.monto input::placeholder { font-weight: 500; }
+.monto input { -moz-appearance: textfield; appearance: textfield; }
+.monto input::-webkit-outer-spin-button, .monto input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .quitar { color: var(--text-faint); font-weight: 700; cursor: pointer; font-size: 16px; }
 .quitar:hover { color: var(--bad-text); }
 .agregar {
@@ -167,6 +175,10 @@
   .conector { height: 36px; min-width: 0; }
   .conector::before { left: 50%; right: auto; top: 0; bottom: 0; border-top: none; border-left: 2px dashed var(--tint-300, #9fb6e4); }
   .datos { grid-template-columns: 1fr 1fr; }
+  .fila, .tarifaDoble .fila { gap: 6px; padding-left: 12px; padding-right: 8px; }
+  .fila { grid-template-columns: minmax(0, 1fr) 92px 24px; }
+  .tarifaDoble .fila { grid-template-columns: minmax(0, 1fr) 84px 84px 24px; }
+  .filaSub { display: none; }
   .pie { flex-wrap: wrap; }
   .resumen { flex-basis: 100%; }
   .pie > button { flex: 1; }
