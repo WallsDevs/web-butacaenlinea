@@ -84,6 +84,8 @@ export function MapaParadas({
   const capaParadas = useRef<L.LayerGroup | null>(null);
   const capaReferencias = useRef<L.LayerGroup | null>(null);
   const ajustado = useRef(false);
+  /** Encuadre pendiente hasta que el mapa tenga tamaño (el modal se anima al abrir). */
+  const pendiente = useRef<{ b: L.LatLngBounds; o: L.FitBoundsOptions } | null>(null);
 
   // Los callbacks cambian en cada render; el mapa se crea una sola vez
   const agregarRef = useRef(onAgregar);
@@ -106,10 +108,23 @@ export function MapaParadas({
       agregarRef.current?.(Number(e.latlng.lat.toFixed(6)), Number(e.latlng.lng.toFixed(6)));
     });
     mapaRef.current = mapa;
-    // El modal abre antes de que el div tenga tamaño real
-    const t = setTimeout(() => mapa.invalidateSize(), 120);
+    // Un mapa nuevo (también el segundo montaje de React en desarrollo) se encuadra de nuevo
+    ajustado.current = false;
+    pendiente.current = null;
+    // El modal abre antes de que el div tenga tamaño real: cada cambio de tamaño
+    // se le avisa al mapa, y el encuadre pendiente se hace cuando ya mide algo
+    const observador = new ResizeObserver(() => {
+      const el = divRef.current;
+      if (!el || !el.clientWidth || !el.clientHeight) return;
+      mapa.invalidateSize();
+      if (pendiente.current) {
+        mapa.fitBounds(pendiente.current.b, pendiente.current.o);
+        pendiente.current = null;
+      }
+    });
+    observador.observe(divRef.current!);
     return () => {
-      clearTimeout(t);
+      observador.disconnect();
       mapa.remove();
       mapaRef.current = null;
     };
@@ -170,18 +185,17 @@ export function MapaParadas({
     const mapa = mapaRef.current;
     if (ajustado.current || !mapa) return;
     const puntos = recorrido.length ? recorrido : paradas.map((p) => [p.lat, p.lng] as [number, number]);
-    // Tras el primer `invalidateSize`: antes el modal aún no tiene su tamaño y el encuadre sale corrido
+    // Si el mapa todavía no mide nada, el encuadre espera (si no, sale el país entero)
     const encuadrar = (b: L.LatLngBounds, opciones: L.FitBoundsOptions) => {
       ajustado.current = true;
-      setTimeout(() => {
-        // El modal pudo cerrarse (o cambiar a ruta de viaje) en el medio
-        if (mapaRef.current !== mapa) return;
+      const el = divRef.current;
+      if (el && el.clientWidth && el.clientHeight) {
         mapa.invalidateSize();
         mapa.fitBounds(b, opciones);
-      }, 160);
+      } else pendiente.current = { b, o: opciones };
     };
-    if (puntos.length > 1) encuadrar(L.latLngBounds(puntos), { padding: [40, 40] });
-    else if (!paradas.length && referencias.length) encuadrar(L.latLngBounds(referencias.map((r) => [r.lat, r.lng] as [number, number])), { padding: [60, 60], maxZoom: 15 });
+    if (puntos.length > 1) encuadrar(L.latLngBounds(puntos), { padding: [40, 40], animate: false });
+    else if (!paradas.length && referencias.length) encuadrar(L.latLngBounds(referencias.map((r) => [r.lat, r.lng] as [number, number])), { padding: [60, 60], maxZoom: 15, animate: false });
   }, [paradas, recorrido, referencias]);
 
   /** Lo que está en pantalla como zona de búsqueda: la ciudad, no el país. */
