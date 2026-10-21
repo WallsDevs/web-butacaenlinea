@@ -183,3 +183,25 @@ export function indiceParaInsertar(inicio: PuntoParada, puntos: [number, number]
   }
   return mejor;
 }
+
+/** El tramo cuya línea pasa más cerca de un punto (para meter ahí un punto de paso tocado en cualquier parte). */
+export function tramoMasCercano(segmentos: [number, number][][], punto: PuntoParada): number {
+  // Proyección plana local: suficiente dentro de una ciudad
+  const k = Math.cos((punto.lat * Math.PI) / 180);
+  const xy = ([lat, lng]: [number, number]) => [lng * k, lat] as const;
+  const [px, py] = xy([punto.lat, punto.lng]);
+  let mejor = 0;
+  let menor = Infinity;
+  segmentos.forEach((linea, i) => {
+    for (let j = 0; j < linea.length - 1; j++) {
+      const [ax, ay] = xy(linea[j]);
+      const [bx, by] = xy(linea[j + 1]);
+      const dx = bx - ax;
+      const dy = by - ay;
+      const t = dx || dy ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy))) : 0;
+      const d = (px - ax - t * dx) ** 2 + (py - ay - t * dy) ** 2;
+      if (d < menor) [menor, mejor] = [d, i];
+    }
+  });
+  return mejor;
+}

@@ -74,6 +74,7 @@ export function MapaParadas({
   onLinea,
   onMoverPaso,
   onQuitarPaso,
+  herramientas,
   alto = 560,
 }: {
   paradas: ParadaUrbana[];
@@ -98,6 +99,8 @@ export function MapaParadas({
   onLinea?: (tramo: number, lat: number, lng: number) => void;
   onMoverPaso?: (tramo: number, indice: number, lat: number, lng: number) => void;
   onQuitarPaso?: (tramo: number, indice: number) => void;
+  /** Controles junto al buscador (qué agrega el próximo toque). */
+  herramientas?: ReactNode;
   /** Alto fijo en px, o 0 para que ocupe todo el espacio disponible. */
   alto?: number;
 }) {
@@ -283,9 +286,9 @@ export function MapaParadas({
   return (
     <div className={styles.marco} style={alto ? { height: alto, minHeight: 0 } : { flex: 1, height: 'auto', minHeight: 0 }}>
       <div ref={divRef} className={styles.mapa} style={{ cursor: onAgregar ? 'crosshair' : 'grab' }} />
-      {onBuscar && (
+      {(onBuscar || herramientas) && (
         <div className={styles.arriba}>
-          <BuscadorSitios
+          {onBuscar && <BuscadorSitios
             modo="ciudad"
             zona={zona}
             etiqueta="Buscar un sitio en esta zona"
@@ -294,7 +297,8 @@ export function MapaParadas({
               mapaRef.current?.setView([l.lat, l.lng], Math.max(mapaRef.current.getZoom(), 16));
               onBuscar(l);
             }}
-          />
+          />}
+          {herramientas}
         </div>
       )}
       {(pista || referencias.length > 0) && (
