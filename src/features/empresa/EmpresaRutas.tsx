@@ -16,6 +16,7 @@ import { ApiError } from '../../lib/api/client';
 import { duracion } from '../../lib/time';
 import { Field } from '../../components/ui/Field';
 import { PillTabs } from '../../components/ui/PillTabs';
+import { SelectorCiudad } from '../../components/ui/SelectorCiudad';
 import { StatusChip } from '../../components/ui/StatusChip';
 import { Letrero } from '../../components/ui/Letrero';
 import { EditorRutaUrbana, nuevaFormUrbana, tramosDe, type FormUrbana } from '../urbano/EditorRutaUrbana';
@@ -63,7 +64,7 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
   const [form, setForm] = useState<FormRuta | null>(null);
   const [errorRutaViaje, setErrorRutaViaje] = useState<string | null>(null);
   // Ciudades comunes a todas las líneas: origen y destino se eligen de aquí
-  const { data: ciudades } = useQuery({ queryKey: ['ciudades'], queryFn: getCiudades, staleTime: 600_000 });
+  const { data: ciudades, error: errorCiudades } = useQuery({ queryKey: ['ciudades'], queryFn: getCiudades, staleTime: 600_000, retry: 1 });
   const ciudadOficial = (t: string) => (ciudades ?? []).find((c) => normalizar(c.nombre) === normalizar(t))?.nombre ?? null;
   const [tipo, setTipo] = useState<TipoRuta>('nacional');
   const [filtro, setFiltro] = useState<Filtro>('todas');
@@ -370,15 +371,16 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
             {!form.documentId && selectorTipo}
             <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr 1fr', gap: 12 }}>
               <Field label="Código" value={form.codigo} onChange={(e) => setForm({ ...form, codigo: e.target.value })} />
-              <Field label="Origen" list="ciudades-comunes" placeholder="Busca la ciudad" value={form.origen} onChange={(e) => setForm({ ...form, origen: e.target.value })} />
-              <Field label="Destino" list="ciudades-comunes" placeholder="Busca la ciudad" value={form.destino} onChange={(e) => setForm({ ...form, destino: e.target.value })} />
+              <SelectorCiudad label="Origen" valor={form.origen} ciudades={ciudades ?? []} excluir={ciudadOficial(form.destino) ?? undefined} onCambio={(v) => setForm((f) => (f ? { ...f, origen: v } : f))} />
+              <SelectorCiudad label="Destino" valor={form.destino} ciudades={ciudades ?? []} excluir={ciudadOficial(form.origen) ?? undefined} onCambio={(v) => setForm((f) => (f ? { ...f, destino: v } : f))} />
             </div>
-            <datalist id="ciudades-comunes">
-              {(ciudades ?? []).map((c) => (
-                <option key={c.id} value={c.nombre}>{c.estado ?? ''}</option>
-              ))}
-            </datalist>
-            {[form.origen, form.destino].some((c) => c.trim() && !ciudadOficial(c)) && (
+            {errorCiudades && (
+              <div style={{ fontSize: 12, color: 'var(--bad-text)', marginTop: 6 }}>
+                No se pudo cargar la lista de ciudades ({errorCiudades instanceof ApiError ? `${errorCiudades.status || 'sin conexión'} · ${errorCiudades.code}` : 'sin conexión'}).
+                {errorCiudades instanceof ApiError && errorCiudades.status === 404 ? ' El servidor todavía no tiene el catálogo de ciudades: hay que actualizar el API.' : ''}
+              </div>
+            )}
+            {!errorCiudades && [form.origen, form.destino].some((c) => c.trim() && !ciudadOficial(c)) && (
               <div style={{ fontSize: 12, color: 'var(--warn-text, #92400E)', marginTop: 6 }}>
                 Elige el origen y el destino de la lista: son las mismas ciudades para todas las líneas, así el pasajero encuentra tus pasajes.
               </div>
