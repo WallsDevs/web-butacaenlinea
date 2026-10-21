@@ -5,7 +5,7 @@ import 'leaflet/dist/leaflet.css';
 import { lugarEn, type Ciudad, type LugarMapa } from '../../lib/api/endpoints';
 import type { LugarRuta } from '../../lib/api/types';
 import { trazarPorCalles } from '../urbano/trazado';
-import styles from './MapaTrayecto.module.css';
+import styles from '../../components/ui/MarcoMapa.module.css';
 
 export type Punta = 'origen' | 'destino';
 /** Lo que se eligió en el mapa: la ciudad del catálogo y, si se marcó un sitio, el sitio exacto. */

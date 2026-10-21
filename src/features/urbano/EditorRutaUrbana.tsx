@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { MapaParadas } from './MapaParadas';
+import { MapaParadas, type Referencia } from './MapaParadas';
 import { MAX_PARADAS, trazarPorCalles } from './trazado';
 import { Field } from '../../components/ui/Field';
 import { ApiError } from '../../lib/api/client';
@@ -68,8 +68,11 @@ export function EditorRutaUrbana({
   guardando,
   onGuardar,
   onCancelar,
+  referencias,
 }: {
   inicial: FormUrbana;
+  /** Paradas de las otras rutas urbanas de la línea: puntos de referencia en el mapa. */
+  referencias?: Referencia[];
   /** Algo que va encima del título (p. ej. el selector Nacional / Urbana al crear). */
   cabecera?: ReactNode;
   /** Por qué no se pudo guardar, si pasó. */
@@ -274,15 +277,18 @@ export function EditorRutaUrbana({
               onAgregar={agregar}
               onMover={mover}
               onBuscar={agregarSitio}
+              referencias={referencias}
+              pista={
+                paradas.length === 0
+                  ? referencias?.length
+                    ? 'Busca un sitio, toca el mapa o una parada de tus otras rutas (los puntos) para arrancar.'
+                    : 'Busca un sitio o toca el mapa donde arranca la ruta.'
+                  : paradas.length === 1
+                    ? 'Ahora busca o toca la siguiente parada.'
+                    : 'Busca o toca para agregar otra parada · arrastra las marcas para corregir.'
+              }
               alto={0}
             />
-            <div style={estilos.piePista}>
-              {paradas.length === 0
-                ? 'Busca un sitio o toca el mapa donde arranca la ruta.'
-                : paradas.length === 1
-                  ? 'Ahora busca o toca la siguiente parada.'
-                  : `Busca o toca para agregar otra parada · arrastra los marcadores para corregir`}
-            </div>
           </div>
 
           <div style={estilos.columnaLado}>
@@ -613,7 +619,6 @@ const estilos: Record<string, React.CSSProperties> = {
   },
   cuerpo: { flex: 1, display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 400px', minHeight: 0 },
   columnaMapa: { display: 'flex', flexDirection: 'column', minWidth: 0, padding: 18, gap: 10 },
-  piePista: { fontSize: 13, color: 'var(--text-soft)' },
   columnaLado: {
     borderLeft: '1px solid var(--divider)',
     padding: 18,

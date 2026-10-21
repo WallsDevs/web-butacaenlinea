@@ -19,6 +19,8 @@ import { ModalRutaViaje, type FormRuta } from './ModalRutaViaje';
 import { StatusChip } from '../../components/ui/StatusChip';
 import { Letrero } from '../../components/ui/Letrero';
 import { EditorRutaUrbana, nuevaFormUrbana, tramosDe, type FormUrbana } from '../urbano/EditorRutaUrbana';
+import type { Referencia } from '../urbano/MapaParadas';
+import type { RutaUrbanaDto } from '../../lib/api/endpoints';
 import type { RutaDto } from '../../lib/api/types';
 import ui from '../../components/ui/ui.module.css';
 import styles from '../flota/flota.module.css';
@@ -41,6 +43,23 @@ const NUEVA: FormRuta = {
 const normalizar = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
 
 const NOMBRE_CLASE: Record<string, string> = { semicama: 'Semicama', vip: 'VIP Cama', cama_ejecutivo: 'Cama Ejecutivo' };
+
+/** Las paradas de las otras rutas urbanas de la línea, juntas si están en el mismo sitio. */
+function referenciasUrbanas(urbanas: RutaUrbanaDto[], actual: string | null): Referencia[] {
+  const porSitio = new Map<string, Referencia>();
+  for (const u of urbanas) {
+    if (u.documentId === actual) continue;
+    for (const p of u.paradas ?? []) {
+      if (p.lat == null || p.lng == null) continue;
+      const clave = `${p.lat.toFixed(4)},${p.lng.toFixed(4)}`;
+      const r = porSitio.get(clave);
+      if (r) {
+        if (!r.rutas.includes(u.nombre)) r.rutas.push(u.nombre);
+      } else porSitio.set(clave, { nombre: p.nombre || 'Parada', lat: p.lat, lng: p.lng, rutas: [u.nombre] });
+    }
+  }
+  return [...porSitio.values()];
+}
 
 type TipoRuta = 'nacional' | 'urbana';
 type Filtro = 'todas' | 'nacionales' | 'urbanas';
@@ -382,6 +401,7 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
       {formUrbana && (
         <EditorRutaUrbana
           inicial={formUrbana}
+          referencias={referenciasUrbanas(urbanas ?? [], formUrbana.documentId)}
           cabecera={!formUrbana.documentId ? selectorTipo : undefined}
           error={errorUrbana}
           guardando={guardarUrbana.isPending}

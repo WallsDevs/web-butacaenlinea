@@ -1,4 +1,4 @@
-/* Mapa del trayecto dentro del modal de ruta */
+/* Marco común de los mapas de los editores de rutas (viaje y urbana): mismas marcas, mismo buscador, misma pista */
 .marco {
   position: relative;
   height: 100%;
@@ -105,6 +105,19 @@
   font: 800 13px/1 'Space Grotesk', system-ui, sans-serif;
 }
 .pinActivo { background: var(--blue-600, #2563EB); }
+/* Parada del medio (ruta urbana): círculo numerado, más chico que las puntas */
+.pinMedio {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--blue-600, #2563EB);
+  border: 3px solid #fff;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.35);
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font: 800 12px/1 'Space Grotesk', system-ui, sans-serif;
+}
 
 @media (max-width: 640px) {
   .marco { height: 360px; }
