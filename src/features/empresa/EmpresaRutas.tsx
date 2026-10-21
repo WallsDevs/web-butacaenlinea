@@ -14,9 +14,8 @@ import {
 import { useAuth } from '../../stores/auth';
 import { ApiError } from '../../lib/api/client';
 import { duracion } from '../../lib/time';
-import { Field } from '../../components/ui/Field';
 import { PillTabs } from '../../components/ui/PillTabs';
-import { SelectorCiudad } from '../../components/ui/SelectorCiudad';
+import { ModalRutaViaje, type FormRuta } from './ModalRutaViaje';
 import { StatusChip } from '../../components/ui/StatusChip';
 import { Letrero } from '../../components/ui/Letrero';
 import { EditorRutaUrbana, nuevaFormUrbana, tramosDe, type FormUrbana } from '../urbano/EditorRutaUrbana';
@@ -24,19 +23,6 @@ import type { RutaDto } from '../../lib/api/types';
 import ui from '../../components/ui/ui.module.css';
 import styles from '../flota/flota.module.css';
 
-interface FormRuta {
-  documentId: string | null;
-  codigo: string;
-  origen: string;
-  destino: string;
-  duracionMin: string;
-  distanciaKm: string;
-  tarifas: { claseServicio: string; precioUsd: string }[];
-  /** Ida y vuelta: una sola ruta; el sistema mantiene la vuelta y el sentido se elige al programar. */
-  idaYVuelta: boolean;
-  /** Precio del pasaje de la vuelta si es distinto al de la ida ('' = el mismo). */
-  precioVuelta: string;
-}
 
 const NUEVA: FormRuta = {
   documentId: null,
@@ -391,137 +377,31 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
 
       {form && (
         <div className={styles.velo}>
-          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ fontSize: 20, fontWeight: 700, marginBottom: 16 }}>
-              {form.documentId ? 'Editar ruta de viaje' : 'Nueva ruta'}
-            </h3>
-            {!form.documentId && selectorTipo}
-            <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr 1fr', gap: 12 }}>
-              <Field label="Código" value={form.codigo} onChange={(e) => setForm({ ...form, codigo: e.target.value })} />
-              <SelectorCiudad label="Origen" valor={form.origen} ciudades={ciudades ?? []} excluir={ciudadOficial(form.destino) ?? undefined} onCambio={(v) => setForm((f) => (f ? { ...f, origen: v } : f))} />
-              <SelectorCiudad label="Destino" valor={form.destino} ciudades={ciudades ?? []} excluir={ciudadOficial(form.origen) ?? undefined} onCambio={(v) => setForm((f) => (f ? { ...f, destino: v } : f))} />
-            </div>
-            {errorCiudades && (
-              <div style={{ fontSize: 12, color: 'var(--bad-text)', marginTop: 6 }}>
-                No se pudo cargar la lista de ciudades ({errorCiudades instanceof ApiError ? `${errorCiudades.status || 'sin conexión'} · ${errorCiudades.code}` : 'sin conexión'}).
-                {errorCiudades instanceof ApiError && errorCiudades.status === 404 ? ' El servidor todavía no tiene el catálogo de ciudades: hay que actualizar el API.' : ''}{' '}
-                <button type="button" onClick={() => void recargarCiudades()} disabled={cargandoCiudades} style={{ fontWeight: 700, color: 'var(--blue-600)', cursor: 'pointer' }}>
-                  {cargandoCiudades ? 'Reintentando…' : 'Reintentar'}
-                </button>
-              </div>
-            )}
-            {!errorCiudades && [form.origen, form.destino].some((c) => c.trim() && !ciudadOficial(c)) && (
-              <div style={{ fontSize: 12, color: 'var(--warn-text, #92400E)', marginTop: 6 }}>
-                Elige el origen y el destino de la lista: son las mismas ciudades para todas las líneas, así el pasajero encuentra tus pasajes.
-              </div>
-            )}
-            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 12, fontSize: 14, cursor: 'pointer' }}>
-              <input type="checkbox" checked={form.idaYVuelta} onChange={(e) => setForm({ ...form, idaYVuelta: e.target.checked })} style={{ marginTop: 3 }} />
-              <span>
-                Ida y vuelta{ciudadOficial(form.origen) && ciudadOficial(form.destino) ? ` (${ciudadOficial(form.origen)} ⇄ ${ciudadOficial(form.destino)})` : ''}
-                <span style={{ display: 'block', fontSize: 12, color: 'var(--text-soft)' }}>
-                  Una sola ruta para los dos sentidos; eliges el sentido al programar cada salida. La vuelta puede tener su propio precio.
-                </span>
-              </span>
-            </label>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }}>
-              <Field label="Duración (min)" type="number" value={form.duracionMin} onChange={(e) => setForm({ ...form, duracionMin: e.target.value })} />
-              <Field label="Distancia (km)" type="number" value={form.distanciaKm} onChange={(e) => setForm({ ...form, distanciaKm: e.target.value })} />
-            </div>
-            {/* Un precio para el pasaje; las clases especiales (VIP, cama) son opcionales. Ningún bus aquí. */}
-            <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <Field
-                label="Precio del pasaje (USD)"
-                type="number"
-                placeholder="12"
-                value={form.tarifas.find((t) => t.claseServicio === 'estandar')?.precioUsd ?? ''}
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    tarifas: form.tarifas.some((t) => t.claseServicio === 'estandar')
-                      ? form.tarifas.map((t) => (t.claseServicio === 'estandar' ? { ...t, precioUsd: e.target.value } : t))
-                      : [{ claseServicio: 'estandar', precioUsd: e.target.value }, ...form.tarifas],
-                  })
-                }
-              />
-              {form.idaYVuelta && (
-                <div>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, marginBottom: 6, cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      checked={form.precioVuelta !== ''}
-                      onChange={(e) => setForm({ ...form, precioVuelta: e.target.checked ? form.tarifas.find((t) => t.claseServicio === 'estandar')?.precioUsd || '0' : '' })}
-                    />
-                    La vuelta cuesta distinto
-                  </label>
-                  {form.precioVuelta !== '' && (
-                    <Field
-                      label={`Vuelta${ciudadOficial(form.destino) && ciudadOficial(form.origen) ? ` (${ciudadOficial(form.destino)} → ${ciudadOficial(form.origen)})` : ''} · USD`}
-                      type="number"
-                      value={form.precioVuelta === '0' ? '' : form.precioVuelta}
-                      onChange={(e) => setForm({ ...form, precioVuelta: e.target.value || '0' })}
-                    />
-                  )}
-                </div>
-              )}
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--text-faint)', marginTop: 6 }}>
-              Vale para todos los puestos. Si alguna unidad tiene clases especiales (VIP, cama), ponles su precio aquí abajo; las demás cobran el del pasaje.
-            </div>
-            <div style={{ marginTop: 10 }}>
-              {form.tarifas.map((t, i) => t.claseServicio === 'estandar' ? null : (
-                <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 120px 36px', gap: 8, marginBottom: 8 }}>
-                  <select
-                    className={ui.fieldInput}
-                    value={t.claseServicio}
-                    onChange={(e) =>
-                      setForm({ ...form, tarifas: form.tarifas.map((x, j) => (j === i ? { ...x, claseServicio: e.target.value } : x)) })
-                    }
-                  >
-                    <option value="">Clase de asiento…</option>
-                    <option value="semicama">Semicama</option>
-                    <option value="vip">VIP Cama</option>
-                    <option value="cama_ejecutivo">Cama Ejecutivo</option>
-                  </select>
-                  <input
-                    className={ui.fieldInput}
-                    placeholder="USD"
-                    type="number"
-                    value={t.precioUsd}
-                    onChange={(e) =>
-                      setForm({ ...form, tarifas: form.tarifas.map((x, j) => (j === i ? { ...x, precioUsd: e.target.value } : x)) })
-                    }
-                  />
-                  <button
-                    style={{ color: 'var(--bad-text)', fontWeight: 700 }}
-                    onClick={() => setForm({ ...form, tarifas: form.tarifas.filter((_, j) => j !== i) })}
-                  >
-                    ×
+          <ModalRutaViaje
+            form={form}
+            setForm={setForm}
+            ciudades={ciudades ?? []}
+            ciudadOficial={ciudadOficial}
+            selectorTipo={!form.documentId ? selectorTipo : undefined}
+            error={errorRutaViaje}
+            guardando={guardar.isPending}
+            onCancelar={() => {
+              setForm(null);
+              setErrorRutaViaje(null);
+            }}
+            onGuardar={() => guardar.mutate(form)}
+            avisoCiudades={
+              errorCiudades ? (
+                <div style={{ fontSize: 12, color: 'var(--bad-text)' }}>
+                  No se pudo cargar la lista de ciudades ({errorCiudades instanceof ApiError ? `${errorCiudades.status || 'sin conexión'} · ${errorCiudades.code}` : 'sin conexión'}).
+                  {errorCiudades instanceof ApiError && errorCiudades.status === 404 ? ' El servidor todavía no tiene el catálogo de ciudades: hay que actualizar el API.' : ''}{' '}
+                  <button type="button" onClick={() => void recargarCiudades()} disabled={cargandoCiudades} style={{ fontWeight: 700, color: 'var(--blue-600)', cursor: 'pointer' }}>
+                    {cargandoCiudades ? 'Reintentando…' : 'Reintentar'}
                   </button>
                 </div>
-              ))}
-              <button
-                className={ui.btnGhost}
-                style={{ fontSize: 13 }}
-                onClick={() => setForm({ ...form, tarifas: [...form.tarifas, { claseServicio: '', precioUsd: '' }] })}
-              >
-                + Precio para una clase especial
-              </button>
-            </div>
-            {errorRutaViaje && <div style={{ fontSize: 13, color: 'var(--bad-text)', marginTop: 14 }}>{errorRutaViaje}</div>}
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 18 }}>
-              <button className={ui.btnSecondary} onClick={() => { setForm(null); setErrorRutaViaje(null); }}>
-                Cancelar
-              </button>
-              <button
-                className={ui.btnPrimary}
-                disabled={!ciudadOficial(form.destino) || !ciudadOficial(form.origen) || guardar.isPending}
-                onClick={() => guardar.mutate(form)}
-              >
-                {guardar.isPending ? 'Guardando…' : 'Guardar ruta'}
-              </button>
-            </div>
-          </div>
+              ) : undefined
+            }
+          />
         </div>
       )}
     </div>

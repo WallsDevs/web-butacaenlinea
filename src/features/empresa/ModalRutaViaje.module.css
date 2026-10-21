@@ -1,0 +1,176 @@
+/* Modal de ruta de viaje: se lee como un boleto que se va llenando */
+.panel {
+  width: 620px;
+  max-width: 100%;
+  max-height: calc(100dvh - 32px);
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border-radius: var(--r-20);
+  box-shadow: var(--shadow-elevated);
+  overflow: hidden;
+}
+.cabecera {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 22px 24px 0;
+}
+.titulo { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
+.cerrar {
+  margin-left: auto;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  color: var(--text-soft);
+  background: var(--pill-bg, #EEF2F9);
+  cursor: pointer;
+  flex: none;
+}
+.cerrar:hover { color: var(--text); }
+.cuerpo {
+  padding: 16px 24px 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.seccion { display: flex; flex-direction: column; gap: 10px; }
+.rotulo {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.nota { font-size: 12px; color: var(--text-soft); line-height: 1.45; }
+.aviso { font-size: 12px; color: var(--warn-text, #92400E); line-height: 1.45; }
+.error { font-size: 12px; color: var(--bad-text); line-height: 1.45; }
+
+/* ── El trayecto: origen ─ interruptor ─ destino ─────────────────── */
+.trayecto {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: end;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--tint-50);
+}
+.conector {
+  position: relative;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  min-width: 124px;
+}
+.conector::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  border-top: 2px dashed var(--tint-300, #9fb6e4);
+}
+.sentido {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+  border: 1.5px solid var(--navy);
+  background: var(--surface);
+  color: var(--navy);
+  transition: background 0.15s, color 0.15s;
+}
+.sentidoIdaVuelta { background: var(--navy); color: #fff; }
+.sentido:focus-visible { outline: 2px solid var(--blue-600); outline-offset: 2px; }
+.flecha { font-size: 15px; line-height: 1; }
+
+/* ── Tiempo y datos ──────────────────────────────────────────────── */
+.datos {
+  display: grid;
+  grid-template-columns: 84px 84px minmax(0, 1fr) minmax(0, 1fr);
+  gap: 10px;
+  align-items: end;
+}
+
+/* ── Precio: una fila por sentido, como la tarifa de un boleto ───── */
+.tarifa {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+.fila {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 128px;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px 10px 16px;
+}
+.fila + .fila { border-top: 1px dashed var(--border); }
+.filaTramo { font-size: 14px; font-weight: 600; min-width: 0; }
+.filaSub { display: block; font-size: 12px; font-weight: 500; color: var(--text-faint); margin-top: 1px; }
+.monto { position: relative; }
+.monto span {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-faint);
+  pointer-events: none;
+}
+.monto input { padding-left: 26px; text-align: right; font-weight: 700; width: 100%; }
+.especial {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 128px 32px;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px 8px 16px;
+  border-top: 1px dashed var(--border);
+  background: var(--surface-alt, #f8fafc);
+}
+.quitar { color: var(--text-faint); font-weight: 700; cursor: pointer; font-size: 16px; }
+.quitar:hover { color: var(--bad-text); }
+.agregar {
+  align-self: flex-start;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--blue-600);
+  cursor: pointer;
+}
+
+/* ── Pie fijo: resumen y acciones ────────────────────────────────── */
+.pie {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 24px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+.resumen { min-width: 0; flex: 1; font-size: 13px; color: var(--text-soft); line-height: 1.35; }
+.resumen strong { color: var(--text); font-weight: 700; }
+
+@media (max-width: 640px) {
+  .trayecto { grid-template-columns: minmax(0, 1fr); }
+  .conector { height: 36px; min-width: 0; }
+  .conector::before { left: 50%; right: auto; top: 0; bottom: 0; border-top: none; border-left: 2px dashed var(--tint-300, #9fb6e4); }
+  .datos { grid-template-columns: 1fr 1fr; }
+  .pie { flex-wrap: wrap; }
+  .resumen { flex-basis: 100%; }
+  .pie > button { flex: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sentido { transition: none; }
+}
