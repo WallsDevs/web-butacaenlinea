@@ -220,11 +220,10 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
   }, [abrirNueva]);
 
   // El selector de tipo va arriba del formulario, solo al crear
+  // Compacto, en la misma fila del título: el mapa se lleva el alto
   const selectorTipo = (
-    <div style={{ marginBottom: 16 }}>
-      <div className={ui.fieldLabel} style={{ marginBottom: 6 }}>Tipo de ruta</div>
-      {/* Dos mitades iguales, como un interruptor: se ve igual de bien en el modal angosto y en el editor ancho */}
-      <div role="tablist" aria-label="Tipo de ruta" style={{ display: 'grid', gridTemplateColumns: integracionActiva ? '1fr' : '1fr 1fr', gap: 4, padding: 4, borderRadius: 12, background: 'var(--pill-bg, #EEF2F9)', maxWidth: 380 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+      <div role="tablist" aria-label="Tipo de ruta" style={{ display: 'inline-flex', gap: 2, padding: 3, borderRadius: 10, background: 'var(--pill-bg, #EEF2F9)', flex: 'none' }}>
         {([...(integracionActiva ? [] : [['nacional', 'Nacional']]), ['urbana', 'Urbana']] as [TipoRuta, string][]).map(([id, etiqueta]) => (
           <button
             key={id}
@@ -233,9 +232,9 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
             aria-selected={tipo === id}
             onClick={() => abrirNuevo(id)}
             style={{
-              padding: '10px 14px',
-              borderRadius: 9,
-              fontSize: 14,
+              padding: '6px 16px',
+              borderRadius: 8,
+              fontSize: 13,
               fontWeight: 700,
               color: tipo === id ? 'var(--blue-700)' : 'var(--text-soft)',
               background: tipo === id ? 'var(--surface)' : 'transparent',
@@ -248,11 +247,9 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
           </button>
         ))}
       </div>
-      <div style={{ fontSize: 13, color: 'var(--text-soft)', marginTop: 8 }}>
-        {tipo === 'nacional'
-          ? 'Entre ciudades: asientos numerados, salidas programadas y precio del pasaje en dólares.'
-          : 'Dentro de la ciudad: tarifa plana en bolívares y pago escaneando el QR de la buseta. Sin asientos ni salidas.'}
-      </div>
+      <span style={{ fontSize: 12, color: 'var(--text-faint)', lineHeight: 1.35, minWidth: 0 }} className="solo-ancho">
+        {tipo === 'nacional' ? 'Entre ciudades · asientos y salidas · USD' : 'Dentro de la ciudad · pago con QR · Bs'}
+      </span>
     </div>
   );
 

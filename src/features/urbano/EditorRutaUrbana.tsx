@@ -317,19 +317,24 @@ export function EditorRutaUrbana({
     <div className={ui.velo ?? ''} style={estilos.velo}>
       <div style={estilos.panel} onClick={(e) => e.stopPropagation()}>
         <div style={estilos.cabecera}>
+          <h3 style={{ fontSize: 19, fontWeight: 700, letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>
+            {form.documentId ? 'Editar ruta urbana' : 'Nueva ruta'}
+          </h3>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <h3 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>
-              {form.documentId ? 'Editar ruta urbana' : 'Nueva ruta'}
-            </h3>
-            {cabecera ? <div style={{ marginTop: 12 }}>{cabecera}</div> : (
-              <p style={{ fontSize: 13, color: 'var(--text-soft)', marginTop: 4 }}>
-                Marca el origen, las paradas del camino y el destino. El recorrido por las calles
-                se calcula solo.
+            {cabecera ?? (
+              <p style={{ fontSize: 12, color: 'var(--text-faint)' }}>
+                Marca el origen, las paradas y el destino; el recorrido por las calles se calcula solo.
               </p>
             )}
           </div>
-          <button className={ui.btnSecondary} onClick={onCancelar} style={{ fontSize: 14 }}>
-            Cerrar
+          {/* La misma ✕ que el editor de rutas de viaje */}
+          <button
+            type="button"
+            onClick={onCancelar}
+            aria-label="Cerrar"
+            style={{ width: 34, height: 34, borderRadius: 10, display: 'grid', placeItems: 'center', color: 'var(--text-soft)', background: 'var(--pill-bg, #EEF2F9)', cursor: 'pointer', flex: 'none' }}
+          >
+            ✕
           </button>
         </div>
 
@@ -713,14 +718,15 @@ const estilos: Record<string, React.CSSProperties> = {
     background: 'rgba(11,42,107,0.45)',
     display: 'grid',
     placeItems: 'center',
-    padding: 20,
+    padding: 12,
     zIndex: 1000,
   },
   panel: {
     background: 'var(--surface)',
     borderRadius: 22,
-    width: 'min(1320px, 100%)',
-    height: 'min(860px, 92vh)',
+    // Casi toda la pantalla: el mapa es la herramienta
+    width: 'min(1600px, 100%)',
+    height: 'calc(100dvh - 24px)',
     display: 'flex',
     flexDirection: 'column',
     overflow: 'hidden',
@@ -728,13 +734,13 @@ const estilos: Record<string, React.CSSProperties> = {
   },
   cabecera: {
     display: 'flex',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: 16,
-    padding: '22px 26px 16px',
+    padding: '12px 18px',
     borderBottom: '1px solid var(--divider)',
   },
   cuerpo: { flex: 1, display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 400px', minHeight: 0 },
-  columnaMapa: { display: 'flex', flexDirection: 'column', minWidth: 0, padding: 18, gap: 10 },
+  columnaMapa: { display: 'flex', flexDirection: 'column', minWidth: 0, padding: 10 },
   columnaLado: {
     borderLeft: '1px solid var(--divider)',
     padding: 18,

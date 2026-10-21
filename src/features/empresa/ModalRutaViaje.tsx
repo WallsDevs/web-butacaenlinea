@@ -96,10 +96,8 @@ export function ModalRutaViaje({
   return (
     <div className={styles.panel} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label={form.documentId ? 'Editar ruta de viaje' : 'Nueva ruta'}>
       <div className={styles.cabecera}>
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div className={styles.titulo}>{form.documentId ? 'Editar ruta de viaje' : 'Nueva ruta'}</div>
-          {selectorTipo && <div style={{ marginTop: 12 }}>{selectorTipo}</div>}
-        </div>
+        <div className={styles.titulo}>{form.documentId ? 'Editar ruta de viaje' : 'Nueva ruta'}</div>
+        <div style={{ minWidth: 0, flex: 1 }}>{selectorTipo}</div>
         <button type="button" className={styles.cerrar} onClick={onCancelar} aria-label="Cerrar">
           ✕
         </button>

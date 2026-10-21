@@ -1,8 +1,9 @@
 /* Modal de ruta de viaje: se lee como un boleto que se va llenando */
 .panel {
   /* Como el editor urbano: el mapa manda, el formulario al lado */
-  width: min(1240px, 100%);
-  height: min(860px, calc(100dvh - 32px));
+  width: min(1600px, 100%);
+  /* El fondo deja 24px a cada lado en escritorio */
+  height: calc(100dvh - 48px);
   display: flex;
   flex-direction: column;
   background: var(--surface);
@@ -12,12 +13,12 @@
 }
 .cabecera {
   display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 20px 24px 16px;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 18px;
   border-bottom: 1px solid var(--divider, var(--border));
 }
-.titulo { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
+.titulo { font-size: 19px; font-weight: 700; letter-spacing: -0.02em; white-space: nowrap; }
 .cerrar {
   margin-left: auto;
   width: 34px;
@@ -37,7 +38,7 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) 440px;
 }
-.columnaMapa { display: flex; flex-direction: column; min-width: 0; padding: 16px; }
+.columnaMapa { display: flex; flex-direction: column; min-width: 0; padding: 10px; }
 .columnaLado {
   border-left: 1px solid var(--divider, var(--border));
   padding: 18px 20px 22px;
