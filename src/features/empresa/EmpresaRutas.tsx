@@ -49,14 +49,17 @@ function referenciasUrbanas(urbanas: RutaUrbanaDto[], actual: string | null): Re
   const porSitio = new Map<string, Referencia>();
   for (const u of urbanas) {
     if (u.documentId === actual) continue;
-    for (const p of u.paradas ?? []) {
-      if (p.lat == null || p.lng == null) continue;
+    const lista = u.paradas ?? [];
+    lista.forEach((p, i) => {
+      if (p.lat == null || p.lng == null) return;
       const clave = `${p.lat.toFixed(4)},${p.lng.toFixed(4)}`;
+      const terminal = i === 0 || i === lista.length - 1;
       const r = porSitio.get(clave);
       if (r) {
         if (!r.rutas.includes(u.nombre)) r.rutas.push(u.nombre);
-      } else porSitio.set(clave, { nombre: p.nombre || 'Parada', lat: p.lat, lng: p.lng, rutas: [u.nombre] });
-    }
+        r.terminal ||= terminal;
+      } else porSitio.set(clave, { nombre: p.nombre || 'Parada', lat: p.lat, lng: p.lng, rutas: [u.nombre], terminal });
+    });
   }
   return [...porSitio.values()];
 }

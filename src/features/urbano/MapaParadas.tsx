@@ -15,6 +15,17 @@ export interface Referencia {
   lng: number;
   /** Las rutas que ya paran ahí. */
   rutas: string[];
+  /** Arranca o termina alguna ruta ahí. */
+  terminal?: boolean;
+}
+
+/** Con más paradas que esto, solo se muestran las principales (como las ciudades en el mapa de viaje). */
+const MAX_REFERENCIAS = 25;
+
+/** Las referencias que se dibujan: todas si son pocas; si no, donde arrancan o terminan rutas y donde paran varias. */
+export function referenciasVisibles(refs: Referencia[]): Referencia[] {
+  if (refs.length <= MAX_REFERENCIAS) return refs;
+  return refs.filter((r) => r.terminal || r.rutas.length > 1);
 }
 
 /**
@@ -121,7 +132,7 @@ export function MapaParadas({
     if (!capa) return;
     capa.clearLayers();
     const usada = (r: Referencia) => paradas.some((p) => Math.abs(p.lat - r.lat) < 1e-5 && Math.abs(p.lng - r.lng) < 1e-5);
-    for (const r of referencias) {
+    for (const r of referenciasVisibles(referencias)) {
       if (usada(r)) continue;
       L.circleMarker([r.lat, r.lng], { radius: 5, color: '#fff', weight: 1.5, fillColor: '#0B2A6B', fillOpacity: 0.55 })
         .bindTooltip(`<strong>${escapar(r.nombre)}</strong><br><span style="opacity:.7">${escapar(r.rutas.join(' · '))}</span>`, { direction: 'top', offset: [0, -4] })
@@ -196,9 +207,14 @@ export function MapaParadas({
           />
         </div>
       )}
-      {pista && (
+      {(pista || referencias.length > 0) && (
         <div className={styles.abajo} aria-live="polite">
-          <span>{pista}</span>
+          {referencias.length > 0 && (
+            <span className={styles.leyenda}>
+              <i aria-hidden /> {referencias.length > MAX_REFERENCIAS ? 'Paradas principales de tus otras rutas' : 'Paradas de tus otras rutas'}
+            </span>
+          )}
+          {pista && <span>{pista}</span>}
         </div>
       )}
     </div>
