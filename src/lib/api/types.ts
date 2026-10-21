@@ -81,6 +81,14 @@ export interface SalidaDto {
   preciosUsd: Record<string, number>;
   /** El bus viaja sin pasajeros (p. ej. regreso vacío): no se vende. */
   sinPasajeros?: boolean;
+  /** Salidas programadas juntas (calendario o semanal) comparten serie. */
+  serieId?: string | null;
+  /** Conductor asignado; opcional hasta el momento de salir. */
+  chofer?: { documentId: string; nombre: string | null } | null;
+  /** Puestos del bus (0 sin bus: no se vende hasta tenerlo). */
+  capacidad?: number;
+  /** Puestos vendidos o apartados (solo lo ve la línea). */
+  vendidos?: number;
   ruta?: RutaDto;
   unidad?: UnidadResumenDto;
   linea?: { documentId: string; nombre: string; slug: string };

@@ -276,13 +276,27 @@ export const bloquearUsuarioEmpresa = (id: number, bloqueado: boolean) =>
 
 export const programarSalida = (datos: {
   rutaId: string;
-  unidadId: string;
+  /** Opcional: sin bus la salida no se vende hasta asignarle uno. */
+  unidadId?: string;
   choferId?: string;
   fechaHoraSalida: string;
   rampa?: string;
   /** Regreso vacío u otro viaje sin pasajeros: no sale a la venta. */
   sinPasajeros?: boolean;
 }) => api<{ documentId: string }>('/api/empresa/salidas', { method: 'POST', body: datos });
+
+/** Varias salidas de una vez (todo o nada); el bus y el conductor valen para todas. */
+export const programarSerie = (datos: {
+  salidas: { rutaId: string; fechaHoraSalida: string; sinPasajeros?: boolean }[];
+  unidadId?: string;
+  choferId?: string;
+  rampa?: string;
+  sinPasajeros?: boolean;
+}) => api<{ serieId: string; creadas: number; documentIds: string[] }>('/api/empresa/salidas/serie', { method: 'POST', body: datos });
+
+/** Cambia el bus o el conductor de una salida (`null` lo quita). */
+export const reasignarSalida = (documentId: string, cambios: { unidadId?: string | null; choferId?: string | null }) =>
+  api<SalidaDto>(`/api/empresa/salidas/${documentId}/asignacion`, { method: 'PUT', body: cambios });
 
 /** Ciudades comunes a todas las líneas: el origen y el destino de las rutas salen de aquí. */
 export interface Ciudad {

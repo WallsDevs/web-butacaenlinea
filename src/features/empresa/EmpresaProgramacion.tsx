@@ -18,6 +18,8 @@ export default function EmpresaProgramacion() {
   const activa: Pestana = !conSalidas || params.get('tab') === 'rutas' ? 'rutas' : 'salidas';
   // Cada clic en «Nueva ruta» (cabecera) abre el modal de Rutas; el contador es la señal
   const [nuevaRuta, setNuevaRuta] = useState(0);
+  // Lo mismo para «Programar salidas» en la pestaña Salidas
+  const [nuevaSalida, setNuevaSalida] = useState(0);
 
   return (
     <>
@@ -31,11 +33,15 @@ export default function EmpresaProgramacion() {
               <button className={ui.btnPrimary} style={{ fontSize: 14, padding: '12px 20px' }} onClick={() => setNuevaRuta((n) => n + 1)}>
                 + Nueva ruta
               </button>
-            ) : undefined
+            ) : (
+              <button className={ui.btnPrimary} style={{ fontSize: 14, padding: '12px 20px' }} onClick={() => setNuevaSalida((n) => n + 1)}>
+                + Programar salidas
+              </button>
+            )
           }
         />
       </div>
-      {activa === 'salidas' ? <EmpresaSalidas /> : <EmpresaRutas abrirNueva={nuevaRuta} />}
+      {activa === 'salidas' ? <EmpresaSalidas abrirProgramar={nuevaSalida} /> : <EmpresaRutas abrirNueva={nuevaRuta} />}
     </>
   );
 }
