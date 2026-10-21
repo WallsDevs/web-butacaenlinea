@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
-import { reasignarSalida, reasignarVarias } from '../../lib/api/endpoints';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { getBusesParaSalida, reasignarSalida, reasignarVarias } from '../../lib/api/endpoints';
 import type { SalidaDto, UnidadDto } from '../../lib/api/types';
 import { fechaCorta, hora } from '../../lib/time';
 import { explicarSalida, mensajeDeError } from './salidasErrores';
@@ -67,6 +67,12 @@ export function ModalAsignacion({
     onError: (e) => setError(mensajeDeError(e)),
   });
 
+  // Con una salida: cada bus dice dónde estará a esa hora y si puede hacerla
+  const { data: opciones, isLoading: cargandoBuses } = useQuery({
+    queryKey: ['buses-salida', una?.documentId],
+    queryFn: () => getBusesParaSalida(una!.documentId),
+    enabled: Boolean(una),
+  });
   const porId = new Map(salidas.map((s) => [s.documentId, s]));
   const titulo = una
     ? `${una.ruta?.origen} → ${una.ruta?.destino} · ${fechaCorta(una.fechaHoraSalida)} a las ${hora(una.fechaHoraSalida)}`
@@ -107,25 +113,67 @@ export function ModalAsignacion({
           </div>
         ) : (
           <div className={styles.modalCuerpo}>
-            <label className={ui.field}>
+            {una ? (
+              <div className={ui.field}>
+                <span className={ui.fieldLabel}>Bus · sale de {opciones?.origen ?? una.ruta?.origen}</span>
+                <div className={styles.buses} role="radiogroup" aria-label="Bus">
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={unidadId === ''}
+                    disabled={vendidos > 0}
+                    className={`${styles.bus} ${unidadId === '' ? styles.busElegido : ''}`}
+                    onClick={() => setUnidadId('')}
+                  >
+                    <span className={styles.busNumero}>Por asignar</span>
+                    <span className={styles.busDonde}>{vendidos > 0 ? 'No: ya hay puestos vendidos' : 'Sin bus la salida no se vende'}</span>
+                  </button>
+                  {cargandoBuses && <div className={styles.nota}>Revisando dónde está cada bus…</div>}
+                  {(opciones?.buses ?? []).map((b) => {
+                    const enOrigen = b.ubicacion === opciones?.origen;
+                    return (
+                      <button
+                        key={b.documentId}
+                        type="button"
+                        role="radio"
+                        aria-checked={unidadId === b.documentId}
+                        disabled={!b.puede && !b.actual}
+                        className={`${styles.bus} ${unidadId === b.documentId ? styles.busElegido : ''} ${!b.puede ? styles.busNo : ''}`}
+                        onClick={() => { setUnidadId(b.documentId); setError(null); }}
+                      >
+                        <span className={styles.busNumero}>
+                          {b.numero} <small>{b.puestos} puestos{b.marcaModelo ? ` · ${b.marcaModelo}` : ''}</small>
+                          {b.actual && <em>el actual</em>}
+                        </span>
+                        <span className={`${styles.busDonde} ${b.puede && enOrigen ? styles.busAqui : ''}`}>
+                          {b.ubicacion ? `En ${b.ubicacion}${b.desde ? ` desde ${fechaCorta(b.desde)} ${hora(b.desde)}` : ''}` : 'Sin ubicación registrada'}
+                        </span>
+                        {!b.puede && b.motivo && <span className={styles.busMotivo}>{explicarSalida(b.motivo, b.detalles)}</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <label className={ui.field}>
               <span className={ui.fieldLabel}>Bus</span>
               <select className={ui.fieldInput} value={unidadId} onChange={(e) => { setUnidadId(e.target.value); setError(null); }}>
-                {!una && <option value={IGUAL}>Sin cambiar</option>}
+                <option value={IGUAL}>Sin cambiar</option>
                 <option value="" disabled={vendidos > 0}>Por asignar{vendidos > 0 ? ' (ya hay puestos vendidos)' : ''}</option>
                 {unidades
-                  .filter((u) => u.estado !== 'fuera_de_servicio' || u.documentId === una?.unidad?.documentId)
+                  .filter((u) => u.estado !== 'fuera_de_servicio')
                   .map((u) => {
                     const p = puestosDe(u);
                     return (
                       <option key={u.documentId} value={u.documentId} disabled={p < vendidos}>
                         {u.numero} · {p} puestos{u.marcaModelo ? ` · ${u.marcaModelo}` : ''}
                         {p < vendidos ? ` · no alcanza (${vendidos} vendidos)` : ''}
-                        {u.documentId === una?.unidad?.documentId ? ' · el actual' : ''}
                       </option>
                     );
                   })}
               </select>
             </label>
+            )}
             {noAlcanza && <div className={styles.aviso}>El bus {elegida!.numero} tiene {puestos} puestos y ya hay {vendidos} vendidos. Escoge un bus de {vendidos} puestos o más.</div>}
             {elegida && !noAlcanza && vendidos > 0 && <div className={styles.nota}>Alcanza: {puestos} puestos para {vendidos} vendidos. Los pasajeros conservan su puesto.</div>}
             {!una && elegida && <div className={styles.nota}>Se asigna en orden de fecha: si el bus no puede hacer alguna (está en otra ciudad u ocupado), te digo cuál y las demás quedan.</div>}

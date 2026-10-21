@@ -21,7 +21,6 @@ const SEMANA = [
   [0, 'D', 'Domingo'],
 ] as const;
 const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-const ESPERAS = [30, 60, 90, 120, 180, 240, 360];
 const MAX = 200;
 
 export const puestosDe = (u?: { configuracionAsientos?: UnidadDto['configuracionAsientos'] } | null) =>
@@ -51,8 +50,9 @@ function Horas({ valor, onCambio, etiqueta }: { valor: string[]; onCambio: (h: s
  * Programar salidas: una vez, en los días que se marquen en el calendario, o
  * semanal hasta una fecha, cada día con sus propias horas. Se programan SIN
  * bus ni conductor: un calendario lo cubren varios buses, que se asignan
- * después en la agenda (una a una o varias de una vez). Si la ruta es de ida
- * y vuelta, cada salida puede llevar su regreso tras una espera en destino.
+ * después en la agenda (una a una o varias de una vez). El regreso no es
+ * especial: son salidas desde el otro terminal (el sentido de la ruta), y al
+ * asignarles bus el sistema dice cuáles estarán allí a esa hora.
  */
 export function ModalProgramar({ rutas, onCerrar, onListo }: { rutas: RutaDto[]; onCerrar: () => void; onListo: (creadas: number, primerDia: string) => void }) {
   const porId = new Map(rutas.map((r) => [r.id, r]));
@@ -73,8 +73,6 @@ export function ModalProgramar({ rutas, onCerrar, onListo }: { rutas: RutaDto[];
     d.setDate(d.getDate() + 28);
     return isoDia(d);
   });
-  const [conRegreso, setConRegreso] = useState(false);
-  const [espera, setEspera] = useState(60);
   const [rampa, setRampa] = useState('');
   const [sinPasajeros, setSinPasajeros] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -82,7 +80,6 @@ export function ModalProgramar({ rutas, onCerrar, onListo }: { rutas: RutaDto[];
   const base = rutas.find((r) => r.documentId === rutaId);
   const vuelta = base?.inversaId ? porId.get(base.inversaId) : undefined;
   const ida = sentido === 'vuelta' && vuelta ? vuelta : base;
-  const regreso = sentido === 'vuelta' ? base : vuelta;
   const semana = Object.keys(porSemana).map(Number);
 
   // Cada día con sus horas
@@ -95,7 +92,7 @@ export function ModalProgramar({ rutas, onCerrar, onListo }: { rutas: RutaDto[];
   const clavePlan = JSON.stringify(plan);
 
   const { salidas, pasadas } = useMemo(() => {
-    const lista: { rutaId: string; fechaHoraSalida: string; regreso?: boolean }[] = [];
+    const lista: { rutaId: string; fechaHoraSalida: string }[] = [];
     let saltadas = 0;
     if (!ida) return { salidas: lista, pasadas: 0 };
     for (const { dia: d, horas } of plan) {
@@ -106,18 +103,13 @@ export function ModalProgramar({ rutas, onCerrar, onListo }: { rutas: RutaDto[];
           continue;
         }
         lista.push({ rutaId: ida.documentId, fechaHoraSalida: sale });
-        if (conRegreso && regreso) {
-          // El regreso sale después de llegar y esperar en el destino
-          const vuelve = new Date(new Date(sale).getTime() + ((ida.duracionMin ?? 0) + espera) * 60_000).toISOString();
-          lista.push({ rutaId: regreso.documentId, fechaHoraSalida: vuelve, regreso: true });
-        }
       }
     }
     return { salidas: lista.sort((a, b) => a.fechaHoraSalida.localeCompare(b.fechaHoraSalida)), pasadas: saltadas };
-  }, [ida, regreso, clavePlan, conRegreso, espera]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [ida, clavePlan]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const crear = useMutation({
-    mutationFn: () => programarSerie({ salidas: salidas.map(({ rutaId: r, fechaHoraSalida }) => ({ rutaId: r, fechaHoraSalida })), rampa: rampa.trim() || undefined, sinPasajeros: sinPasajeros || undefined }),
+    mutationFn: () => programarSerie({ salidas, rampa: rampa.trim() || undefined, sinPasajeros: sinPasajeros || undefined }),
     onSuccess: (r) => onListo(r.creadas, plan[0]?.dia ?? hoyISO()),
     onError: (e) => setError(mensajeDeError(e)),
   });
@@ -160,7 +152,7 @@ export function ModalProgramar({ rutas, onCerrar, onListo }: { rutas: RutaDto[];
         <div className={styles.modalCabecera}>
           <div>
             <div className={styles.modalTitulo}>Programar salidas</div>
-            <div className={styles.nota}>El bus y el conductor se asignan después en la agenda: un calendario lo pueden cubrir varios buses.</div>
+            <div className={styles.nota}>Solo el calendario y las horas. El bus y el conductor se asignan después en la agenda. El regreso se programa igual: escoge el sentido desde el otro terminal.</div>
           </div>
           <button type="button" className={styles.cerrar} onClick={onCerrar} aria-label="Cerrar">✕</button>
         </div>
@@ -295,27 +287,6 @@ export function ModalProgramar({ rutas, onCerrar, onListo }: { rutas: RutaDto[];
               </>
             )}
 
-            {regreso && ida && (
-              <div className={styles.regreso}>
-                <label className={styles.check}>
-                  <input type="checkbox" checked={conRegreso} onChange={(e) => setConRegreso(e.target.checked)} />
-                  <span>
-                    Programar también el regreso
-                    <small>{regreso.origen} → {regreso.destino}: cada salida tiene su regreso al llegar y esperar en {ida.destino}</small>
-                  </span>
-                </label>
-                {conRegreso && (
-                  <label className={ui.field} style={{ maxWidth: 260 }}>
-                    <span className={ui.fieldLabel}>Espera en {ida.destino} antes de regresar</span>
-                    <select className={ui.fieldInput} value={espera} onChange={(e) => setEspera(Number(e.target.value))}>
-                      {ESPERAS.map((m) => (
-                        <option key={m} value={m}>{m < 60 ? `${m} min` : `${Math.floor(m / 60)} h${m % 60 ? ` ${m % 60}` : ''}`}</option>
-                      ))}
-                    </select>
-                  </label>
-                )}
-              </div>
-            )}
           </section>
 
           <section className={styles.seccion}>
@@ -336,9 +307,7 @@ export function ModalProgramar({ rutas, onCerrar, onListo }: { rutas: RutaDto[];
               <div className={styles.rotulo}>Se van a programar · {salidas.length}</div>
               <div className={styles.vista}>
                 {salidas.slice(0, 30).map((s, i) => (
-                  <span key={i} className={s.regreso ? styles.vistaRegreso : ''} title={s.regreso ? 'Regreso' : 'Ida'}>
-                    {s.regreso ? '↩ ' : ''}{fechaCorta(s.fechaHoraSalida)} · {horaDe(s.fechaHoraSalida)}
-                  </span>
+                  <span key={i}>{fechaCorta(s.fechaHoraSalida)} · {horaDe(s.fechaHoraSalida)}</span>
                 ))}
                 {salidas.length > 30 && <span className={styles.vistaMas}>y {salidas.length - 30} más</span>}
               </div>
@@ -352,7 +321,6 @@ export function ModalProgramar({ rutas, onCerrar, onListo }: { rutas: RutaDto[];
               <span>
                 <strong>{salidas.length} salida{salidas.length === 1 ? '' : 's'}</strong>
                 {ida ? ` · ${ida.origen} → ${ida.destino}` : ''}
-                {conRegreso && regreso ? ' con regreso' : ''}
                 {pasadas > 0 ? ` · se saltan ${pasadas} que ya pasaron` : ''}
               </span>
             )}

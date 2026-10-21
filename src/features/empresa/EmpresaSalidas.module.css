@@ -315,3 +315,29 @@
   .diaAcciones { margin-left: 0; }
   .diaCabecera { flex-wrap: wrap; }
 }
+
+/* Buses para una salida: dónde estará cada uno; los que pueden, primero */
+.buses { display: flex; flex-direction: column; gap: 6px; max-height: 330px; overflow-y: auto; padding: 2px; }
+.bus {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  text-align: left;
+  padding: 9px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  cursor: pointer;
+}
+.bus:hover:not(:disabled) { border-color: var(--blue-600); }
+.bus:disabled { cursor: default; }
+.busElegido { border-color: var(--blue-600); box-shadow: 0 0 0 1.5px var(--blue-600); background: var(--tint-50); }
+.busNo { background: var(--surface-alt, #F8FAFC); }
+.busNo .busNumero { color: var(--text-soft); }
+.busNumero { font-size: 14px; font-weight: 700; display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.busNumero small { font-size: 12px; font-weight: 500; color: var(--text-faint); }
+.busNumero em { font-style: normal; font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 999px; background: var(--pill-bg, #EEF2F9); color: var(--text-soft); }
+.busDonde { font-size: 12px; color: var(--text-soft); }
+.busAqui { color: var(--ok-text, #047857); font-weight: 700; }
+.busMotivo { font-size: 12px; color: var(--warn-text, #92400E); line-height: 1.35; }

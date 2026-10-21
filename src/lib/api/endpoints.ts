@@ -298,6 +298,24 @@ export const programarSerie = (datos: {
 export const reasignarVarias = (documentIds: string[], cambios: { unidadId?: string | null; choferId?: string | null }) =>
   api<{ asignadas: string[]; fallidas: { documentId: string; motivo: string; detalles: Record<string, unknown> }[] }>('/api/empresa/salidas/asignacion', { method: 'PUT', body: { documentIds, ...cambios } });
 
+/** Un bus frente a una salida: dónde estará a esa hora y si puede hacerla (si no, por qué). */
+export interface BusParaSalida {
+  documentId: string;
+  numero: string;
+  marcaModelo: string | null;
+  puestos: number;
+  estado: string;
+  ubicacion: string | null;
+  /** Desde cuándo está allí (la llegada de su último viaje), o null si es su ubicación registrada. */
+  desde: string | null;
+  actual: boolean;
+  puede: boolean;
+  motivo: string | null;
+  detalles: Record<string, unknown>;
+}
+export const getBusesParaSalida = (documentId: string) =>
+  api<{ origen: string; destino: string; vendidos: number; buses: BusParaSalida[] }>(`/api/empresa/salidas/${documentId}/buses`);
+
 /** Cambia el bus o el conductor de una salida (`null` lo quita). */
 export const reasignarSalida = (documentId: string, cambios: { unidadId?: string | null; choferId?: string | null }) =>
   api<SalidaDto>(`/api/empresa/salidas/${documentId}/asignacion`, { method: 'PUT', body: cambios });
