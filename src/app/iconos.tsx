@@ -39,7 +39,7 @@ const TRAZOS: Record<string, React.ReactNode> = {
 };
 
 /** Algunas entradas tienen como id su ruta ('/empresa'): el icono se busca entonces por la etiqueta. */
-const POR_ETIQUETA: Record<string, string> = { dashboard: 'dashboard', administracion: 'cuenta', 'metodos de pago': 'metodos', 'mi wallet': 'wallet', 'mis boletos': 'boletos', 'cobros en vivo': 'cobros', 'mi unidad': 'unidad', 'mis ventas': 'ventas', 'pagos web': 'pagos', 'cierre de turno': 'cierre', 'escaner': 'escaner', inicio: 'dashboard', 'salidas y rutas': 'ventas', personal: 'clientes', configuracion: 'sistema', 'reportes de turno': 'reportes', 'cobros urbanos': 'cobros' };
+const POR_ETIQUETA: Record<string, string> = { dashboard: 'dashboard', administracion: 'cuenta', 'metodos de pago': 'metodos', 'mi wallet': 'wallet', 'mis boletos': 'boletos', 'cobros en vivo': 'cobros', 'mi unidad': 'unidad', 'mis ventas': 'ventas', 'pagos web': 'pagos', 'cierre de turno': 'cierre', 'escaner': 'escaner', inicio: 'dashboard', ciudades: 'busetas', 'salidas y rutas': 'ventas', personal: 'clientes', configuracion: 'sistema', 'reportes de turno': 'reportes', 'cobros urbanos': 'cobros' };
 const normalizar = (t: string) => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
 export function IconoNav({ id, label, size = 22 }: { id: string; label?: string; size?: number }) {

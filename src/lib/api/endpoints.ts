@@ -280,7 +280,20 @@ export const programarSalida = (datos: {
   choferId?: string;
   fechaHoraSalida: string;
   rampa?: string;
+  /** Regreso vacío u otro viaje sin pasajeros: no sale a la venta. */
+  sinPasajeros?: boolean;
 }) => api<{ documentId: string }>('/api/empresa/salidas', { method: 'POST', body: datos });
+
+/** Ciudades comunes a todas las líneas: el origen y el destino de las rutas salen de aquí. */
+export interface Ciudad {
+  id: number;
+  nombre: string;
+  estado: string | null;
+}
+export const getCiudades = () => api<Ciudad[]>('/api/ciudades', { auth: false });
+export const crearCiudad = (c: { nombre: string; estado?: string }) => api<Ciudad>('/api/admin/ciudades', { method: 'POST', body: c });
+export const editarCiudad = (id: number, c: { nombre?: string; estado?: string }) => api<Ciudad>(`/api/admin/ciudades/${id}`, { method: 'PUT', body: c });
+export const borrarCiudad = (id: number) => api<{ borrada: boolean }>(`/api/admin/ciudades/${id}`, { method: 'DELETE' });
 
 export const cancelarSalida = (documentId: string, force = false) =>
   api<{ afectados: number; reembolsosPendientes: number }>(

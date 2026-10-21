@@ -7,6 +7,7 @@ import {
   eliminarRutaUrbana,
   getRutas,
   getRutasUrbanas,
+  getCiudades,
   guardarRuta,
   guardarRutaUrbana,
 } from '../../lib/api/endpoints';
@@ -30,6 +31,8 @@ interface FormRuta {
   duracionMin: string;
   distanciaKm: string;
   tarifas: { claseServicio: string; precioUsd: string }[];
+  /** Ida y vuelta: una sola ruta; el sistema mantiene la vuelta y el sentido se elige al programar. */
+  idaYVuelta: boolean;
 }
 
 const NUEVA: FormRuta = {
@@ -40,7 +43,11 @@ const NUEVA: FormRuta = {
   duracionMin: '',
   distanciaKm: '',
   tarifas: [{ claseServicio: 'estandar', precioUsd: '' }],
+  idaYVuelta: true,
 };
+
+/** «San Cristóbal», «san cristobal» y «SAN CRISTÓBAL» son la misma ciudad. */
+const normalizar = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
 
 type TipoRuta = 'nacional' | 'urbana';
 type Filtro = 'todas' | 'nacionales' | 'urbanas';
@@ -54,6 +61,10 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
   const queryClient = useQueryClient();
   const { integracionActiva } = useModulos();
   const [form, setForm] = useState<FormRuta | null>(null);
+  const [errorRutaViaje, setErrorRutaViaje] = useState<string | null>(null);
+  // Ciudades comunes a todas las líneas: origen y destino se eligen de aquí
+  const { data: ciudades } = useQuery({ queryKey: ['ciudades'], queryFn: getCiudades, staleTime: 600_000 });
+  const ciudadOficial = (t: string) => (ciudades ?? []).find((c) => normalizar(c.nombre) === normalizar(t))?.nombre ?? null;
   const [tipo, setTipo] = useState<TipoRuta>('nacional');
   const [filtro, setFiltro] = useState<Filtro>('todas');
   const [buscar, setBuscar] = useState('');
@@ -104,9 +115,10 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
     mutationFn: (f: FormRuta) =>
       guardarRuta(f.documentId, {
         codigo: f.codigo,
-        nombre: `Ruta ${f.codigo} · ${f.origen} — ${f.destino}`,
-        origen: f.origen,
-        destino: f.destino,
+        nombre: `Ruta ${f.codigo} · ${ciudadOficial(f.origen) ?? f.origen} — ${ciudadOficial(f.destino) ?? f.destino}`,
+        origen: ciudadOficial(f.origen) ?? f.origen,
+        destino: ciudadOficial(f.destino) ?? f.destino,
+        idaYVuelta: f.idaYVuelta,
         duracionMin: Number(f.duracionMin) || 0,
         distanciaKm: Number(f.distanciaKm) || 0,
         tarifas: f.tarifas
@@ -117,6 +129,19 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rutas'] });
       setForm(null);
+      setErrorRutaViaje(null);
+    },
+    onError: (e) => {
+      const d = (e instanceof ApiError ? e.details : {}) as { valor?: string; sugerencias?: string[]; salidas?: number };
+      setErrorRutaViaje(
+        e instanceof ApiError && e.code === 'ciudad_desconocida'
+          ? `«${d.valor}» no está en la lista de ciudades.${d.sugerencias?.length ? ` ¿Quisiste decir ${d.sugerencias.join(', ')}?` : ''} Si falta, pídele a Butaca En Línea que la agregue.`
+          : e instanceof ApiError && e.code === 'origen_igual_destino'
+            ? 'El origen y el destino no pueden ser la misma ciudad.'
+            : e instanceof ApiError && e.code === 'regreso_con_salidas'
+              ? `La vuelta tiene ${d.salidas} salida(s) programada(s): cancélalas antes de quitar el ida y vuelta.`
+              : explicar(e)
+      );
     },
   });
 
@@ -134,6 +159,7 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
       duracionMin: String(r.duracionMin ?? ''),
       distanciaKm: String(r.distanciaKm ?? ''),
       tarifas: (r.tarifas ?? []).map((t) => ({ claseServicio: t.claseServicio, precioUsd: String(t.precioUsd) })),
+      idaYVuelta: Boolean(r.idaYVuelta),
     });
 
   // Abrir el modal de creación del tipo pedido (con integración, solo urbanas: las de viaje vienen del sistema de la línea)
@@ -204,11 +230,14 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
     bloqueada: boolean;
   }
   const filas: Fila[] = [
-    ...(rutas ?? []).map((r): Fila => ({
+    ...(rutas ?? [])
+      // La vuelta enlazada no se lista: la ida se muestra como «A ⇄ B»
+      .filter((r) => !r.inversaId || !(rutas ?? []).some((x) => x.id === r.inversaId) || r.id < r.inversaId)
+      .map((r): Fila => ({
       clave: `n-${r.documentId}`,
       tipo: 'nacional',
-      titulo: `${r.origen} → ${r.destino}`,
-      sub: r.codigo ? `Código ${r.codigo}` : '',
+      titulo: r.idaYVuelta ? `${r.origen} ⇄ ${r.destino}` : `${r.origen} → ${r.destino}`,
+      sub: [r.codigo ? `Código ${r.codigo}` : '', r.idaYVuelta ? 'Ida y vuelta' : 'Solo ida'].filter(Boolean).join(' · '),
       medida: r.duracionMin ? duracion(r.duracionMin) : '—',
       precio: (r.tarifas ?? []).map((t) => (t.claseServicio === 'estandar' ? `$${t.precioUsd}` : `${t.claseServicio} $${t.precioUsd}`)).join(' · ') || '—',
       texto: `${r.codigo} ${r.origen} ${r.destino}`.toLowerCase(),
@@ -341,9 +370,28 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
             {!form.documentId && selectorTipo}
             <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr 1fr', gap: 12 }}>
               <Field label="Código" value={form.codigo} onChange={(e) => setForm({ ...form, codigo: e.target.value })} />
-              <Field label="Origen" value={form.origen} onChange={(e) => setForm({ ...form, origen: e.target.value })} />
-              <Field label="Destino" value={form.destino} onChange={(e) => setForm({ ...form, destino: e.target.value })} />
+              <Field label="Origen" list="ciudades-comunes" placeholder="Busca la ciudad" value={form.origen} onChange={(e) => setForm({ ...form, origen: e.target.value })} />
+              <Field label="Destino" list="ciudades-comunes" placeholder="Busca la ciudad" value={form.destino} onChange={(e) => setForm({ ...form, destino: e.target.value })} />
             </div>
+            <datalist id="ciudades-comunes">
+              {(ciudades ?? []).map((c) => (
+                <option key={c.id} value={c.nombre}>{c.estado ?? ''}</option>
+              ))}
+            </datalist>
+            {[form.origen, form.destino].some((c) => c.trim() && !ciudadOficial(c)) && (
+              <div style={{ fontSize: 12, color: 'var(--warn-text, #92400E)', marginTop: 6 }}>
+                Elige el origen y el destino de la lista: son las mismas ciudades para todas las líneas, así el pasajero encuentra tus pasajes.
+              </div>
+            )}
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 12, fontSize: 14, cursor: 'pointer' }}>
+              <input type="checkbox" checked={form.idaYVuelta} onChange={(e) => setForm({ ...form, idaYVuelta: e.target.checked })} style={{ marginTop: 3 }} />
+              <span>
+                Ida y vuelta{ciudadOficial(form.origen) && ciudadOficial(form.destino) ? ` (${ciudadOficial(form.origen)} ⇄ ${ciudadOficial(form.destino)})` : ''}
+                <span style={{ display: 'block', fontSize: 12, color: 'var(--text-soft)' }}>
+                  Una sola ruta con el mismo precio en los dos sentidos; eliges el sentido al programar cada salida.
+                </span>
+              </span>
+            </label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }}>
               <Field label="Duración (min)" type="number" value={form.duracionMin} onChange={(e) => setForm({ ...form, duracionMin: e.target.value })} />
               <Field label="Distancia (km)" type="number" value={form.distanciaKm} onChange={(e) => setForm({ ...form, distanciaKm: e.target.value })} />
@@ -408,13 +456,14 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
                 + Precio para una clase especial
               </button>
             </div>
+            {errorRutaViaje && <div style={{ fontSize: 13, color: 'var(--bad-text)', marginTop: 14 }}>{errorRutaViaje}</div>}
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 18 }}>
-              <button className={ui.btnSecondary} onClick={() => setForm(null)}>
+              <button className={ui.btnSecondary} onClick={() => { setForm(null); setErrorRutaViaje(null); }}>
                 Cancelar
               </button>
               <button
                 className={ui.btnPrimary}
-                disabled={!form.destino || !form.origen || guardar.isPending}
+                disabled={!ciudadOficial(form.destino) || !ciudadOficial(form.origen) || guardar.isPending}
                 onClick={() => guardar.mutate(form)}
               >
                 {guardar.isPending ? 'Guardando…' : 'Guardar ruta'}

@@ -41,6 +41,7 @@ const AdminSeguridad = lazy(() => import('../features/admin/AdminSeguridad'));
 const AdminWallet = lazy(() => import('../features/admin/AdminWallet'));
 const EmpresaFlota = lazy(() => import('../features/empresa/EmpresaFlota'));
 const AdminPasajeros = lazy(() => import('../features/admin/AdminPasajeros'));
+const AdminCiudades = lazy(() => import('../features/admin/AdminCiudades'));
 const AdminIntegraciones = lazy(() => import('../features/admin/AdminIntegraciones'));
 const AdminConectores = lazy(() => import('../features/admin/AdminConectores'));
 const AdminContratos = lazy(() => import('../features/admin/AdminContratos'));
@@ -115,6 +116,7 @@ export const router = createBrowserRouter([
           { path: 'liquidaciones', element: <AdminLiquidaciones /> },
           { path: 'facturas', element: <AdminFacturas /> },
           { path: 'tasas', element: <AdminTasas /> },
+          { path: 'ciudades', element: <AdminCiudades /> },
           { path: 'auditoria', element: <AdminAuditoria /> },
           { path: 'wallet', element: <AdminWallet /> },
           { path: 'seguridad', element: <AdminSeguridad /> },

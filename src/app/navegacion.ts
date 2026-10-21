@@ -40,7 +40,7 @@ export const MENU_ADMIN: EntradaNav[] = [
     label: 'Finanzas',
     items: [sec('Liquidaciones', '/admin/liquidaciones'), sec('Facturas', '/admin/facturas'), sec('Tasas', '/admin/tasas'), sec('Wallet', '/admin/wallet')],
   },
-  { id: 'sistema', label: 'Sistema', items: [sec('Auditoría', '/admin/auditoria'), sec('Seguridad', '/admin/seguridad')] },
+  { id: 'sistema', label: 'Sistema', items: [sec('Ciudades', '/admin/ciudades'), sec('Auditoría', '/admin/auditoria'), sec('Seguridad', '/admin/seguridad')] },
 ];
 
 /**

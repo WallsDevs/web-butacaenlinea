@@ -37,6 +37,8 @@ export interface ParadaRuta {
 }
 
 export interface RutaDto {
+  /** Id numérico: sirve para enlazar la ida con su vuelta (inversaId). */
+  id: number;
   documentId: string;
   codigo: string;
   nombre: string;
@@ -44,6 +46,9 @@ export interface RutaDto {
   destino: string;
   duracionMin: number;
   distanciaKm: number;
+  /** Ida y vuelta: id (numérico) de la ruta de vuelta enlazada; la línea las ve como una sola. */
+  inversaId?: number | null;
+  idaYVuelta?: boolean;
   tarifas?: { claseServicio: string; precioUsd: number }[];
   paradas?: ParadaRuta[];
 }
@@ -65,6 +70,8 @@ export interface SalidaDto {
   estado: 'programada' | 'abordando' | 'en_ruta' | 'finalizada' | 'cancelada';
   fechaHoraLlegadaReal?: string | null;
   preciosUsd: Record<string, number>;
+  /** El bus viaja sin pasajeros (p. ej. regreso vacío): no se vende. */
+  sinPasajeros?: boolean;
   ruta?: RutaDto;
   unidad?: UnidadResumenDto;
   linea?: { documentId: string; nombre: string; slug: string };
