@@ -64,7 +64,7 @@ export default function AdminCiudades() {
     <div className={styles.contenido} style={{ maxWidth: 980 }}>
       <EncabezadoPantalla
         titulo="Ciudades"
-        descripcion="El origen y el destino de las rutas de todas las líneas salen de esta lista. Un solo nombre por ciudad, para que el pasajero encuentre todos los pasajes. Renombrar arregla las rutas que la usan."
+        descripcion="El origen y el destino de las rutas de todas las líneas salen de esta lista. Un solo nombre por ciudad, para que el pasajero encuentre todos los pasajes. Renombrar arregla las rutas que la usan. Cada ciudad se ubica sola en el mapa por su nombre."
         acciones={
           <input className={ui.fieldInput} style={{ width: 260 }} placeholder="Buscar ciudad o estado" value={buscar} onChange={(e) => setBuscar(e.target.value)} />
         }
@@ -85,6 +85,7 @@ export default function AdminCiudades() {
             <tr>
               <th>Ciudad</th>
               <th>Estado</th>
+              <th>Mapa</th>
               <th></th>
             </tr>
           </thead>
@@ -94,6 +95,7 @@ export default function AdminCiudades() {
                 <tr key={c.id}>
                   <td><input className={ui.fieldInput} value={editando.nombre} onChange={(e) => setEditando({ ...editando, nombre: e.target.value })} /></td>
                   <td><input className={ui.fieldInput} value={editando.estado} onChange={(e) => setEditando({ ...editando, estado: e.target.value })} /></td>
+                  <td />
                   <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                     <button className={ui.btnGhost} style={{ fontSize: 13, marginRight: 8 }} onClick={() => setEditando(null)}>Cancelar</button>
                     <button className={ui.btnPrimary} style={{ fontSize: 13 }} disabled={!editando.nombre.trim() || guardar.isPending} onClick={() => guardar.mutate()}>Guardar</button>
@@ -103,6 +105,8 @@ export default function AdminCiudades() {
                 <tr key={c.id}>
                   <td style={{ fontWeight: 600 }}>{c.nombre}</td>
                   <td style={{ color: 'var(--text-soft)' }}>{c.estado ?? '—'}</td>
+                  {/* Las nuevas se ubican solas por su nombre; «Sin ubicar» no sale como punto en el mapa de rutas */}
+                  <td style={{ fontSize: 13, color: c.lat != null ? 'var(--text-soft)' : 'var(--warn-text, #92400E)' }}>{c.lat != null ? 'Ubicada' : 'Sin ubicar'}</td>
                   <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                     <button className={ui.btnGhost} style={{ fontSize: 13, marginRight: 12 }} onClick={() => setEditando({ id: c.id, nombre: c.nombre, estado: c.estado ?? '' })}>Renombrar</button>
                     <button
@@ -119,7 +123,7 @@ export default function AdminCiudades() {
             )}
             {!isLoading && !visibles.length && (
               <tr>
-                <td colSpan={3} style={{ textAlign: 'center', color: 'var(--text-soft)', padding: 22 }}>Ninguna ciudad coincide.</td>
+                <td colSpan={4} style={{ textAlign: 'center', color: 'var(--text-soft)', padding: 22 }}>Ninguna ciudad coincide.</td>
               </tr>
             )}
           </tbody>

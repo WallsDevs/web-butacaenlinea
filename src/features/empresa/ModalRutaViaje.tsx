@@ -1,5 +1,7 @@
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import type { Ciudad } from '../../lib/api/endpoints';
+import type { LugarRuta } from '../../lib/api/types';
+import { MapaTrayecto, type TrazadoTrayecto } from './MapaTrayecto';
 import { SelectorCiudad } from '../../components/ui/SelectorCiudad';
 import { Field } from '../../components/ui/Field';
 import ui from '../../components/ui/ui.module.css';
@@ -16,6 +18,9 @@ export interface FormRuta {
   tarifas: { claseServicio: string; precioUsd: string; precioVuelta?: string }[];
   /** Ida y vuelta: una sola ruta; el sistema mantiene la vuelta y el sentido se elige al programar. */
   idaYVuelta: boolean;
+  /** Sitio exacto de salida y de llegada marcado en el mapa (null = la ciudad, sin sitio). */
+  origenLugar: LugarRuta | null;
+  destinoLugar: LugarRuta | null;
 }
 
 const CLASES = [
@@ -58,6 +63,13 @@ export function ModalRutaViaje({
   onGuardar: () => void;
 }) {
   const cambiar = (cambios: Partial<FormRuta>) => setForm((f) => (f ? { ...f, ...cambios } : f));
+  // Lo que da la carretera entre A y B: se ofrece como distancia y duración
+  const [trazado, setTrazado] = useState<TrazadoTrayecto | null>(null);
+  useEffect(() => {
+    if (!trazado?.sobreCalles) return;
+    // En una ruta nueva se llena solo lo que está vacío; lo escrito no se toca
+    setForm((f) => (f ? { ...f, distanciaKm: f.distanciaKm || String(trazado.km), duracionMin: f.duracionMin || (trazado.minBus ? String(trazado.minBus) : '') } : f));
+  }, [trazado, setForm]);
   const origen = ciudadOficial(form.origen);
   const destino = ciudadOficial(form.destino);
   const precioIda = form.tarifas.find((t) => t.claseServicio === 'estandar')?.precioUsd ?? '';
@@ -96,7 +108,10 @@ export function ModalRutaViaje({
         <section className={styles.seccion}>
           <div className={styles.rotulo}>Trayecto</div>
           <div className={styles.trayecto}>
-            <SelectorCiudad label="Sale de" valor={form.origen} ciudades={ciudades} excluir={destino ?? undefined} onCambio={(v) => cambiar({ origen: v })} />
+            <div className={styles.punta}>
+              <SelectorCiudad label="Sale de" valor={form.origen} ciudades={ciudades} excluir={destino ?? undefined} onCambio={(v) => cambiar({ origen: v, origenLugar: v === form.origen ? form.origenLugar : null })} />
+              <SitioExacto lugar={form.origenLugar} onQuitar={() => cambiar({ origenLugar: null })} />
+            </div>
             <div className={styles.conector}>
               <button
                 type="button"
@@ -109,8 +124,20 @@ export function ModalRutaViaje({
                 {form.idaYVuelta ? 'Ida y vuelta' : 'Solo ida'}
               </button>
             </div>
-            <SelectorCiudad label="Llega a" valor={form.destino} ciudades={ciudades} excluir={origen ?? undefined} onCambio={(v) => cambiar({ destino: v })} />
+            <div className={styles.punta}>
+              <SelectorCiudad label="Llega a" valor={form.destino} ciudades={ciudades} excluir={origen ?? undefined} onCambio={(v) => cambiar({ destino: v, destinoLugar: v === form.destino ? form.destinoLugar : null })} />
+              <SitioExacto lugar={form.destinoLugar} onQuitar={() => cambiar({ destinoLugar: null })} />
+            </div>
           </div>
+          <MapaTrayecto
+            ciudades={ciudades}
+            origen={origen}
+            destino={destino}
+            origenLugar={form.origenLugar}
+            destinoLugar={form.destinoLugar}
+            onElegir={(punta, e) => (punta === 'origen' ? cambiar({ origen: e.ciudad, origenLugar: e.lugar }) : cambiar({ destino: e.ciudad, destinoLugar: e.lugar }))}
+            onTrazado={setTrazado}
+          />
           {avisoCiudades}
           {escritoSinLista && <div className={styles.aviso}>Elige las ciudades de la lista: son las mismas para todas las líneas, así el pasajero encuentra tus pasajes.</div>}
           <div className={styles.nota}>
@@ -129,6 +156,20 @@ export function ModalRutaViaje({
             <Field label="Distancia (km)" type="number" min={0} placeholder="230" value={form.distanciaKm} onChange={(e) => cambiar({ distanciaKm: e.target.value })} />
             <Field label="Código (opcional)" placeholder="205" value={form.codigo} onChange={(e) => cambiar({ codigo: e.target.value })} />
           </div>
+          {trazado?.sobreCalles && (
+            <div className={styles.nota}>
+              Según el mapa: {trazado.km} km por carretera{trazado.minBus ? `, unas ${duracionTexto(trazado.minBus)} en bus` : ''}.{' '}
+              {(String(trazado.km) !== form.distanciaKm || (trazado.minBus && String(trazado.minBus) !== form.duracionMin)) && (
+                <button
+                  type="button"
+                  className={styles.usar}
+                  onClick={() => cambiar({ distanciaKm: String(trazado.km), ...(trazado.minBus ? { duracionMin: String(trazado.minBus) } : {}) })}
+                >
+                  Usar estos datos
+                </button>
+              )}
+            </div>
+          )}
         </section>
 
         {/* El precio: una fila por clase de asiento y una columna por sentido.
@@ -225,6 +266,20 @@ export function ModalRutaViaje({
           {guardando ? 'Guardando…' : form.documentId ? 'Guardar cambios' : 'Guardar ruta'}
         </button>
       </div>
+    </div>
+  );
+}
+
+/** El sitio exacto marcado en el mapa, bajo la ciudad; se puede quitar para usar solo la ciudad. */
+function SitioExacto({ lugar, onQuitar }: { lugar: LugarRuta | null; onQuitar: () => void }) {
+  if (!lugar) return null;
+  return (
+    <div className={styles.sitio}>
+      <span className={styles.sitioPin} aria-hidden>●</span>
+      <span className={styles.sitioNombre} title={lugar.nombre ?? undefined}>{lugar.nombre ?? 'Punto marcado en el mapa'}</span>
+      <button type="button" className={styles.sitioQuitar} aria-label="Quitar el sitio exacto" onClick={onQuitar}>
+        ✕
+      </button>
     </div>
   );
 }

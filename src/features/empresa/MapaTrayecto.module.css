@@ -1,0 +1,178 @@
+/* Mapa del trayecto dentro del modal de ruta */
+.marco {
+  position: relative;
+  height: 340px;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  /* Encierra los z-index de Leaflet (400 capas, 1000 controles) */
+  isolation: isolate;
+  z-index: 0;
+  background: var(--tint-50);
+}
+.mapa { position: absolute; inset: 0; }
+
+.arriba {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  z-index: 1100;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  pointer-events: none;
+}
+.arriba > * { pointer-events: auto; }
+
+.buscador { position: relative; flex: 1; min-width: 0; }
+.lupa {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-faint);
+  display: grid;
+  pointer-events: none;
+}
+.buscador input {
+  width: 100%;
+  height: 40px;
+  padding: 0 12px 0 36px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 14px;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.14);
+}
+.buscador input:focus-visible { outline: 2px solid var(--blue-600); outline-offset: 1px; }
+
+.resultados {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  max-height: 228px;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-panel, 0 10px 30px rgba(15, 23, 42, 0.18));
+}
+.resultado {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: 'nombre ciudad' 'detalle ciudad';
+  column-gap: 10px;
+  width: 100%;
+  text-align: left;
+  padding: 8px 12px;
+  cursor: pointer;
+  background: transparent;
+}
+.resultado + .resultado { border-top: 1px solid var(--border); }
+.resultadoActivo { background: var(--tint-50); }
+.resNombre { grid-area: nombre; font-size: 14px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.resDetalle { grid-area: detalle; font-size: 12px; color: var(--text-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.resCiudad, .resFuera {
+  grid-area: ciudad;
+  align-self: center;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.resCiudad { background: var(--tint-50); color: var(--navy); border: 1px solid var(--border); }
+.resFuera { background: transparent; color: var(--bad-text); border: 1px dashed currentColor; }
+.vacio { padding: 10px 12px; font-size: 13px; color: var(--text-soft); }
+
+/* A · Salida / B · Llegada: qué punta marca el próximo toque */
+.puntas {
+  display: flex;
+  padding: 3px;
+  gap: 2px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.14);
+  flex: none;
+}
+.punta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 10px 0 6px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-soft);
+  cursor: pointer;
+  background: transparent;
+}
+.punta:focus-visible { outline: 2px solid var(--blue-600); outline-offset: 1px; }
+.puntaActiva { background: var(--navy); color: #fff; }
+.letra {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 800;
+  background: var(--tint-50);
+  color: var(--navy);
+}
+.puntaActiva .letra { background: #fff; }
+
+.abajo {
+  position: absolute;
+  left: 10px;
+  right: 56px;
+  bottom: 10px;
+  z-index: 1100;
+  pointer-events: none;
+}
+.abajo span {
+  display: inline-block;
+  max-width: 100%;
+  padding: 6px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-soft);
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.12);
+}
+.abajo strong { color: var(--text); }
+.abajo .avisoMapa { color: var(--bad-text); pointer-events: auto; }
+
+/* La marca: una gota con la letra, la que se está moviendo se ve más fuerte */
+.pin {
+  width: 34px;
+  height: 34px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  background: var(--navy, #0B2A6B);
+  border: 3px solid #fff;
+  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.4);
+  display: grid;
+  place-items: center;
+}
+.pin span {
+  transform: rotate(45deg);
+  color: #fff;
+  font: 800 13px/1 'Space Grotesk', system-ui, sans-serif;
+}
+.pinActivo { background: var(--blue-600, #2563EB); }
+
+@media (max-width: 640px) {
+  .marco { height: 360px; }
+  .arriba { flex-direction: column-reverse; align-items: stretch; }
+  .puntas { align-self: flex-start; }
+  .abajo { right: 10px; }
+  /* En el teléfono se acerca con los dedos */
+  .marco :global(.leaflet-control-zoom) { display: none; }
+}

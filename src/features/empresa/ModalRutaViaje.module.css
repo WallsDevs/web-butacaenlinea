@@ -53,7 +53,7 @@
 .trayecto {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  align-items: end;
+  align-items: start;
   gap: 10px;
   padding: 14px;
   border: 1px solid var(--border);
@@ -63,6 +63,7 @@
 .conector {
   position: relative;
   height: 48px;
+  margin-top: 21px;
   display: grid;
   place-items: center;
   min-width: 124px;
@@ -94,6 +95,22 @@
 .sentidoIdaVuelta { background: var(--navy); color: #fff; }
 .sentido:focus-visible { outline: 2px solid var(--blue-600); outline-offset: 2px; }
 .flecha { font-size: 15px; line-height: 1; }
+
+.punta { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.sitio {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--navy);
+}
+.sitioPin { font-size: 9px; color: var(--blue-600); }
+.sitioNombre { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sitioQuitar { color: var(--text-faint); cursor: pointer; font-size: 12px; padding: 0 2px; }
+.sitioQuitar:hover { color: var(--bad-text); }
+.usar { font-weight: 700; color: var(--blue-600); cursor: pointer; }
 
 /* ── Tiempo y datos ──────────────────────────────────────────────── */
 .datos {
@@ -172,7 +189,7 @@
 
 @media (max-width: 640px) {
   .trayecto { grid-template-columns: minmax(0, 1fr); }
-  .conector { height: 36px; min-width: 0; }
+  .conector { height: 36px; min-width: 0; margin-top: 0; }
   .conector::before { left: 50%; right: auto; top: 0; bottom: 0; border-top: none; border-left: 2px dashed var(--tint-300, #9fb6e4); }
   .datos { grid-template-columns: 1fr 1fr; }
   .fila, .tarifaDoble .fila { gap: 6px; padding-left: 12px; padding-right: 8px; }

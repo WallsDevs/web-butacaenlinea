@@ -28,6 +28,8 @@ export interface Trazado {
   distanciaKm: number;
   /** false = no se pudo consultar el servicio y va en línea recta. */
   sobreCalles: boolean;
+  /** Tiempo en carro según el servicio (min); no viene en línea recta. */
+  duracionMin?: number;
 }
 
 const R_TIERRA = 6371;
@@ -74,7 +76,7 @@ export async function trazarPorCalles(paradas: PuntoParada[]): Promise<Trazado> 
     if (!res.ok) return enLineaRecta(usadas);
     const json = (await res.json()) as {
       code?: string;
-      routes?: { distance: number; geometry: { coordinates: [number, number][] } }[];
+      routes?: { distance: number; duration?: number; geometry: { coordinates: [number, number][] } }[];
     };
     const ruta = json.code === 'Ok' ? json.routes?.[0] : null;
     if (!ruta?.geometry?.coordinates?.length) return enLineaRecta(usadas);
@@ -83,6 +85,7 @@ export async function trazarPorCalles(paradas: PuntoParada[]): Promise<Trazado> 
       recorrido: ruta.geometry.coordinates.map(([lng, lat]) => [lat, lng] as [number, number]),
       distanciaKm: Math.round((ruta.distance / 1000) * 10) / 10,
       sobreCalles: true,
+      ...(ruta.duration ? { duracionMin: Math.round(ruta.duration / 60) } : {}),
     };
   } catch {
     return enLineaRecta(usadas);

@@ -33,6 +33,8 @@ const NUEVA: FormRuta = {
   distanciaKm: '',
   tarifas: [{ claseServicio: 'estandar', precioUsd: '' }],
   idaYVuelta: true,
+  origenLugar: null,
+  destinoLugar: null,
 };
 
 /** «San Cristóbal», «san cristobal» y «SAN CRISTÓBAL» son la misma ciudad. */
@@ -115,6 +117,9 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
         origen: ciudadOficial(f.origen) ?? f.origen,
         destino: ciudadOficial(f.destino) ?? f.destino,
         idaYVuelta: f.idaYVuelta,
+        // El sitio exacto marcado en el mapa (null = solo la ciudad)
+        origenLugar: f.origenLugar,
+        destinoLugar: f.destinoLugar,
         // Cada clase con su precio de vuelta si es distinto; si no, el mismo de la ida
         ...(f.idaYVuelta
           ? {
@@ -142,7 +147,9 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
           ? `«${d.valor}» no está en la lista de ciudades.${d.sugerencias?.length ? ` ¿Quisiste decir ${d.sugerencias.join(', ')}?` : ''} Si falta, pídele a Butaca En Línea que la agregue.`
           : e instanceof ApiError && e.code === 'origen_igual_destino'
             ? 'El origen y el destino no pueden ser la misma ciudad.'
-            : e instanceof ApiError && e.code === 'regreso_con_salidas'
+            : e instanceof ApiError && e.code === 'lugar_lejos_de_ciudad'
+              ? `El sitio marcado queda a ${(d as { km?: number }).km} km de ${(d as { ciudad?: string }).ciudad}: márcalo dentro de esa ciudad.`
+              : e instanceof ApiError && e.code === 'regreso_con_salidas'
               ? `La vuelta tiene ${d.salidas} salida(s) programada(s): cancélalas antes de quitar el ida y vuelta.`
               : explicar(e)
       );
@@ -168,6 +175,8 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
         return { claseServicio: t.claseServicio, precioUsd: String(t.precioUsd), precioVuelta: pv != null && pv !== t.precioUsd ? String(pv) : '' };
       }),
       idaYVuelta: Boolean(r.idaYVuelta),
+      origenLugar: r.origenLugar ?? null,
+      destinoLugar: r.destinoLugar ?? null,
     });
 
   // Abrir el modal de creación del tipo pedido (con integración, solo urbanas: las de viaje vienen del sistema de la línea)

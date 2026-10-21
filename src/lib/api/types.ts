@@ -36,6 +36,12 @@ export interface ParadaRuta {
   minutosDeParada?: number | null;
 }
 
+export interface LugarRuta {
+  nombre: string | null;
+  lat: number;
+  lng: number;
+}
+
 export interface RutaDto {
   /** Id numérico: sirve para enlazar la ida con su vuelta (inversaId). */
   id: number;
@@ -49,6 +55,9 @@ export interface RutaDto {
   /** Ida y vuelta: id (numérico) de la ruta de vuelta enlazada; la línea las ve como una sola. */
   inversaId?: number | null;
   idaYVuelta?: boolean;
+  /** Sitio exacto de salida y de llegada (terminal) marcado en el mapa. */
+  origenLugar?: LugarRuta | null;
+  destinoLugar?: LugarRuta | null;
   tarifas?: { claseServicio: string; precioUsd: number }[];
   paradas?: ParadaRuta[];
 }
