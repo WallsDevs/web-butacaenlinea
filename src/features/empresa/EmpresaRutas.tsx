@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useModulos } from '../../lib/useModulos';
 import { AvisoIntegracion } from '../../components/ui/AvisoIntegracion';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -214,8 +214,13 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
       setForm(NUEVA);
     }
   };
+  // Solo un clic NUEVO abre el modal: al volver de Salidas la pestaña se monta otra vez con el
+  // contador ya en 1, y antes eso reabría el modal solo
+  const clicVisto = useRef(abrirNueva);
   useEffect(() => {
-    if (abrirNueva > 0) abrirNuevo();
+    if (abrirNueva === clicVisto.current) return;
+    clicVisto.current = abrirNueva;
+    abrirNuevo();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [abrirNueva]);
 
@@ -320,7 +325,8 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
   const visibles = filas
     .filter((f) => (filtro === 'todas' ? true : filtro === 'nacionales' ? f.tipo === 'nacional' : f.tipo === 'urbana'))
     .filter((f) => !q || f.texto.includes(q));
-  const n = { todas: filas.length, nacionales: (rutas ?? []).length, urbanas: (urbanas ?? []).length };
+  // Como en la tabla: la vuelta enlazada no cuenta aparte (A ⇄ B es una ruta)
+  const n = { todas: filas.length, nacionales: filas.filter((f) => f.tipo === 'nacional').length, urbanas: filas.filter((f) => f.tipo === 'urbana').length };
   const cargando = isLoading && !rutas;
 
   return (
