@@ -298,6 +298,29 @@ export const programarSerie = (datos: {
 export const reasignarVarias = (documentIds: string[], cambios: { unidadId?: string | null; choferId?: string | null }) =>
   api<{ asignadas: string[]; fallidas: { documentId: string; motivo: string; detalles: Record<string, unknown> }[] }>('/api/empresa/salidas/asignacion', { method: 'PUT', body: { documentIds, ...cambios } });
 
+/** Ventas de una salida en vivo (solo la línea). */
+export interface VentasSalida {
+  capacidad: number;
+  resumen: { vendidos: number; porVerificar: number; cobradoUsd: number; comprando: number; apartados: number };
+  enProceso: { canal: string | null; asientos: string[]; quien: string | null; desde: string | null; expira: string | null }[];
+  boletos: {
+    documentId: string;
+    folio: string | null;
+    asiento: string | null;
+    piso: number | null;
+    clase: string | null;
+    pasajero: string | null;
+    documento: string | null;
+    canal: string | null;
+    estado: string | null;
+    estadoPago: string | null;
+    metodoPago: string | null;
+    totalUsd: number;
+    vendidoEn: string | null;
+  }[];
+}
+export const getVentasSalida = (documentId: string) => api<VentasSalida>(`/api/empresa/salidas/${documentId}/ventas`);
+
 /** Un bus frente a una salida: dónde estará a esa hora y si puede hacerla (si no, por qué). */
 export interface BusParaSalida {
   documentId: string;

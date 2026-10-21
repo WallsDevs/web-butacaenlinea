@@ -89,6 +89,8 @@ export interface SalidaDto {
   capacidad?: number;
   /** Puestos vendidos o apartados (solo lo ve la línea). */
   vendidos?: number;
+  /** Compras en curso ahora mismo (puestos apartados pagándose). */
+  comprando?: number;
   ruta?: RutaDto;
   unidad?: UnidadResumenDto;
   linea?: { documentId: string; nombre: string; slug: string };

@@ -11,6 +11,7 @@ import { ApiError } from '../../lib/api/client';
 import { StatusChip } from '../../components/ui/StatusChip';
 import { ModalProgramar } from './ModalProgramar';
 import { ModalAsignacion } from './ModalAsignacion';
+import { PanelVentas } from './PanelVentas';
 import ui from '../../components/ui/ui.module.css';
 import styles from './EmpresaSalidas.module.css';
 import flota from '../flota/flota.module.css';
@@ -54,6 +55,8 @@ export default function EmpresaSalidas({ abrirProgramar = 0 }: { abrirProgramar?
       return n;
     });
   const [aviso, setAviso] = useState<string | null>(null);
+  // Las ventas de una salida, en vivo
+  const [viendoVentas, setViendoVentas] = useState<SalidaDto | null>(null);
 
   // Solo un clic nuevo en «Programar salidas» (cabecera) abre el modal
   const clicVisto = useRef(abrirProgramar);
@@ -72,6 +75,8 @@ export default function EmpresaSalidas({ abrirProgramar = 0 }: { abrirProgramar?
   const { data: salidas, isLoading } = useQuery({
     queryKey: ['empresa-salidas', slug, rango.desde, rango.hasta],
     queryFn: () => getSalidas({ ...rango, lineaSlug: slug, estados: ['programada', 'abordando', 'en_ruta', 'finalizada', 'cancelada'], limite: 100 }),
+    // En vivo: los vendidos y quién está comprando se actualizan solos
+    refetchInterval: 15_000,
   });
   const { data: rutas } = useQuery({ queryKey: ['rutas', slug], queryFn: () => getRutas(slug) });
   const { data: unidades } = useQuery({ queryKey: ['unidades', slug], queryFn: () => getUnidades(slug) });
@@ -232,7 +237,7 @@ export default function EmpresaSalidas({ abrirProgramar = 0 }: { abrirProgramar?
                       <span className={styles.asigRotulo}>Conductor</span>
                       <span className={styles.asigValor}>{s.chofer?.nombre ?? (urgente ? 'Sin conductor · sale pronto' : 'Sin conductor')}</span>
                     </button>
-                    <div className={styles.ocupacion} title={`${vendidos} de ${capacidad} puestos`}>
+                    <button type="button" className={styles.ocupacion} title="Ver quién compró y quién está comprando ahora" onClick={() => setViendoVentas(s)}>
                       {s.sinPasajeros ? (
                         <span className={styles.ocupTexto}>No se vende</span>
                       ) : capacidad ? (
@@ -243,7 +248,10 @@ export default function EmpresaSalidas({ abrirProgramar = 0 }: { abrirProgramar?
                       ) : (
                         <span className={styles.ocupTexto}>—</span>
                       )}
-                    </div>
+                      {(s.comprando ?? 0) > 0 && (
+                        <span className={styles.comprando}><i aria-hidden />{s.comprando} comprando</span>
+                      )}
+                    </button>
                     <div className={styles.estadoCol}>
                       {s.estado === 'abordando' ? <StatusChip tono="info" size="sm">Abordando</StatusChip>
                         : s.estado === 'en_ruta' ? <StatusChip tono="info" size="sm">En ruta</StatusChip>
@@ -278,6 +286,8 @@ export default function EmpresaSalidas({ abrirProgramar = 0 }: { abrirProgramar?
           <button type="button" className={styles.enlaceClaro} onClick={() => setMarcadas(new Set())}>Quitar marcas</button>
         </div>
       )}
+
+      {viendoVentas && <PanelVentas salida={viendoVentas} onCerrar={() => setViendoVentas(null)} />}
 
       {programando && (
         <ModalProgramar
