@@ -15,12 +15,21 @@ export function SeatMap({
   onToggle,
   size = 'web',
   readOnly = false,
+  marcas,
+  titulos,
+  onVer,
 }: {
   piso: PisoMapa;
   seleccionados: string[];
   onToggle?: (id: string) => void;
   size?: TamanoMapa;
   readOnly?: boolean;
+  /** Vista de la línea: cada puesto vendido o comprándose ahora (los demás, libres). */
+  marcas?: Record<string, 'vendido' | 'apartado'>;
+  /** Vista de la línea: lo que dice cada puesto al pasar encima (el pasajero). */
+  titulos?: Record<string, string>;
+  /** Vista de la línea: tocar un puesto (p. ej. para ir a su boleto). */
+  onVer?: (id: string) => void;
 }) {
   const busClass = [
     styles.bus,
@@ -29,6 +38,21 @@ export function SeatMap({
   ].join(' ');
 
   const renderAsiento = (a: AsientoMapa) => {
+    // Vista de la línea: vendido / comprándose / libre, con el pasajero al pasar encima
+    if (marcas) {
+      const m = marcas[a.id] ?? (a.estado === 'ocupado' ? 'vendido' : a.estado !== 'libre' ? 'apartado' : undefined);
+      const clase = m === 'vendido' ? styles.vendido : m === 'apartado' ? styles.apartado : styles.libreQuieto;
+      const sizeClass = size === 'pos' ? styles.asientoPos : size === 'movil' ? styles.asientoMovil : '';
+      const titulo = titulos?.[a.id] ?? (m === 'vendido' ? 'Vendido' : m === 'apartado' ? 'Comprándose ahora' : 'Libre');
+      return (
+        <button key={a.id} type="button" className={`${styles.asiento} ${sizeClass} ${clase}`} title={`Puesto ${a.id} · ${titulo}`} aria-label={`Puesto ${a.id}: ${titulo}`} onClick={() => onVer?.(a.id)}>
+          <span className={`${styles.brazo} ${styles.brazoIzq}`} />
+          <span className={`${styles.brazo} ${styles.brazoDer}`} />
+          <span className={styles.respaldo} />
+          <span className={styles.asientoNum}>{a.id}</span>
+        </button>
+      );
+    }
     const seleccionado = seleccionados.includes(a.id);
     const ocupado = a.estado !== 'libre' && !seleccionado;
     const estadoClass = seleccionado ? styles.seleccionado : ocupado ? styles.ocupado : styles.libre;

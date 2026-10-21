@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getVentasSalida } from '../../lib/api/endpoints';
+import { getMapaAsientos, getVentasSalida } from '../../lib/api/endpoints';
+import { SeatMap } from '../../components/seat-map/SeatMap';
 import type { SalidaDto } from '../../lib/api/types';
 import { fechaCorta, hora } from '../../lib/time';
 import styles from './EmpresaSalidas.module.css';
@@ -45,6 +46,15 @@ export function PanelVentas({ salida, onCerrar }: { salida: SalidaDto; onCerrar:
     refetchInterval: CADA_MS,
     refetchIntervalInBackground: false,
   });
+  // El mapa del bus con lo vendido y lo que se está comprando, también en vivo
+  const { data: mapa } = useQuery({
+    queryKey: ['mapa', salida.documentId],
+    queryFn: () => getMapaAsientos(salida.documentId),
+    refetchInterval: CADA_MS,
+    enabled: Boolean(salida.unidad),
+  });
+  const [pisoActivo, setPisoActivo] = useState(1);
+  const [resaltado, setResaltado] = useState<string | null>(null);
   // El reloj: las cuentas regresivas y «hace X» avanzan entre consulta y consulta
   const [ahora, setAhora] = useState(Date.now());
   useEffect(() => {
@@ -72,6 +82,25 @@ export function PanelVentas({ salida, onCerrar }: { salida: SalidaDto; onCerrar:
   }, [onCerrar]);
 
   const r = data?.resumen;
+  // Qué es cada puesto en el mapa y qué dice al pasar encima
+  const marcas: Record<string, 'vendido' | 'apartado'> = {};
+  const titulos: Record<string, string> = {};
+  for (const c of data?.enProceso ?? []) for (const a of c.asientos) {
+    marcas[a] = 'apartado';
+    titulos[a] = `Comprándose · ${c.quien ?? 'pasajero'} (${queda(c.expira, ahora)})`;
+  }
+  for (const b of data?.boletos ?? []) if (b.asiento && b.estado !== 'anulado') {
+    marcas[b.asiento] = 'vendido';
+    titulos[b.asiento] = `${b.pasajero ?? 'Vendido'}${b.documento ? ` · ${b.documento}` : ''}`;
+  }
+  const piso = mapa?.pisos.find((x) => x.numero === pisoActivo) ?? mapa?.pisos[0];
+  const irABoleto = (asiento: string) => {
+    const el = document.getElementById(`boleto-${salida.documentId}-${asiento}`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setResaltado(asiento);
+    setTimeout(() => setResaltado((x) => (x === asiento ? null : x)), 2200);
+  };
   const capacidad = data?.capacidad ?? salida.capacidad ?? 0;
 
   return (
@@ -117,6 +146,31 @@ export function PanelVentas({ salida, onCerrar }: { salida: SalidaDto; onCerrar:
             </div>
           )}
 
+          {salida.unidad && (
+            <section className={styles.seccion}>
+              <div className={styles.mapaCabeza}>
+                <div className={styles.rotulo}>Mapa del bus · {salida.unidad.numero}</div>
+                {mapa && mapa.pisos.length > 1 && (
+                  <div className={styles.segmento} role="radiogroup" aria-label="Piso">
+                    {mapa.pisos.map((x) => (
+                      <button key={x.numero} type="button" role="radio" aria-checked={piso?.numero === x.numero} className={piso?.numero === x.numero ? styles.segActivo : ''} onClick={() => setPisoActivo(x.numero)}>
+                        Piso {x.numero}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className={styles.leyendaMapa}>
+                <span><i className={styles.lVendido} /> Vendido</span>
+                <span><i className={styles.lApartado} /> Comprándose</span>
+                <span><i className={styles.lLibre} /> Libre</span>
+              </div>
+              <div className={styles.mapaBus}>
+                {piso ? <SeatMap piso={piso} seleccionados={[]} size="movil" marcas={marcas} titulos={titulos} onVer={irABoleto} /> : <div className={styles.nota}>Cargando el mapa…</div>}
+              </div>
+            </section>
+          )}
+
           <section className={styles.seccion}>
             <div className={styles.rotulo}>Comprando ahora</div>
             {!data ? (
@@ -146,7 +200,11 @@ export function PanelVentas({ salida, onCerrar }: { salida: SalidaDto; onCerrar:
               {(data?.boletos ?? []).map((b) => {
                 const pago = PAGO[b.estadoPago ?? ''] ?? { texto: b.estadoPago ?? '—', tono: 'neutral' as const };
                 return (
-                  <li key={b.documentId} className={`${styles.boleto} ${nuevos.has(b.documentId) ? styles.boletoNuevo : ''} ${b.estado === 'anulado' ? styles.boletoAnulado : ''}`}>
+                  <li
+                    key={b.documentId}
+                    id={b.asiento && b.estado !== 'anulado' ? `boleto-${salida.documentId}-${b.asiento}` : undefined}
+                    className={`${styles.boleto} ${nuevos.has(b.documentId) || (resaltado && resaltado === b.asiento && b.estado !== 'anulado') ? styles.boletoNuevo : ''} ${b.estado === 'anulado' ? styles.boletoAnulado : ''}`}
+                  >
                     <span className={styles.puesto}>{b.asiento ?? '—'}</span>
                     <div>
                       <b>{b.pasajero ?? 'Sin nombre'}{b.documento ? <small> · {b.documento}</small> : null}</b>

@@ -201,6 +201,16 @@
   background: #cbd3df;
 }
 
+/* Vista de la línea (ventas en vivo) */
+.vendido { background: var(--navy, #0B2A6B); border-color: var(--navy, #0B2A6B); color: #fff; cursor: pointer; }
+.vendido .brazo, .vendido .respaldo { background: rgba(255, 255, 255, 0.35); }
+.apartado { background: #10B981; border-color: #059669; color: #fff; cursor: pointer; animation: apartadoLate 1.6s infinite; }
+.apartado .brazo, .apartado .respaldo { background: rgba(255, 255, 255, 0.45); }
+.libreQuieto { background: var(--seat-free-bg); border-color: var(--seat-free-border); color: var(--seat-free-text); cursor: default; }
+.libreQuieto .brazo, .libreQuieto .respaldo { background: #a6dcbe; }
+@keyframes apartadoLate { 0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5); } 60% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); } }
+@media (prefers-reduced-motion: reduce) { .apartado { animation: none; } }
+
 /* Leyenda */
 .leyenda {
   display: flex;
