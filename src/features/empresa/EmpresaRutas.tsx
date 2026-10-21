@@ -34,17 +34,20 @@ interface FormRuta {
   tarifas: { claseServicio: string; precioUsd: string }[];
   /** Ida y vuelta: una sola ruta; el sistema mantiene la vuelta y el sentido se elige al programar. */
   idaYVuelta: boolean;
+  /** Precio del pasaje de la vuelta si es distinto al de la ida ('' = el mismo). */
+  precioVuelta: string;
 }
 
 const NUEVA: FormRuta = {
   documentId: null,
   codigo: '',
-  origen: 'San Cristóbal',
+  origen: '',
   destino: '',
   duracionMin: '',
   distanciaKm: '',
   tarifas: [{ claseServicio: 'estandar', precioUsd: '' }],
   idaYVuelta: true,
+  precioVuelta: '',
 };
 
 /** «San Cristóbal», «san cristobal» y «SAN CRISTÓBAL» son la misma ciudad. */
@@ -64,7 +67,12 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
   const [form, setForm] = useState<FormRuta | null>(null);
   const [errorRutaViaje, setErrorRutaViaje] = useState<string | null>(null);
   // Ciudades comunes a todas las líneas: origen y destino se eligen de aquí
-  const { data: ciudades, error: errorCiudades } = useQuery({ queryKey: ['ciudades'], queryFn: getCiudades, staleTime: 600_000, retry: 1 });
+  // Se reintenta solo (p. ej. si el API estaba reiniciando) y al abrir el formulario si falló
+  const { data: ciudades, error: errorCiudades, refetch: recargarCiudades, isFetching: cargandoCiudades } = useQuery({ queryKey: ['ciudades'], queryFn: getCiudades, staleTime: 600_000, retry: 3 });
+  useEffect(() => {
+    if (form && errorCiudades) void recargarCiudades();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [Boolean(form)]);
   const ciudadOficial = (t: string) => (ciudades ?? []).find((c) => normalizar(c.nombre) === normalizar(t))?.nombre ?? null;
   const [tipo, setTipo] = useState<TipoRuta>('nacional');
   const [filtro, setFiltro] = useState<Filtro>('todas');
@@ -120,6 +128,14 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
         origen: ciudadOficial(f.origen) ?? f.origen,
         destino: ciudadOficial(f.destino) ?? f.destino,
         idaYVuelta: f.idaYVuelta,
+        // La vuelta con su propio precio base si es distinto; si no, el mismo de la ida
+        ...(f.idaYVuelta
+          ? {
+              tarifasVuelta: f.tarifas
+                .filter((t) => t.claseServicio && Number(t.precioUsd) > 0)
+                .map((t) => ({ claseServicio: t.claseServicio, precioUsd: t.claseServicio === 'estandar' && Number(f.precioVuelta) > 0 ? Number(f.precioVuelta) : Number(t.precioUsd) })),
+            }
+          : {}),
         duracionMin: Number(f.duracionMin) || 0,
         distanciaKm: Number(f.distanciaKm) || 0,
         tarifas: f.tarifas
@@ -161,6 +177,12 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
       distanciaKm: String(r.distanciaKm ?? ''),
       tarifas: (r.tarifas ?? []).map((t) => ({ claseServicio: t.claseServicio, precioUsd: String(t.precioUsd) })),
       idaYVuelta: Boolean(r.idaYVuelta),
+      precioVuelta: (() => {
+        const vuelta = (rutas ?? []).find((x) => x.id === r.inversaId);
+        const pv = vuelta?.tarifas?.find((t) => t.claseServicio === 'estandar')?.precioUsd;
+        const pi = r.tarifas?.find((t) => t.claseServicio === 'estandar')?.precioUsd;
+        return pv != null && pv !== pi ? String(pv) : '';
+      })(),
     });
 
   // Abrir el modal de creación del tipo pedido (con integración, solo urbanas: las de viaje vienen del sistema de la línea)
@@ -240,7 +262,12 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
       titulo: r.idaYVuelta ? `${r.origen} ⇄ ${r.destino}` : `${r.origen} → ${r.destino}`,
       sub: [r.codigo ? `Código ${r.codigo}` : '', r.idaYVuelta ? 'Ida y vuelta' : 'Solo ida'].filter(Boolean).join(' · '),
       medida: r.duracionMin ? duracion(r.duracionMin) : '—',
-      precio: (r.tarifas ?? []).map((t) => (t.claseServicio === 'estandar' ? `$${t.precioUsd}` : `${t.claseServicio} $${t.precioUsd}`)).join(' · ') || '—',
+      precio: (() => {
+        const base = (r.tarifas ?? []).map((t) => (t.claseServicio === 'estandar' ? `$${t.precioUsd}` : `${t.claseServicio} $${t.precioUsd}`)).join(' · ') || '—';
+        const vuelta = r.idaYVuelta ? (rutas ?? []).find((x) => x.id === r.inversaId)?.tarifas?.find((t) => t.claseServicio === 'estandar')?.precioUsd : undefined;
+        const ida = r.tarifas?.find((t) => t.claseServicio === 'estandar')?.precioUsd;
+        return vuelta != null && vuelta !== ida ? `ida ${base} · vuelta $${vuelta}` : base;
+      })(),
       texto: `${r.codigo} ${r.origen} ${r.destino}`.toLowerCase(),
       editar: () => editar(r),
       eliminar: () => {
@@ -377,7 +404,10 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
             {errorCiudades && (
               <div style={{ fontSize: 12, color: 'var(--bad-text)', marginTop: 6 }}>
                 No se pudo cargar la lista de ciudades ({errorCiudades instanceof ApiError ? `${errorCiudades.status || 'sin conexión'} · ${errorCiudades.code}` : 'sin conexión'}).
-                {errorCiudades instanceof ApiError && errorCiudades.status === 404 ? ' El servidor todavía no tiene el catálogo de ciudades: hay que actualizar el API.' : ''}
+                {errorCiudades instanceof ApiError && errorCiudades.status === 404 ? ' El servidor todavía no tiene el catálogo de ciudades: hay que actualizar el API.' : ''}{' '}
+                <button type="button" onClick={() => void recargarCiudades()} disabled={cargandoCiudades} style={{ fontWeight: 700, color: 'var(--blue-600)', cursor: 'pointer' }}>
+                  {cargandoCiudades ? 'Reintentando…' : 'Reintentar'}
+                </button>
               </div>
             )}
             {!errorCiudades && [form.origen, form.destino].some((c) => c.trim() && !ciudadOficial(c)) && (
@@ -390,7 +420,7 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
               <span>
                 Ida y vuelta{ciudadOficial(form.origen) && ciudadOficial(form.destino) ? ` (${ciudadOficial(form.origen)} ⇄ ${ciudadOficial(form.destino)})` : ''}
                 <span style={{ display: 'block', fontSize: 12, color: 'var(--text-soft)' }}>
-                  Una sola ruta con el mismo precio en los dos sentidos; eliges el sentido al programar cada salida.
+                  Una sola ruta para los dos sentidos; eliges el sentido al programar cada salida. La vuelta puede tener su propio precio.
                 </span>
               </span>
             </label>
@@ -414,6 +444,26 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
                   })
                 }
               />
+              {form.idaYVuelta && (
+                <div>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, marginBottom: 6, cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={form.precioVuelta !== ''}
+                      onChange={(e) => setForm({ ...form, precioVuelta: e.target.checked ? form.tarifas.find((t) => t.claseServicio === 'estandar')?.precioUsd || '0' : '' })}
+                    />
+                    La vuelta cuesta distinto
+                  </label>
+                  {form.precioVuelta !== '' && (
+                    <Field
+                      label={`Vuelta${ciudadOficial(form.destino) && ciudadOficial(form.origen) ? ` (${ciudadOficial(form.destino)} → ${ciudadOficial(form.origen)})` : ''} · USD`}
+                      type="number"
+                      value={form.precioVuelta === '0' ? '' : form.precioVuelta}
+                      onChange={(e) => setForm({ ...form, precioVuelta: e.target.value || '0' })}
+                    />
+                  )}
+                </div>
+              )}
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-faint)', marginTop: 6 }}>
               Vale para todos los puestos. Si alguna unidad tiene clases especiales (VIP, cama), ponles su precio aquí abajo; las demás cobran el del pasaje.
