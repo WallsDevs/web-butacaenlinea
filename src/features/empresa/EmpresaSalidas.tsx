@@ -41,7 +41,18 @@ export default function EmpresaSalidas({ abrirProgramar = 0 }: { abrirProgramar?
   const [pendiente, setPendiente] = useState<Pendiente>('todas');
   const [verPasadas, setVerPasadas] = useState(false);
   const [programando, setProgramando] = useState(false);
-  const [asignando, setAsignando] = useState<SalidaDto | null>(null);
+  const [asignando, setAsignando] = useState<SalidaDto[] | null>(null);
+  // Salidas marcadas para asignarles el mismo bus o conductor de una vez
+  const [marcadas, setMarcadas] = useState<Set<string>>(new Set());
+  const marcar = (ids: string[], si: boolean) =>
+    setMarcadas((m) => {
+      const n = new Set(m);
+      for (const id of ids) {
+        if (si) n.add(id);
+        else n.delete(id);
+      }
+      return n;
+    });
   const [aviso, setAviso] = useState<string | null>(null);
 
   // Solo un clic nuevo en «Programar salidas» (cabecera) abre el modal
@@ -174,6 +185,19 @@ export default function EmpresaSalidas({ abrirProgramar = 0 }: { abrirProgramar?
               <span className={styles.diaNombre}>{d === hoyISO() ? 'Hoy' : d === masDias(1) ? 'Mañana' : fechaLarga(`${d}T12:00:00`)}</span>
               {d === hoyISO() || d === masDias(1) ? <span className={styles.diaFecha}>{fechaLarga(`${d}T12:00:00`)}</span> : null}
               <span className={styles.diaCuenta}>{delDia.length} salida{delDia.length === 1 ? '' : 's'}</span>
+              {!integracionActiva && (() => {
+                const activasDia = delDia.filter((x) => ['programada', 'abordando'].includes(x.estado));
+                const sinBusDia = activasDia.filter((x) => !x.unidad);
+                const todasMarcadas = activasDia.length > 0 && activasDia.every((x) => marcadas.has(x.documentId));
+                return activasDia.length > 0 ? (
+                  <span className={styles.diaAcciones}>
+                    {sinBusDia.length > 0 && (
+                      <button type="button" onClick={() => marcar(sinBusDia.map((x) => x.documentId), true)}>Marcar las sin bus ({sinBusDia.length})</button>
+                    )}
+                    <button type="button" onClick={() => marcar(activasDia.map((x) => x.documentId), !todasMarcadas)}>{todasMarcadas ? 'Desmarcar el día' : 'Marcar el día'}</button>
+                  </span>
+                ) : null;
+              })()}
             </header>
             <div className={styles.filas}>
               {delDia.map((s) => {
@@ -184,7 +208,10 @@ export default function EmpresaSalidas({ abrirProgramar = 0 }: { abrirProgramar?
                 const capacidad = s.capacidad ?? 0;
                 const vuelta = s.ruta?.inversaId ? porId.get(s.ruta.inversaId) : undefined;
                 return (
-                  <article key={s.documentId} className={`${styles.salida} ${!activa ? styles.salidaApagada : ''}`}>
+                  <article key={s.documentId} className={`${styles.salida} ${!activa ? styles.salidaApagada : ''} ${marcadas.has(s.documentId) ? styles.salidaMarcada : ''}`}>
+                    <label className={styles.marca} title={activa ? 'Marcar para asignar varias de una vez' : undefined}>
+                      <input type="checkbox" disabled={!activa || integracionActiva} checked={marcadas.has(s.documentId)} onChange={(e) => marcar([s.documentId], e.target.checked)} aria-label={`Marcar la salida de las ${hora(s.fechaHoraSalida)}`} />
+                    </label>
                     <div className={styles.horaCol}>
                       <span className={styles.horaSale}>{hora(s.fechaHoraSalida)}</span>
                       <span className={styles.horaLlega}>llega {hora(s.fechaHoraLlegada)}</span>
@@ -197,11 +224,11 @@ export default function EmpresaSalidas({ abrirProgramar = 0 }: { abrirProgramar?
                         {s.rampa && <span className={styles.chipSuave}>{s.rampa}</span>}
                       </span>
                     </div>
-                    <button type="button" className={`${styles.asig} ${!s.unidad ? styles.falta : ''}`} disabled={!activa || integracionActiva} onClick={() => setAsignando(s)} title="Cambiar el bus">
+                    <button type="button" className={`${styles.asig} ${!s.unidad ? styles.falta : ''}`} disabled={!activa || integracionActiva} onClick={() => setAsignando([s])} title={s.unidad ? 'Cambiar el bus' : 'Sin bus no se vende: no hay puestos que ofrecer. Toca para asignarle uno.'}>
                       <span className={styles.asigRotulo}>Bus</span>
-                      <span className={styles.asigValor}>{s.unidad ? `${s.unidad.numero} · ${capacidad} puestos` : 'Sin bus · no se vende'}</span>
+                      <span className={styles.asigValor}>{s.unidad ? `${s.unidad.numero} · ${capacidad} puestos` : 'Sin bus'}</span>
                     </button>
-                    <button type="button" className={`${styles.asig} ${!s.chofer ? (urgente ? styles.faltaUrgente : styles.falta) : ''}`} disabled={!activa || integracionActiva} onClick={() => setAsignando(s)} title="Cambiar el conductor">
+                    <button type="button" className={`${styles.asig} ${!s.chofer ? (urgente ? styles.faltaUrgente : styles.falta) : ''}`} disabled={!activa || integracionActiva} onClick={() => setAsignando([s])} title="Cambiar el conductor">
                       <span className={styles.asigRotulo}>Conductor</span>
                       <span className={styles.asigValor}>{s.chofer?.nombre ?? (urgente ? 'Sin conductor · sale pronto' : 'Sin conductor')}</span>
                     </button>
@@ -227,7 +254,7 @@ export default function EmpresaSalidas({ abrirProgramar = 0 }: { abrirProgramar?
                     <div className={styles.acciones}>
                       {activa && !integracionActiva && (
                         <>
-                          <button type="button" className={styles.enlace} onClick={() => setAsignando(s)}>Bus y conductor</button>
+                          <button type="button" className={styles.enlace} onClick={() => setAsignando([s])}>Bus y conductor</button>
                           <button type="button" className={styles.enlacePeligro} onClick={() => confirm(`¿Cancelar la salida de las ${hora(s.fechaHoraSalida)} a ${s.ruta?.destino}?`) && cancelar.mutate({ id: s.documentId })}>Cancelar</button>
                         </>
                       )}
@@ -244,11 +271,17 @@ export default function EmpresaSalidas({ abrirProgramar = 0 }: { abrirProgramar?
       )}
       {(salidas?.length ?? 0) >= 100 && <div className={styles.nota}>Se muestran las primeras 100 salidas del período: acota con «Un día» o por ruta.</div>}
 
+      {marcadas.size > 0 && (
+        <div className={styles.barraMarcadas} role="region" aria-label="Salidas marcadas">
+          <span><b>{marcadas.size}</b> salida{marcadas.size === 1 ? '' : 's'} marcada{marcadas.size === 1 ? '' : 's'}</span>
+          <button type="button" className={ui.btnPrimary} onClick={() => setAsignando((salidas ?? []).filter((x) => marcadas.has(x.documentId)))}>Asignar bus o conductor</button>
+          <button type="button" className={styles.enlaceClaro} onClick={() => setMarcadas(new Set())}>Quitar marcas</button>
+        </div>
+      )}
+
       {programando && (
         <ModalProgramar
           rutas={rutas ?? []}
-          unidades={unidades ?? []}
-          choferes={choferes ?? []}
           onCerrar={() => setProgramando(false)}
           onListo={(n, primerDia) => {
             setProgramando(false);
@@ -264,13 +297,15 @@ export default function EmpresaSalidas({ abrirProgramar = 0 }: { abrirProgramar?
       )}
       {asignando && (
         <ModalAsignacion
-          salida={asignando}
+          salidas={asignando}
           unidades={unidades ?? []}
           choferes={choferes ?? []}
           onCerrar={() => setAsignando(null)}
-          onListo={() => {
+          onListo={(n) => {
+            const varias = asignando.length > 1;
             setAsignando(null);
-            setAviso('Salida actualizada.');
+            setAviso(varias ? `${n} salida${n === 1 ? '' : 's'} actualizada${n === 1 ? '' : 's'}.` : 'Salida actualizada.');
+            if (varias) setMarcadas(new Set());
             refrescar();
           }}
         />

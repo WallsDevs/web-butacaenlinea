@@ -1,8 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { programarSerie } from '../../lib/api/endpoints';
-import type { UnidadDto } from '../../lib/api/types';
-import type { RutaDto } from '../../lib/api/types';
+import type { RutaDto, UnidadDto } from '../../lib/api/types';
 import { expandirConfiguracion } from '../../lib/asientos';
 import { diasSemanales, enHora, isoDia } from '../../lib/series';
 import { fechaCorta, hora as horaDe, hoyISO } from '../../lib/time';
@@ -13,63 +12,69 @@ import styles from './EmpresaSalidas.module.css';
 
 type Cuando = 'una' | 'calendario' | 'semanal';
 const SEMANA = [
-  [1, 'L', 'lunes'],
-  [2, 'M', 'martes'],
-  [3, 'M', 'miércoles'],
-  [4, 'J', 'jueves'],
-  [5, 'V', 'viernes'],
-  [6, 'S', 'sábado'],
-  [0, 'D', 'domingo'],
+  [1, 'L', 'Lunes'],
+  [2, 'M', 'Martes'],
+  [3, 'M', 'Miércoles'],
+  [4, 'J', 'Jueves'],
+  [5, 'V', 'Viernes'],
+  [6, 'S', 'Sábado'],
+  [0, 'D', 'Domingo'],
 ] as const;
 const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+const ESPERAS = [30, 60, 90, 120, 180, 240, 360];
 const MAX = 200;
 
 export const puestosDe = (u?: { configuracionAsientos?: UnidadDto['configuracionAsientos'] } | null) =>
   u?.configuracionAsientos ? expandirConfiguracion(u.configuracionAsientos).reduce((s, p) => s + p.totalAsientos, 0) : 0;
 
+/** Horas sin repetir y en orden (dos «19:08» el mismo día serían la misma salida). */
+const limpias = (h: string[]) => [...new Set(h.filter(Boolean))].sort();
+
+/** Las horas de un día: una o varias, se agregan y se quitan. */
+function Horas({ valor, onCambio, etiqueta }: { valor: string[]; onCambio: (h: string[]) => void; etiqueta: string }) {
+  return (
+    <div className={styles.horas}>
+      {valor.map((h, i) => (
+        <span key={i} className={styles.hora}>
+          <input className={ui.fieldInput} type="time" value={h} aria-label={`${etiqueta}: hora ${i + 1}`} onChange={(e) => onCambio(valor.map((x, j) => (j === i ? e.target.value : x)))} />
+          {valor.length > 1 && (
+            <button type="button" aria-label="Quitar esta hora" onClick={() => onCambio(valor.filter((_, j) => j !== i))}>✕</button>
+          )}
+        </span>
+      ))}
+      <button type="button" className={styles.enlace} onClick={() => onCambio([...valor, ''])}>+ hora</button>
+    </div>
+  );
+}
+
 /**
  * Programar salidas: una vez, en los días que se marquen en el calendario, o
- * semanal hasta una fecha. Bus y conductor son opcionales (se ponen después,
- * salida por salida). Si la ruta es de ida y vuelta se puede programar el
- * regreso de cada salida. Todo o nada: si una no se puede, no queda ninguna.
+ * semanal hasta una fecha, cada día con sus propias horas. Se programan SIN
+ * bus ni conductor: un calendario lo cubren varios buses, que se asignan
+ * después en la agenda (una a una o varias de una vez). Si la ruta es de ida
+ * y vuelta, cada salida puede llevar su regreso tras una espera en destino.
  */
-export function ModalProgramar({
-  rutas,
-  unidades,
-  choferes,
-  onCerrar,
-  onListo,
-}: {
-  rutas: RutaDto[];
-  unidades: UnidadDto[];
-  choferes: { documentId: string; nombre: string }[];
-  onCerrar: () => void;
-  onListo: (creadas: number, primerDia: string) => void;
-}) {
+export function ModalProgramar({ rutas, onCerrar, onListo }: { rutas: RutaDto[]; onCerrar: () => void; onListo: (creadas: number, primerDia: string) => void }) {
   const porId = new Map(rutas.map((r) => [r.id, r]));
   const visibles = rutas.filter((r) => !r.inversaId || !porId.has(r.inversaId) || r.id < r.inversaId);
   const [rutaId, setRutaId] = useState(visibles[0]?.documentId ?? '');
   const [sentido, setSentido] = useState<'ida' | 'vuelta'>('ida');
-  const [cuando, setCuando] = useState<Cuando>('una');
+  const [cuando, setCuando] = useState<Cuando>('semanal');
   const [dia, setDia] = useState(hoyISO());
   const [marcados, setMarcados] = useState<string[]>([]);
-  const [mes, setMes] = useState(() => {
-    const d = new Date();
-    return { anio: d.getFullYear(), mes: d.getMonth() };
-  });
-  const [semana, setSemana] = useState<number[]>([1, 2, 3, 4, 5]);
+  const [mes, setMes] = useState(() => ({ anio: new Date().getFullYear(), mes: new Date().getMonth() }));
+  // Horas: generales (una vez y calendario), por día marcado (si se cambian) y por día de la semana
+  const [generales, setGenerales] = useState<string[]>(['06:00']);
+  const [porDia, setPorDia] = useState<Record<string, string[]>>({});
+  const [porSemana, setPorSemana] = useState<Record<number, string[]>>({ 1: ['06:00'], 3: ['06:00'], 5: ['06:00'] });
   const [desde, setDesde] = useState(hoyISO());
   const [hasta, setHasta] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() + 28);
     return isoDia(d);
   });
-  const [horas, setHoras] = useState<string[]>(['06:00']);
   const [conRegreso, setConRegreso] = useState(false);
-  const [horaRegreso, setHoraRegreso] = useState('15:00');
-  const [diaRegreso, setDiaRegreso] = useState<0 | 1>(0);
-  const [unidadId, setUnidadId] = useState('');
-  const [choferId, setChoferId] = useState('');
+  const [espera, setEspera] = useState(60);
   const [rampa, setRampa] = useState('');
   const [sinPasajeros, setSinPasajeros] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -78,64 +83,92 @@ export function ModalProgramar({
   const vuelta = base?.inversaId ? porId.get(base.inversaId) : undefined;
   const ida = sentido === 'vuelta' && vuelta ? vuelta : base;
   const regreso = sentido === 'vuelta' ? base : vuelta;
+  const semana = Object.keys(porSemana).map(Number);
 
-  const dias = cuando === 'una' ? [dia] : cuando === 'calendario' ? [...marcados].sort() : diasSemanales(desde, hasta, semana);
-  const salidas = useMemo(() => {
-    if (!ida) return [];
-    const lista: { rutaId: string; fechaHoraSalida: string }[] = [];
-    for (const d of dias) {
-      for (const h of horas.filter(Boolean)) {
-        lista.push({ rutaId: ida.documentId, fechaHoraSalida: enHora(d, h) });
-        if (conRegreso && regreso) lista.push({ rutaId: regreso.documentId, fechaHoraSalida: enHora(d, horaRegreso, diaRegreso) });
+  // Cada día con sus horas
+  const plan: { dia: string; horas: string[] }[] =
+    cuando === 'una'
+      ? [{ dia, horas: limpias(generales) }]
+      : cuando === 'calendario'
+        ? [...marcados].sort().map((d) => ({ dia: d, horas: limpias(porDia[d] ?? generales) }))
+        : diasSemanales(desde, hasta, semana).map((d) => ({ dia: d, horas: limpias(porSemana[new Date(`${d}T12:00:00`).getDay()] ?? []) }));
+  const clavePlan = JSON.stringify(plan);
+
+  const { salidas, pasadas } = useMemo(() => {
+    const lista: { rutaId: string; fechaHoraSalida: string; regreso?: boolean }[] = [];
+    let saltadas = 0;
+    if (!ida) return { salidas: lista, pasadas: 0 };
+    for (const { dia: d, horas } of plan) {
+      for (const h of horas) {
+        const sale = enHora(d, h);
+        if (new Date(sale).getTime() <= Date.now()) {
+          saltadas++;
+          continue;
+        }
+        lista.push({ rutaId: ida.documentId, fechaHoraSalida: sale });
+        if (conRegreso && regreso) {
+          // El regreso sale después de llegar y esperar en el destino
+          const vuelve = new Date(new Date(sale).getTime() + ((ida.duracionMin ?? 0) + espera) * 60_000).toISOString();
+          lista.push({ rutaId: regreso.documentId, fechaHoraSalida: vuelve, regreso: true });
+        }
       }
     }
-    // Las que ya pasaron (p. ej. hoy a las 6:00 cuando ya son las 9) se saltan solas
-    return lista.filter((s) => new Date(s.fechaHoraSalida).getTime() > Date.now()).sort((a, b) => a.fechaHoraSalida.localeCompare(b.fechaHoraSalida));
-  }, [ida, regreso, dias.join(','), horas.join(','), conRegreso, horaRegreso, diaRegreso]); // eslint-disable-line react-hooks/exhaustive-deps
-  // Cuántas se saltaron por estar en el pasado (para decirlo)
-  const pasadas = dias.length * horas.filter(Boolean).length * (conRegreso && regreso ? 2 : 1) - salidas.length;
+    return { salidas: lista.sort((a, b) => a.fechaHoraSalida.localeCompare(b.fechaHoraSalida)), pasadas: saltadas };
+  }, [ida, regreso, clavePlan, conRegreso, espera]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const crear = useMutation({
-    mutationFn: () => programarSerie({ salidas, unidadId: unidadId || undefined, choferId: choferId || undefined, rampa: rampa.trim() || undefined, sinPasajeros: sinPasajeros || undefined }),
-    onSuccess: (r) => onListo(r.creadas, dias[0] ?? hoyISO()),
+    mutationFn: () => programarSerie({ salidas: salidas.map(({ rutaId: r, fechaHoraSalida }) => ({ rutaId: r, fechaHoraSalida })), rampa: rampa.trim() || undefined, sinPasajeros: sinPasajeros || undefined }),
+    onSuccess: (r) => onListo(r.creadas, plan[0]?.dia ?? hoyISO()),
     onError: (e) => setError(mensajeDeError(e)),
   });
 
+  const sinHoras = plan.some((p) => !p.horas.length);
   const pista = !ida
     ? 'Escoge la ruta.'
-    : !dias.length
+    : !plan.length
       ? cuando === 'calendario' ? 'Marca los días en el calendario.' : 'Escoge los días de la semana y hasta cuándo.'
-      : !horas.filter(Boolean).length
-        ? 'Pon la hora de salida.'
+      : sinHoras
+        ? 'Cada día necesita al menos una hora de salida.'
         : !salidas.length
           ? 'Esas fechas y horas ya pasaron.'
           : salidas.length > MAX
             ? `Son ${salidas.length} salidas: el máximo es ${MAX} de una vez.`
             : null;
 
-  // Calendario del mes
+  // Calendario del mes (la semana empieza el lunes)
   const primero = new Date(mes.anio, mes.mes, 1);
-  const vacios = (primero.getDay() + 6) % 7; // la semana empieza el lunes
+  const vacios = (primero.getDay() + 6) % 7;
   const diasMes = new Date(mes.anio, mes.mes + 1, 0).getDate();
   const hoy = hoyISO();
-  const cambiarMes = (n: number) => setMes((m) => {
-    const d = new Date(m.anio, m.mes + n, 1);
-    return { anio: d.getFullYear(), mes: d.getMonth() };
-  });
+  const cambiarMes = (n: number) =>
+    setMes((m) => {
+      const d = new Date(m.anio, m.mes + n, 1);
+      return { anio: d.getFullYear(), mes: d.getMonth() };
+    });
   const alternar = (d: string) => setMarcados((l) => (l.includes(d) ? l.filter((x) => x !== d) : [...l, d]));
+  const alternarSemana = (n: number) =>
+    setPorSemana((s) => {
+      const c = { ...s };
+      if (c[n]) delete c[n];
+      else c[n] = [...(Object.values(s)[0] ?? ['06:00'])];
+      return c;
+    });
 
   return (
     <div className={styles.velo} onClick={onCerrar}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Programar salidas">
         <div className={styles.modalCabecera}>
-          <div className={styles.modalTitulo}>Programar salidas</div>
+          <div>
+            <div className={styles.modalTitulo}>Programar salidas</div>
+            <div className={styles.nota}>El bus y el conductor se asignan después en la agenda: un calendario lo pueden cubrir varios buses.</div>
+          </div>
           <button type="button" className={styles.cerrar} onClick={onCerrar} aria-label="Cerrar">✕</button>
         </div>
 
         <div className={styles.modalCuerpo}>
           <section className={styles.seccion}>
             <div className={styles.rotulo}>Ruta</div>
-            <select className={ui.fieldInput} value={rutaId} onChange={(e) => { setRutaId(e.target.value); setSentido('ida'); }}>
+            <select className={ui.fieldInput} value={rutaId} onChange={(e) => { setRutaId(e.target.value); setSentido('ida'); }} aria-label="Ruta">
               <option value="">Escoge la ruta…</option>
               {visibles.map((r) => (
                 <option key={r.documentId} value={r.documentId}>
@@ -155,47 +188,21 @@ export function ModalProgramar({
           </section>
 
           <section className={styles.seccion}>
-            <div className={styles.rotulo}>Cuándo</div>
+            <div className={styles.rotulo}>Cuándo sale</div>
             <div className={styles.segmento} role="radiogroup" aria-label="Cuándo">
-              {([['una', 'Una vez'], ['calendario', 'Días del calendario'], ['semanal', 'Semanal']] as const).map(([id, txt]) => (
+              {([['semanal', 'Semanal'], ['calendario', 'Días del calendario'], ['una', 'Una vez']] as const).map(([id, txt]) => (
                 <button key={id} type="button" role="radio" aria-checked={cuando === id} className={cuando === id ? styles.segActivo : ''} onClick={() => setCuando(id)}>
                   {txt}
                 </button>
               ))}
             </div>
 
-            {cuando === 'una' && <Field label="Fecha" type="date" min={hoy} value={dia} onChange={(e) => setDia(e.target.value)} />}
-
-            {cuando === 'calendario' && (
-              <div className={styles.calendario}>
-                <div className={styles.calMes}>
-                  <button type="button" onClick={() => cambiarMes(-1)} aria-label="Mes anterior">‹</button>
-                  <span>{MESES[mes.mes]} {mes.anio}</span>
-                  <button type="button" onClick={() => cambiarMes(1)} aria-label="Mes siguiente">›</button>
-                </div>
-                <div className={styles.calGrilla}>
-                  {SEMANA.map(([n, l]) => <span key={n} className={styles.calDiaSemana}>{l}</span>)}
-                  {Array.from({ length: vacios }, (_, i) => <span key={`v${i}`} />)}
-                  {Array.from({ length: diasMes }, (_, i) => {
-                    const d = isoDia(new Date(mes.anio, mes.mes, i + 1));
-                    const pasado = d < hoy;
-                    return (
-                      <button
-                        key={d}
-                        type="button"
-                        disabled={pasado}
-                        aria-pressed={marcados.includes(d)}
-                        className={`${styles.calDia} ${marcados.includes(d) ? styles.calMarcado : ''} ${d === hoy ? styles.calHoy : ''}`}
-                        onClick={() => alternar(d)}
-                      >
-                        {i + 1}
-                      </button>
-                    );
-                  })}
-                </div>
-                <div className={styles.calPie}>
-                  <span>{marcados.length ? `${marcados.length} día${marcados.length === 1 ? '' : 's'} marcado${marcados.length === 1 ? '' : 's'}` : 'Toca los días en que sale'}</span>
-                  {marcados.length > 0 && <button type="button" className={styles.enlace} onClick={() => setMarcados([])}>Quitar todos</button>}
+            {cuando === 'una' && (
+              <div className={styles.dosColumnas}>
+                <Field label="Fecha" type="date" min={hoy} value={dia} onChange={(e) => setDia(e.target.value)} />
+                <div>
+                  <span className={ui.fieldLabel}>Horas de salida</span>
+                  <Horas valor={generales} onCambio={setGenerales} etiqueta="Salida" />
                 </div>
               </div>
             )}
@@ -204,18 +211,21 @@ export function ModalProgramar({
               <>
                 <div className={styles.semana} role="group" aria-label="Días de la semana">
                   {SEMANA.map(([n, l, nombre]) => (
-                    <button
-                      key={n}
-                      type="button"
-                      aria-pressed={semana.includes(n)}
-                      title={nombre}
-                      className={semana.includes(n) ? styles.semanaActivo : ''}
-                      onClick={() => setSemana((s) => (s.includes(n) ? s.filter((x) => x !== n) : [...s, n]))}
-                    >
+                    <button key={n} type="button" aria-pressed={semana.includes(n)} title={nombre} className={semana.includes(n) ? styles.semanaActivo : ''} onClick={() => alternarSemana(n)}>
                       {l}
                     </button>
                   ))}
                 </div>
+                {semana.length > 0 && (
+                  <div className={styles.tablaHoras}>
+                    {SEMANA.filter(([n]) => semana.includes(n)).map(([n, , nombre]) => (
+                      <div key={n} className={styles.filaHoras}>
+                        <span className={styles.filaDia}>Todos los {nombre.toLowerCase()}{nombre.endsWith('s') ? '' : 's'}</span>
+                        <Horas valor={porSemana[n]} onCambio={(h) => setPorSemana((s) => ({ ...s, [n]: h }))} etiqueta={nombre} />
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <div className={styles.dosColumnas}>
                   <Field label="Desde" type="date" min={hoy} value={desde} onChange={(e) => setDesde(e.target.value)} />
                   <Field label="Hasta" type="date" min={desde} value={hasta} onChange={(e) => setHasta(e.target.value)} />
@@ -223,77 +233,92 @@ export function ModalProgramar({
               </>
             )}
 
-            <div>
-              <span className={ui.fieldLabel}>Hora de salida</span>
-              <div className={styles.horas}>
-                {horas.map((h, i) => (
-                  <span key={i} className={styles.hora}>
-                    <input className={ui.fieldInput} type="time" value={h} aria-label={`Hora ${i + 1}`} onChange={(e) => setHoras((l) => l.map((x, j) => (j === i ? e.target.value : x)))} />
-                    {horas.length > 1 && (
-                      <button type="button" aria-label="Quitar esta hora" onClick={() => setHoras((l) => l.filter((_, j) => j !== i))}>✕</button>
-                    )}
-                  </span>
-                ))}
-                <button type="button" className={styles.enlace} onClick={() => setHoras((l) => [...l, ''])}>+ Otra hora</button>
-              </div>
-            </div>
+            {cuando === 'calendario' && (
+              <>
+                <div className={styles.calendario}>
+                  <div className={styles.calMes}>
+                    <button type="button" onClick={() => cambiarMes(-1)} aria-label="Mes anterior">‹</button>
+                    <span>{MESES[mes.mes]} {mes.anio}</span>
+                    <button type="button" onClick={() => cambiarMes(1)} aria-label="Mes siguiente">›</button>
+                  </div>
+                  <div className={styles.calGrilla}>
+                    {SEMANA.map(([n, l]) => <span key={n} className={styles.calDiaSemana}>{l}</span>)}
+                    {Array.from({ length: vacios }, (_, i) => <span key={`v${i}`} />)}
+                    {Array.from({ length: diasMes }, (_, i) => {
+                      const d = isoDia(new Date(mes.anio, mes.mes, i + 1));
+                      const propias = porDia[d];
+                      return (
+                        <button
+                          key={d}
+                          type="button"
+                          disabled={d < hoy}
+                          aria-pressed={marcados.includes(d)}
+                          className={`${styles.calDia} ${marcados.includes(d) ? styles.calMarcado : ''} ${d === hoy ? styles.calHoy : ''}`}
+                          onClick={() => alternar(d)}
+                          title={marcados.includes(d) ? `Sale a las ${limpias(propias ?? generales).join(', ')}` : undefined}
+                        >
+                          {i + 1}
+                          {marcados.includes(d) && propias && <i className={styles.calPropia} aria-hidden />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className={styles.calPie}>
+                    <span>{marcados.length ? `${marcados.length} día${marcados.length === 1 ? '' : 's'} marcado${marcados.length === 1 ? '' : 's'} · el punto indica hora propia` : 'Toca los días en que sale'}</span>
+                    {marcados.length > 0 && <button type="button" className={styles.enlace} onClick={() => { setMarcados([]); setPorDia({}); }}>Quitar todos</button>}
+                  </div>
+                </div>
+                <div className={styles.filaHoras}>
+                  <span className={styles.filaDia}>Hora general</span>
+                  <Horas valor={generales} onCambio={setGenerales} etiqueta="Hora general" />
+                </div>
+                {marcados.length > 0 && (
+                  <div className={styles.tablaHoras}>
+                    {[...marcados].sort().map((d) => (
+                      <div key={d} className={styles.filaHoras}>
+                        <span className={styles.filaDia}>{fechaCorta(`${d}T12:00:00`)}</span>
+                        {porDia[d] ? (
+                          <>
+                            <Horas valor={porDia[d]} onCambio={(h) => setPorDia((m) => ({ ...m, [d]: h }))} etiqueta={d} />
+                            <button type="button" className={styles.enlaceSuave} onClick={() => setPorDia((m) => { const c = { ...m }; delete c[d]; return c; })}>usar la general</button>
+                          </>
+                        ) : (
+                          <>
+                            <span className={styles.horasGenerales}>{limpias(generales).join(' · ') || '—'}</span>
+                            <button type="button" className={styles.enlace} onClick={() => setPorDia((m) => ({ ...m, [d]: [...generales] }))}>cambiar</button>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
 
-            {regreso && (
+            {regreso && ida && (
               <div className={styles.regreso}>
                 <label className={styles.check}>
                   <input type="checkbox" checked={conRegreso} onChange={(e) => setConRegreso(e.target.checked)} />
                   <span>
                     Programar también el regreso
-                    <small>{regreso.origen} → {regreso.destino}, con el mismo bus y conductor</small>
+                    <small>{regreso.origen} → {regreso.destino}: cada salida tiene su regreso al llegar y esperar en {ida.destino}</small>
                   </span>
                 </label>
                 {conRegreso && (
-                  <div className={styles.dosColumnas}>
-                    <Field label="Hora del regreso" type="time" value={horaRegreso} onChange={(e) => setHoraRegreso(e.target.value)} />
-                    <label className={ui.field}>
-                      <span className={ui.fieldLabel}>Qué día</span>
-                      <select className={ui.fieldInput} value={diaRegreso} onChange={(e) => setDiaRegreso(Number(e.target.value) as 0 | 1)}>
-                        <option value={0}>El mismo día</option>
-                        <option value={1}>Al día siguiente</option>
-                      </select>
-                    </label>
-                  </div>
+                  <label className={ui.field} style={{ maxWidth: 260 }}>
+                    <span className={ui.fieldLabel}>Espera en {ida.destino} antes de regresar</span>
+                    <select className={ui.fieldInput} value={espera} onChange={(e) => setEspera(Number(e.target.value))}>
+                      {ESPERAS.map((m) => (
+                        <option key={m} value={m}>{m < 60 ? `${m} min` : `${Math.floor(m / 60)} h${m % 60 ? ` ${m % 60}` : ''}`}</option>
+                      ))}
+                    </select>
+                  </label>
                 )}
               </div>
             )}
           </section>
 
           <section className={styles.seccion}>
-            <div className={styles.rotulo}>Bus y conductor · opcionales</div>
-            <div className={styles.dosColumnas}>
-              <label className={ui.field}>
-                <span className={ui.fieldLabel}>Bus</span>
-                <select className={ui.fieldInput} value={unidadId} onChange={(e) => setUnidadId(e.target.value)}>
-                  <option value="">Por asignar</option>
-                  {unidades
-                    .filter((u) => u.estado === 'disponible' || u.estado === 'en_ruta')
-                    .map((u) => (
-                      <option key={u.documentId} value={u.documentId}>
-                        {u.numero} · {puestosDe(u)} puestos{u.marcaModelo ? ` · ${u.marcaModelo}` : ''}
-                      </option>
-                    ))}
-                </select>
-              </label>
-              <label className={ui.field}>
-                <span className={ui.fieldLabel}>Conductor</span>
-                <select className={ui.fieldInput} value={choferId} onChange={(e) => setChoferId(e.target.value)}>
-                  <option value="">Por asignar</option>
-                  {choferes.map((c) => (
-                    <option key={c.documentId} value={c.documentId}>{c.nombre}</option>
-                  ))}
-                </select>
-              </label>
-            </div>
-            <div className={styles.nota}>
-              {unidadId
-                ? 'El mismo bus para todas. Si una se complica (se daña, un incidente), se le cambia el bus solo a esa desde la agenda.'
-                : 'Sin bus la salida no se vende: no hay puestos que ofrecer. Asígnaselo desde la agenda cuando lo sepas.'}
-            </div>
             <div className={styles.dosColumnas}>
               <Field label="Rampa (opcional)" placeholder="Rampa 03" value={rampa} onChange={(e) => setRampa(e.target.value)} />
               <label className={styles.check} style={{ alignSelf: 'end', paddingBottom: 10 }}>
@@ -310,12 +335,12 @@ export function ModalProgramar({
             <section className={styles.seccion}>
               <div className={styles.rotulo}>Se van a programar · {salidas.length}</div>
               <div className={styles.vista}>
-                {salidas.slice(0, 24).map((s, i) => (
-                  <span key={i} className={s.rutaId === regreso?.documentId ? styles.vistaRegreso : ''}>
-                    {fechaCorta(s.fechaHoraSalida)} · {horaDe(s.fechaHoraSalida)}
+                {salidas.slice(0, 30).map((s, i) => (
+                  <span key={i} className={s.regreso ? styles.vistaRegreso : ''} title={s.regreso ? 'Regreso' : 'Ida'}>
+                    {s.regreso ? '↩ ' : ''}{fechaCorta(s.fechaHoraSalida)} · {horaDe(s.fechaHoraSalida)}
                   </span>
                 ))}
-                {salidas.length > 24 && <span className={styles.vistaMas}>y {salidas.length - 24} más</span>}
+                {salidas.length > 30 && <span className={styles.vistaMas}>y {salidas.length - 30} más</span>}
               </div>
             </section>
           )}
@@ -333,15 +358,7 @@ export function ModalProgramar({
             )}
           </div>
           <button type="button" className={ui.btnSecondary} onClick={onCerrar}>Cancelar</button>
-          <button
-            type="button"
-            className={ui.btnPrimary}
-            disabled={Boolean(pista) || crear.isPending}
-            onClick={() => {
-              setError(null);
-              crear.mutate();
-            }}
-          >
+          <button type="button" className={ui.btnPrimary} disabled={Boolean(pista) || crear.isPending} onClick={() => { setError(null); crear.mutate(); }}>
             {crear.isPending ? 'Programando…' : `Programar ${salidas.length || ''} salida${salidas.length === 1 ? '' : 's'}`}
           </button>
         </div>

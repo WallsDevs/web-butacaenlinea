@@ -294,6 +294,10 @@ export const programarSerie = (datos: {
   sinPasajeros?: boolean;
 }) => api<{ serieId: string; creadas: number; documentIds: string[] }>('/api/empresa/salidas/serie', { method: 'POST', body: datos });
 
+/** El mismo bus o conductor a varias salidas: las que no se pueden vuelven con el motivo, las demás quedan. */
+export const reasignarVarias = (documentIds: string[], cambios: { unidadId?: string | null; choferId?: string | null }) =>
+  api<{ asignadas: string[]; fallidas: { documentId: string; motivo: string; detalles: Record<string, unknown> }[] }>('/api/empresa/salidas/asignacion', { method: 'PUT', body: { documentIds, ...cambios } });
+
 /** Cambia el bus o el conductor de una salida (`null` lo quita). */
 export const reasignarSalida = (documentId: string, cambios: { unidadId?: string | null; choferId?: string | null }) =>
   api<SalidaDto>(`/api/empresa/salidas/${documentId}/asignacion`, { method: 'PUT', body: cambios });
