@@ -302,7 +302,9 @@ export interface LugarMapa {
   ciudad: string | null;
   cercana?: string | null;
 }
-export const buscarLugares = (q: string) => api<{ lugares: LugarMapa[]; buscador: boolean }>(`/api/lugares?q=${encodeURIComponent(q)}`);
+/** `zona` = [oeste, sur, este, norte]: busca solo dentro (rutas urbanas, la ciudad en pantalla). */
+export const buscarLugares = (q: string, zona?: [number, number, number, number] | null) =>
+  api<{ lugares: LugarMapa[]; buscador: boolean }>(`/api/lugares?q=${encodeURIComponent(q)}${zona ? `&zona=${zona.map((x) => x.toFixed(4)).join(',')}` : ''}`);
 export const lugarEn = (lat: number, lng: number) => api<LugarMapa>(`/api/lugares/en?lat=${lat}&lng=${lng}`);
 export const getCiudades = () => api<Ciudad[]>('/api/ciudades', { auth: false });
 export const crearCiudad = (c: { nombre: string; estado?: string }) => api<Ciudad>('/api/admin/ciudades', { method: 'POST', body: c });

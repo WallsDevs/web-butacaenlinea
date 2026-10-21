@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
+import { BuscadorSitios } from '../../components/ui/BuscadorSitios';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { buscarLugares, lugarEn, type Ciudad, type LugarMapa } from '../../lib/api/endpoints';
+import { lugarEn, type Ciudad, type LugarMapa } from '../../lib/api/endpoints';
 import type { LugarRuta } from '../../lib/api/types';
 import { trazarPorCalles } from '../urbano/trazado';
 import styles from './MapaTrayecto.module.css';
@@ -24,7 +25,6 @@ const VENEZUELA = L.latLngBounds([0.8, -73.4], [12.2, -59.8]);
 /** El bus tarda más que el carro de OSRM: paradas, subidas, velocidad máxima. */
 const FACTOR_BUS = 1.3;
 
-const normalizar = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
 
 function icono(letra: string, activo: boolean) {
   return L.divIcon({
@@ -49,6 +49,8 @@ export function MapaTrayecto({
   destinoLugar,
   onElegir,
   onTrazado,
+  marcando,
+  onMarcando,
 }: {
   ciudades: Ciudad[];
   origen: string | null;
@@ -57,19 +59,18 @@ export function MapaTrayecto({
   destinoLugar: LugarRuta | null;
   onElegir: (punta: Punta, e: Eleccion) => void;
   onTrazado?: (t: TrazadoTrayecto | null) => void;
+  /** Qué punta marca el próximo toque o búsqueda (la controla el formulario). */
+  marcando: Punta;
+  onMarcando: (p: Punta) => void;
 }) {
   const divRef = useRef<HTMLDivElement>(null);
   const mapaRef = useRef<L.Map | null>(null);
   const capaCiudades = useRef<L.LayerGroup | null>(null);
   const capaPuntas = useRef<L.LayerGroup | null>(null);
   const linea = useRef<L.Polyline | null>(null);
-  const [marcando, setMarcando] = useState<Punta>(origen && !destino ? 'destino' : 'origen');
+  const setMarcando = onMarcando;
   const [aviso, setAviso] = useState<string | null>(null);
   const [ubicando, setUbicando] = useState(false);
-  const [texto, setTexto] = useState('');
-  const [resultados, setResultados] = useState<LugarMapa[] | null>(null);
-  const [buscando, setBuscando] = useState(false);
-  const [activo, setActivo] = useState(0);
 
   const centroDe = (nombre: string | null): [number, number] | null => {
     const c = nombre ? ciudades.find((x) => x.nombre === nombre) : null;
@@ -84,7 +85,6 @@ export function MapaTrayecto({
 
   /** Un sitio elegido (de la búsqueda, un toque o un punto arrastrado) queda en la punta que se está marcando. */
   const elegir = (l: LugarMapa, punta: Punta = marcando) => {
-    setResultados(null);
     if (!l.ciudad) {
       setAviso(
         `Ese sitio no queda en ninguna ciudad de la lista${l.cercana ? ` (la más cercana es ${l.cercana})` : ''}. Si falta, pídele a Butaca En Línea que la agregue.`
@@ -216,90 +216,18 @@ export function MapaTrayecto({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [claveA, claveB]);
 
-  // Buscador: espera a que se deje de escribir; las ciudades del catálogo salen al instante
-  useEffect(() => {
-    const q = texto.trim();
-    if (q.length < 3) {
-      setResultados(null);
-      return;
-    }
-    const locales: LugarMapa[] = ciudades
-      .filter((c) => c.lat != null && c.lng != null && normalizar(c.nombre).startsWith(normalizar(q)))
-      .slice(0, 3)
-      .map((c) => ({ nombre: c.nombre, detalle: c.estado ? `Ciudad · ${c.estado}` : 'Ciudad', lat: c.lat!, lng: c.lng!, ciudad: c.nombre }));
-    setResultados(locales);
-    setActivo(0);
-    setBuscando(true);
-    const t = setTimeout(() => {
-      buscarLugares(q)
-        .then((r) => setResultados(r.lugares))
-        .catch(() => setResultados((prev) => prev ?? []))
-        .finally(() => setBuscando(false));
-    }, 450);
-    return () => clearTimeout(t);
-  }, [texto, ciudades]);
-
-  const elegirResultado = (l: LugarMapa) => {
-    setTexto('');
-    elegir(l);
-  };
-
   return (
     <div className={styles.marco}>
       <div ref={divRef} className={styles.mapa} />
 
       <div className={styles.arriba}>
-        <div className={styles.buscador}>
-          <span className={styles.lupa} aria-hidden>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
-              <circle cx="11" cy="11" r="7" />
-              <path d="m20 20-3.5-3.5" />
-            </svg>
-          </span>
-          <input
-            role="combobox"
-            aria-expanded={Boolean(resultados)}
-            aria-label={`Buscar el sitio de ${marcando === 'origen' ? 'salida' : 'llegada'}`}
-            placeholder={marcando === 'origen' ? 'Buscar la salida: terminal, plaza o ciudad' : 'Buscar la llegada: terminal, plaza o ciudad'}
-            value={texto}
-            onChange={(e) => setTexto(e.target.value)}
-            onKeyDown={(e) => {
-              if (!resultados?.length) return;
-              if (e.key === 'ArrowDown') {
-                e.preventDefault();
-                setActivo((i) => Math.min(i + 1, resultados.length - 1));
-              } else if (e.key === 'ArrowUp') {
-                e.preventDefault();
-                setActivo((i) => Math.max(i - 1, 0));
-              } else if (e.key === 'Enter') {
-                e.preventDefault();
-                elegirResultado(resultados[activo]);
-              } else if (e.key === 'Escape') setResultados(null);
-            }}
-          />
-          {resultados && (
-            <div role="listbox" className={styles.resultados}>
-              {resultados.map((l, i) => (
-                <button
-                  key={`${l.lat},${l.lng},${i}`}
-                  type="button"
-                  role="option"
-                  aria-selected={i === activo}
-                  className={`${styles.resultado} ${i === activo ? styles.resultadoActivo : ''}`}
-                  onMouseEnter={() => setActivo(i)}
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => elegirResultado(l)}
-                >
-                  <span className={styles.resNombre}>{l.nombre ?? 'Sitio sin nombre'}</span>
-                  <span className={styles.resDetalle}>{l.detalle || '—'}</span>
-                  <span className={l.ciudad ? styles.resCiudad : styles.resFuera}>{l.ciudad ?? 'Fuera de la lista'}</span>
-                </button>
-              ))}
-              {!resultados.length && !buscando && <div className={styles.vacio}>Nada con ese nombre. Prueba con la ciudad o toca el mapa.</div>}
-              {buscando && <div className={styles.vacio}>Buscando sitios…</div>}
-            </div>
-          )}
-        </div>
+        <BuscadorSitios
+          modo="pais"
+          ciudades={ciudades}
+          etiqueta={`Buscar el sitio de ${marcando === 'origen' ? 'salida' : 'llegada'}`}
+          placeholder={marcando === 'origen' ? 'Buscar la salida: terminal, plaza o ciudad' : 'Buscar la llegada: terminal, plaza o ciudad'}
+          onElegir={(l) => elegir(l)}
+        />
 
         <div className={styles.puntas} role="radiogroup" aria-label="Qué punta marcas">
           {(['origen', 'destino'] as const).map((p) => (

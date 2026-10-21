@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import type { ParadaUrbana } from '../../lib/api/endpoints';
+import type { LugarMapa, ParadaUrbana } from '../../lib/api/endpoints';
+import { BuscadorSitios } from '../../components/ui/BuscadorSitios';
 
 /** Centro por defecto: San Cristóbal, Táchira. */
 const CENTRO: [number, number] = [7.7669, -72.225];
@@ -35,12 +36,15 @@ export function MapaParadas({
   recorrido,
   onAgregar,
   onMover,
+  onBuscar,
   alto = 560,
 }: {
   paradas: ParadaUrbana[];
   recorrido: [number, number][];
   onAgregar?: (lat: number, lng: number) => void;
   onMover?: (indice: number, lat: number, lng: number) => void;
+  /** Con esto, el mapa trae un buscador de sitios de la zona en pantalla (sectores, calles, plazas). */
+  onBuscar?: (l: LugarMapa) => void;
   /** Alto fijo en px, o 0 para que ocupe todo el espacio disponible. */
   alto?: number;
 }) {
@@ -57,7 +61,9 @@ export function MapaParadas({
   moverRef.current = onMover;
 
   useEffect(() => {
-    const mapa = L.map(divRef.current!, { zoomControl: true }).setView(CENTRO, 13);
+    // El zoom abajo a la derecha: arriba va el buscador
+    const mapa = L.map(divRef.current!, { zoomControl: false }).setView(CENTRO, 13);
+    L.control.zoom({ position: 'bottomright' }).addTo(mapa);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution: '© OpenStreetMap',
@@ -119,18 +125,42 @@ export function MapaParadas({
     }
   }, [paradas, recorrido]);
 
+  /** Lo que está en pantalla como zona de búsqueda: la ciudad, no el país. */
+  const zona = (): [number, number, number, number] | null => {
+    const b = mapaRef.current?.getBounds();
+    return b ? [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()] : null;
+  };
+
   return (
     <div
-      ref={divRef}
       style={{
         // alto 0 = el editor grande, donde el mapa llena la columna
         ...(alto ? { height: alto } : { flex: 1, minHeight: 0 }),
+        position: 'relative',
         width: '100%',
         borderRadius: 16,
         overflow: 'hidden',
         border: '1px solid var(--border)',
-        cursor: onAgregar ? 'crosshair' : 'grab',
+        // Encierra los z-index de Leaflet para que no tape menús del resto de la página
+        isolation: 'isolate',
+        zIndex: 0,
       }}
-    />
+    >
+      <div ref={divRef} style={{ position: 'absolute', inset: 0, cursor: onAgregar ? 'crosshair' : 'grab' }} />
+      {onBuscar && (
+        <div style={{ position: 'absolute', top: 12, left: 12, width: 'min(420px, calc(100% - 24px))', zIndex: 1100 }}>
+          <BuscadorSitios
+            modo="ciudad"
+            zona={zona}
+            etiqueta="Buscar un sitio en esta zona"
+            placeholder="Buscar parada: plaza, calle, sector…"
+            onElegir={(l) => {
+              mapaRef.current?.setView([l.lat, l.lng], Math.max(mapaRef.current.getZoom(), 16));
+              onBuscar(l);
+            }}
+          />
+        </div>
+      )}
+    </div>
   );
 }

@@ -5,7 +5,7 @@ import { Field } from '../../components/ui/Field';
 import { ApiError } from '../../lib/api/client';
 import { StatusChip } from '../../components/ui/StatusChip';
 import { Letrero } from '../../components/ui/Letrero';
-import { borrarEtiquetaRuta, getEtiquetasRutas, guardarEtiquetaRuta, type ParadaUrbana, type RutaUrbanaDto } from '../../lib/api/endpoints';
+import { borrarEtiquetaRuta, getEtiquetasRutas, guardarEtiquetaRuta, lugarEn, type LugarMapa, type ParadaUrbana, type RutaUrbanaDto } from '../../lib/api/endpoints';
 import ui from '../../components/ui/ui.module.css';
 
 /**
@@ -181,13 +181,24 @@ export function EditorRutaUrbana({
     recalcular(conOrden);
   };
 
-  const agregar = (lat: number, lng: number) => {
+  const nombrePorDefecto = (n: string) => /^Parada \d+$/.test(n);
+  const agregar = (lat: number, lng: number, nombre?: string) => {
     if (paradas.length >= MAX_PARADAS) return;
     fijarParadas([
       ...paradas,
-      { nombre: `Parada ${paradas.length + 1}`, orden: paradas.length + 1, lat, lng },
+      { nombre: nombre || `Parada ${paradas.length + 1}`, orden: paradas.length + 1, lat, lng },
     ]);
+    if (nombre) return;
+    // Un toque en el mapa toma el nombre del sitio (la calle, la plaza), si nadie lo cambió todavía
+    void lugarEn(lat, lng)
+      .then((l) => {
+        if (!l.nombre) return;
+        setForm((f) => ({ ...f, paradas: f.paradas.map((p) => (p.lat === lat && p.lng === lng && nombrePorDefecto(p.nombre) ? { ...p, nombre: l.nombre!.slice(0, 80) } : p)) }));
+      })
+      .catch(() => {});
   };
+  // Un sitio del buscador se agrega como parada con su nombre
+  const agregarSitio = (l: LugarMapa) => agregar(l.lat, l.lng, l.nombre ?? undefined);
 
   const mover = (i: number, lat: number, lng: number) =>
     fijarParadas(paradas.map((p, j) => (j === i ? { ...p, lat, lng } : p)));
@@ -262,14 +273,15 @@ export function EditorRutaUrbana({
               recorrido={form.recorrido}
               onAgregar={agregar}
               onMover={mover}
+              onBuscar={agregarSitio}
               alto={0}
             />
             <div style={estilos.piePista}>
               {paradas.length === 0
-                ? 'Toca el mapa donde arranca la ruta.'
+                ? 'Busca un sitio o toca el mapa donde arranca la ruta.'
                 : paradas.length === 1
-                  ? 'Ahora toca dónde termina.'
-                  : `Toca para agregar otra parada · arrastra los marcadores para corregir`}
+                  ? 'Ahora busca o toca la siguiente parada.'
+                  : `Busca o toca para agregar otra parada · arrastra los marcadores para corregir`}
             </div>
           </div>
 

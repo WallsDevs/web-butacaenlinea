@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import type { Ciudad } from '../../lib/api/endpoints';
 import type { LugarRuta } from '../../lib/api/types';
-import { MapaTrayecto, type TrazadoTrayecto } from './MapaTrayecto';
+import { MapaTrayecto, type Punta, type TrazadoTrayecto } from './MapaTrayecto';
 import { SelectorCiudad } from '../../components/ui/SelectorCiudad';
 import { Field } from '../../components/ui/Field';
 import ui from '../../components/ui/ui.module.css';
@@ -65,6 +65,8 @@ export function ModalRutaViaje({
   const cambiar = (cambios: Partial<FormRuta>) => setForm((f) => (f ? { ...f, ...cambios } : f));
   // Lo que da la carretera entre A y B: se ofrece como distancia y duración
   const [trazado, setTrazado] = useState<TrazadoTrayecto | null>(null);
+  // Qué punta marca el próximo toque del mapa: la que se tocó en el formulario o la que falta
+  const [marcando, setMarcando] = useState<Punta>(form.origen && !form.destino ? 'destino' : 'origen');
   useEffect(() => {
     if (!trazado?.sobreCalles) return;
     // En una ruta nueva se llena solo lo que está vacío; lo escrito no se toca
@@ -104,40 +106,73 @@ export function ModalRutaViaje({
       </div>
 
       <div className={styles.cuerpo}>
-        {/* El trayecto: las dos ciudades unidas por la línea, y el sentido sobre ella */}
-        <section className={styles.seccion}>
-          <div className={styles.rotulo}>Trayecto</div>
-          <div className={styles.trayecto}>
-            <div className={styles.punta}>
-              <SelectorCiudad label="Sale de" valor={form.origen} ciudades={ciudades} excluir={destino ?? undefined} onCambio={(v) => cambiar({ origen: v, origenLugar: v === form.origen ? form.origenLugar : null })} />
-              <SitioExacto lugar={form.origenLugar} onQuitar={() => cambiar({ origenLugar: null })} />
-            </div>
-            <div className={styles.conector}>
-              <button
-                type="button"
-                className={`${styles.sentido} ${form.idaYVuelta ? styles.sentidoIdaVuelta : ''}`}
-                aria-pressed={form.idaYVuelta}
-                onClick={() => cambiar({ idaYVuelta: !form.idaYVuelta })}
-                title={form.idaYVuelta ? 'Hace los dos sentidos: toca para que sea solo de ida' : 'Solo de ida: toca para que haga también la vuelta'}
-              >
-                <span className={styles.flecha} aria-hidden>{form.idaYVuelta ? '⇄' : '→'}</span>
-                {form.idaYVuelta ? 'Ida y vuelta' : 'Solo ida'}
-              </button>
-            </div>
-            <div className={styles.punta}>
-              <SelectorCiudad label="Llega a" valor={form.destino} ciudades={ciudades} excluir={origen ?? undefined} onCambio={(v) => cambiar({ destino: v, destinoLugar: v === form.destino ? form.destinoLugar : null })} />
-              <SitioExacto lugar={form.destinoLugar} onQuitar={() => cambiar({ destinoLugar: null })} />
-            </div>
-          </div>
+        <div className={styles.columnaMapa}>
           <MapaTrayecto
             ciudades={ciudades}
             origen={origen}
             destino={destino}
             origenLugar={form.origenLugar}
             destinoLugar={form.destinoLugar}
+            marcando={marcando}
+            onMarcando={setMarcando}
             onElegir={(punta, e) => (punta === 'origen' ? cambiar({ origen: e.ciudad, origenLugar: e.lugar }) : cambiar({ destino: e.ciudad, destinoLugar: e.lugar }))}
             onTrazado={setTrazado}
           />
+        </div>
+
+        <div className={styles.columnaLado}>
+        {/* El trayecto de arriba abajo, A → B como en el mapa; el sentido va sobre la línea que las une */}
+        <section className={styles.seccion}>
+          <div className={styles.rotulo}>Trayecto</div>
+          <div className={styles.trayecto}>
+            {(['origen', 'destino'] as const).map((p) => {
+              const esOrigen = p === 'origen';
+              const fila = (
+                <div key={p} className={`${styles.punta} ${marcando === p ? styles.puntaMarcando : ''}`} onFocusCapture={() => setMarcando(p)}>
+                  <button
+                    type="button"
+                    className={styles.letraPunta}
+                    aria-pressed={marcando === p}
+                    title={`Marcar la ${esOrigen ? 'salida' : 'llegada'} en el mapa`}
+                    onClick={() => setMarcando(p)}
+                  >
+                    <span>{esOrigen ? 'A' : 'B'}</span>
+                  </button>
+                  <div className={styles.puntaCampo}>
+                    {esOrigen ? (
+                      <SelectorCiudad label="Sale de" valor={form.origen} ciudades={ciudades} excluir={destino ?? undefined} onCambio={(v) => cambiar({ origen: v, origenLugar: v === form.origen ? form.origenLugar : null })} />
+                    ) : (
+                      <SelectorCiudad label="Llega a" valor={form.destino} ciudades={ciudades} excluir={origen ?? undefined} onCambio={(v) => cambiar({ destino: v, destinoLugar: v === form.destino ? form.destinoLugar : null })} />
+                    )}
+                    <SitioExacto
+                      lugar={esOrigen ? form.origenLugar : form.destinoLugar}
+                      onQuitar={() => cambiar(esOrigen ? { origenLugar: null } : { destinoLugar: null })}
+                    />
+                  </div>
+                </div>
+              );
+              return esOrigen ? (
+                [
+                  fila,
+                  <div key="conector" className={styles.conector}>
+                    <span className={styles.riel} aria-hidden />
+                    <button
+                      type="button"
+                      className={`${styles.sentido} ${form.idaYVuelta ? styles.sentidoIdaVuelta : ''}`}
+                      aria-pressed={form.idaYVuelta}
+                      onClick={() => cambiar({ idaYVuelta: !form.idaYVuelta })}
+                      title={form.idaYVuelta ? 'Hace los dos sentidos: toca para que sea solo de ida' : 'Solo de ida: toca para que haga también la vuelta'}
+                    >
+                      <span className={styles.flecha} aria-hidden>{form.idaYVuelta ? '⇅' : '↓'}</span>
+                      {form.idaYVuelta ? 'Ida y vuelta' : 'Solo ida'}
+                    </button>
+                  </div>,
+                ]
+              ) : (
+                fila
+              );
+            })}
+          </div>
           {avisoCiudades}
           {escritoSinLista && <div className={styles.aviso}>Elige las ciudades de la lista: son las mismas para todas las líneas, así el pasajero encuentra tus pasajes.</div>}
           <div className={styles.nota}>
@@ -241,6 +276,7 @@ export function ModalRutaViaje({
             {form.idaYVuelta && ' Si dejas la vuelta vacía, cobra lo mismo que la ida.'}
           </div>
         </section>
+        </div>
       </div>
 
       <div className={styles.pie}>
