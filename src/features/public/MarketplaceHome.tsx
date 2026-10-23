@@ -17,6 +17,10 @@ import { TableroMuestra } from './inicio/Tablero';
 import { BuscadorPasajes } from './BuscadorPasajes';
 import { useInstalar } from './inicio/useInstalar';
 import css from './inicio/inicio.module.css';
+import { rutaCiudad } from '../../seo/contenido.mjs';
+
+/** Las ciudades más buscadas: enlaces directos a su página de pasajes (los buscadores siguen estos enlaces). */
+const CIUDADES_DESTACADAS = ['Caracas', 'Maracaibo', 'Valencia', 'Barquisimeto', 'Maracay', 'Mérida', 'San Cristóbal', 'Barinas', 'Puerto La Cruz', 'Barcelona', 'Maturín', 'Ciudad Guayana', 'Ciudad Bolívar', 'Cumaná', 'Coro', 'Valera', 'Guanare', 'El Vigía', 'San Fernando de Apure', 'Porlamar'];
 
 // Número de atención por WhatsApp (solo dígitos, con código de país). VITE_WHATSAPP lo reemplaza.
 const WHATSAPP = (import.meta.env.VITE_WHATSAPP as string | undefined)?.replace(/\D/g, '') || '584129647161';
@@ -72,8 +76,9 @@ export default function MarketplaceHome() {
 
 function PortadaCompleta() {
   useSeo(
-    'Butaca En Línea — Pasajes de autobús en Venezuela',
-    'Busca salidas de todas las líneas, escoge tu puesto en el mapa y compra tu pasaje en línea. Boleto electrónico con QR.'
+    'Pasajes de autobús en Venezuela: compra tu boleto en línea | Butaca En Línea',
+    'Compra pasajes de bus en línea a Caracas, Maracaibo, Valencia, Barquisimeto, Mérida, San Cristóbal y todo Venezuela. Compara líneas y horarios, escoge tu puesto y recibe tu boleto con QR.',
+    { ruta: '/' }
   );
   const navigate = useNavigate();
   const usuario = useAuth((s) => s.usuario);
@@ -237,6 +242,22 @@ function PortadaCompleta() {
           </div>
         </section>
 
+        <section id="ciudades" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 }}>
+            <H2>Pasajes por ciudad</H2>
+            <a href="/pasajes" style={{ fontSize: 15, fontWeight: 700 }}>Ver todas las ciudades →</a>
+          </div>
+          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 8 }}>
+            {CIUDADES_DESTACADAS.map((c) => (
+              <li key={c}>
+                <a href={rutaCiudad(c)} style={{ display: 'block', padding: '12px 14px', borderRadius: 12, background: '#FFFFFF', border: '1px solid #E6EBF4', fontSize: 15, fontWeight: 600, color: '#0F172A' }}>
+                  Pasajes en {c}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+
         <section id="nosotros" style={{ display: 'flex', flexWrap: 'wrap', gap: 40, alignItems: 'stretch' }}>
           <div style={{ flex: '1 1 380px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 18 }}>
             <H2>Quiénes somos</H2>
@@ -292,7 +313,7 @@ function PortadaCompleta() {
             </div>
             <div style={{ flex: '2 1 560px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))', gap: 32 }}>
               {[
-                ['Viajar', [['Destinos', '#destinos'], ['Todas las salidas', '/salidas'], ['Promociones', '#promos'], ['Mis boletos', '/cuenta/boletos'], ['Ayuda', '/ayuda'], ['Horarios', '#salidas']]],
+                ['Viajar', [['Pasajes por ciudad', '/pasajes'], ['Destinos', '#destinos'], ['Todas las salidas', '/salidas'], ['Promociones', '#promos'], ['Mis boletos', '/cuenta/boletos'], ['Ayuda', '/ayuda'], ['Horarios', '#salidas']]],
                 ['Kilómetros', [['Cómo funcionan', '#kilometros'], ['Niveles', '#kilometros'], ['Canjear premios', '#kilometros']]],
                 ['Empresa', [['Quiénes somos', '#nosotros'], ['Líneas afiliadas', '#lineas'], ['Afiliar mi línea', 'mailto:hola@butacaenlinea.com?subject=Afiliar%20mi%20l%C3%ADnea']]],
               ].map(([titulo, links]) => (
