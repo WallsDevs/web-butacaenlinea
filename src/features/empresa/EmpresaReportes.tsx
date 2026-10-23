@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Cargando } from '../../components/ui/PantallaCarga';
 import { useQuery } from '@tanstack/react-query';
 import { getReportesEmpresa } from '../../lib/api/endpoints';
 import { ApiError } from '../../lib/api/client';
@@ -93,7 +94,7 @@ export default function EmpresaReportes() {
           <button className={ui.btnSecondary} style={{ marginTop: 14 }} onClick={() => refetch()}>Reintentar</button>
         </div>
       ) : isLoading || !data ? (
-        <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-soft)' }}>Calculando…</div>
+        <Cargando mensaje="Calculando el reporte…" />
       ) : (
         <>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 20 }}>

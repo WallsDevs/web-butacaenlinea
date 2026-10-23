@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { PantallaCarga } from '../components/ui/PantallaCarga';
 import { Navigate, useLocation } from 'react-router';
 import { login, getMe } from '../lib/api/endpoints';
 import { useAuth } from '../stores/auth';
@@ -50,11 +51,7 @@ export function RequireAuth({ roles, children }: { roles: string[]; children: Re
 
   if (autorizado) return <>{children}</>;
   if (DEMO_MODE && !fallo) {
-    return (
-      <div style={{ padding: 48, textAlign: 'center', color: 'var(--text-soft)', fontSize: 14 }}>
-        {cargando ? 'Iniciando sesión de demostración…' : 'Preparando módulo…'}
-      </div>
-    );
+    return <PantallaCarga mensaje={cargando ? 'Iniciando sesión de demostración…' : 'Preparando el módulo…'} />;
   }
   // Con sesión de OTRO rol: a su propio panel (mandarlo al login sería un bucle)
   if (jwt && usuario) {

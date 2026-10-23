@@ -1,0 +1,75 @@
+/* Área del pasajero: páginas centradas, con el mismo encabezado, que se acomodan al teléfono */
+.pagina { width: 100%; max-width: 1080px; margin: 0 auto; padding: 28px 24px 72px; box-sizing: border-box; }
+.angosta { max-width: 760px; }
+.cabecera { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+.titulo { margin: 0; font-size: 30px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; }
+.sub { margin-top: 4px; font-size: 14px; color: var(--text-soft); line-height: 1.45; }
+.acciones { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+
+/* Viajar: el próximo viaje y el saldo arriba, el buscador debajo */
+.resumen { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 14px; margin-bottom: 18px; }
+.tarjeta { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 18px 20px; }
+.proximo { display: flex; gap: 16px; align-items: center; text-align: left; cursor: pointer; background: var(--navy, #0B2A6B); color: #fff; border: none; border-radius: 20px; padding: 18px 20px; width: 100%; }
+.proximo:hover { filter: brightness(1.06); }
+.proximoHora { display: flex; flex-direction: column; min-width: 64px; }
+.proximoHora b { font-size: 26px; font-weight: 800; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.proximoHora span { font-size: 12px; color: #9FC0FF; }
+.proximoRuta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.proximoRuta small { font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #9FC0FF; }
+.proximoRuta b { font-size: 18px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.proximoRuta span { font-size: 13px; color: #C7D9FB; }
+.proximoVer { font-size: 13px; font-weight: 700; padding: 8px 12px; border-radius: 10px; background: rgba(255, 255, 255, 0.14); white-space: nowrap; }
+.sinViaje { display: flex; flex-direction: column; justify-content: center; gap: 4px; }
+.sinViaje b { font-size: 16px; }
+.sinViaje span { font-size: 13px; color: var(--text-soft); }
+.saldo { display: flex; flex-direction: column; gap: 6px; justify-content: center; }
+.saldo span { font-size: 12px; font-weight: 700; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.1em; }
+.saldo b { font-size: 24px; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.saldo a { font-size: 13px; font-weight: 700; }
+
+/* Mis boletos */
+.grupo { margin-bottom: 26px; }
+.grupoTitulo { font-size: 12px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 10px; }
+.boletos { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
+.boleto {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 92px;
+  text-align: left;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface);
+  overflow: hidden;
+  cursor: pointer;
+  padding: 0;
+  transition: border-color 0.15s, transform 0.15s;
+}
+.boleto:hover { border-color: var(--blue-600); }
+.boletoCuerpo { padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.boletoRuta { font-size: 16px; font-weight: 700; line-height: 1.3; }
+.boletoCuando { display: flex; gap: 10px; align-items: baseline; }
+.boletoCuando b { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.boletoCuando span { font-size: 13px; color: var(--text-soft); }
+.boletoDatos { font-size: 12px; color: var(--text-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* El talón: el puesto, separado por la línea punteada del boleto */
+.talon { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border-left: 2px dashed var(--border); background: var(--tint-50); padding: 10px 6px; }
+.talon span { font-size: 10px; font-weight: 800; letter-spacing: 0.12em; color: var(--text-faint); text-transform: uppercase; }
+.talon b { font-size: 26px; font-weight: 800; color: var(--navy, #0B2A6B); font-variant-numeric: tabular-nums; }
+.boletoPasado { opacity: 0.66; }
+.vacio { padding: 36px 20px; text-align: center; color: var(--text-soft); border: 1.5px dashed var(--border); border-radius: 18px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+
+/* Wallet: el saldo fijo a la izquierda y los movimientos a la derecha */
+.walletGrid { display: grid; grid-template-columns: 380px minmax(0, 1fr); gap: 18px; align-items: start; }
+.walletLado { position: sticky; top: 20px; }
+
+@media (max-width: 900px) {
+  .walletGrid { grid-template-columns: minmax(0, 1fr); }
+  .walletLado { position: static; }
+}
+@media (max-width: 720px) {
+  .pagina { padding: 18px 14px 96px; }
+  .titulo { font-size: 24px; }
+  .resumen { grid-template-columns: minmax(0, 1fr); }
+  .boletos { grid-template-columns: minmax(0, 1fr); }
+  .acciones { margin-left: 0; width: 100%; }
+}

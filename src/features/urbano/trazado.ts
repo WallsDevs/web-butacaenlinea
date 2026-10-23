@@ -28,6 +28,8 @@ export interface Trazado {
   distanciaKm: number;
   /** false = no se pudo consultar el servicio y va en línea recta. */
   sobreCalles: boolean;
+  /** Tiempo en carro según el servicio (min); no viene en línea recta. */
+  duracionMin?: number;
 }
 
 const R_TIERRA = 6371;
@@ -74,7 +76,7 @@ export async function trazarPorCalles(paradas: PuntoParada[]): Promise<Trazado> 
     if (!res.ok) return enLineaRecta(usadas);
     const json = (await res.json()) as {
       code?: string;
-      routes?: { distance: number; geometry: { coordinates: [number, number][] } }[];
+      routes?: { distance: number; duration?: number; geometry: { coordinates: [number, number][] } }[];
     };
     const ruta = json.code === 'Ok' ? json.routes?.[0] : null;
     if (!ruta?.geometry?.coordinates?.length) return enLineaRecta(usadas);
@@ -83,10 +85,123 @@ export async function trazarPorCalles(paradas: PuntoParada[]): Promise<Trazado> 
       recorrido: ruta.geometry.coordinates.map(([lng, lat]) => [lat, lng] as [number, number]),
       distanciaKm: Math.round((ruta.distance / 1000) * 10) / 10,
       sobreCalles: true,
+      ...(ruta.duration ? { duracionMin: Math.round(ruta.duration / 60) } : {}),
     };
   } catch {
     return enLineaRecta(usadas);
   } finally {
     clearTimeout(alarma);
   }
+}
+
+// ── Recorrido por tramos ────────────────────────────────────────────────────
+//
+// Cada tramo va de una parada a la siguiente (y, en un circuito, de la última
+// al origen). Por defecto sigue las calles por el camino más corto; si ese no
+// es el que hace la buseta, se le ponen PUNTOS DE PASO (no son paradas) o se
+// dibuja A MANO, en línea recta entre los puntos que se toquen.
+
+export interface TramoEntrada {
+  modo: 'calles' | 'mano';
+  puntos: [number, number][];
+}
+export interface ParadaConTramo extends PuntoParada {
+  tramo?: TramoEntrada;
+}
+export interface RecorridoPorTramos {
+  /** La línea de cada tramo, en orden: tramo i = de la parada i a la siguiente. */
+  segmentos: [number, number][][];
+  recorrido: [number, number][];
+  distanciaKm: number;
+  /** false = algún tramo por calles no se pudo calcular y va derecho. */
+  sobreCalles: boolean;
+}
+
+/** Lo ya calculado por tramo: mover un punto de paso solo recalcula su tramo. */
+const memoria = new Map<string, Trazado>();
+const MAX_MEMORIA = 300;
+const SIMULTANEOS = 3;
+
+async function porCallesRecordado(puntos: PuntoParada[]): Promise<Trazado> {
+  const clave = puntos.map((p) => `${p.lat.toFixed(6)},${p.lng.toFixed(6)}`).join(';');
+  const guardado = memoria.get(clave);
+  if (guardado) return guardado;
+  const t = await trazarPorCalles(puntos);
+  // Lo que salió en línea recta por un fallo no se recuerda: se reintenta la próxima vez
+  if (t.sobreCalles) {
+    if (memoria.size >= MAX_MEMORIA) memoria.delete(memoria.keys().next().value!);
+    memoria.set(clave, t);
+  }
+  return t;
+}
+
+export async function trazarRecorrido(paradas: ParadaConTramo[], circuito: boolean): Promise<RecorridoPorTramos> {
+  if (paradas.length < 2) {
+    return { segmentos: [], recorrido: paradas.map((p) => [p.lat, p.lng]), distanciaKm: 0, sobreCalles: true };
+  }
+  const n = paradas.length;
+  const cuantos = circuito ? n : n - 1;
+  const piezas = Array.from({ length: cuantos }, (_, i) => {
+    const a = paradas[i];
+    const b = paradas[(i + 1) % n];
+    const t = a.tramo;
+    const medio = (t?.puntos ?? []).map(([lat, lng]) => ({ lat, lng }));
+    // El servidor de calles se queja con muchos puntos: los de paso se recortan
+    return { modo: t?.modo ?? 'calles', puntos: [a, ...(t?.modo === 'mano' ? medio : medio.slice(0, MAX_PARADAS - 2)), b] };
+  });
+
+  const resultados: Trazado[] = new Array(cuantos);
+  let siguiente = 0;
+  const trabajar = async () => {
+    while (siguiente < cuantos) {
+      const i = siguiente++;
+      const p = piezas[i];
+      resultados[i] = p.modo === 'mano' ? enLineaRecta(p.puntos) : await porCallesRecordado(p.puntos);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(SIMULTANEOS, cuantos) }, trabajar));
+
+  const segmentos = resultados.map((r) => r.recorrido);
+  const recorrido: [number, number][] = [];
+  for (const s of segmentos) recorrido.push(...(recorrido.length ? s.slice(1) : s));
+  return {
+    segmentos,
+    recorrido,
+    distanciaKm: Math.round(resultados.reduce((t, r) => t + r.distanciaKm, 0) * 10) / 10,
+    sobreCalles: resultados.every((r, i) => piezas[i].modo === 'mano' || r.sobreCalles),
+  };
+}
+
+/** Dónde meter un punto nuevo entre los de un tramo para que no haga zigzag: donde menos alarga. */
+export function indiceParaInsertar(inicio: PuntoParada, puntos: [number, number][], fin: PuntoParada, nuevo: PuntoParada): number {
+  const lista: PuntoParada[] = [inicio, ...puntos.map(([lat, lng]) => ({ lat, lng })), fin];
+  let mejor = 0;
+  let menor = Infinity;
+  for (let i = 0; i < lista.length - 1; i++) {
+    const extra = haversine(lista[i], nuevo) + haversine(nuevo, lista[i + 1]) - haversine(lista[i], lista[i + 1]);
+    if (extra < menor) [menor, mejor] = [extra, i];
+  }
+  return mejor;
+}
+
+/** El tramo cuya línea pasa más cerca de un punto (para meter ahí un punto de paso tocado en cualquier parte). */
+export function tramoMasCercano(segmentos: [number, number][][], punto: PuntoParada): number {
+  // Proyección plana local: suficiente dentro de una ciudad
+  const k = Math.cos((punto.lat * Math.PI) / 180);
+  const xy = ([lat, lng]: [number, number]) => [lng * k, lat] as const;
+  const [px, py] = xy([punto.lat, punto.lng]);
+  let mejor = 0;
+  let menor = Infinity;
+  segmentos.forEach((linea, i) => {
+    for (let j = 0; j < linea.length - 1; j++) {
+      const [ax, ay] = xy(linea[j]);
+      const [bx, by] = xy(linea[j + 1]);
+      const dx = bx - ax;
+      const dy = by - ay;
+      const t = dx || dy ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy))) : 0;
+      const d = (px - ax - t * dx) ** 2 + (py - ay - t * dy) ** 2;
+      if (d < menor) [menor, mejor] = [d, i];
+    }
+  });
+  return mejor;
 }

@@ -97,10 +97,9 @@ export function AppChrome() {
                 ? { menu: SECCIONES_CUENTA, tagline: 'Mi cuenta', home: '/' }
                 : null;
   const hogarDelRol = rol ? HOGAR_POR_ROL[rol] : undefined;
-  // En escritorio, el personal de una línea y el superadmin navegan por la barra
-  // lateral; el pasajero conserva la barra superior (su mundo es el sitio público)
+  // En escritorio todos los roles con panel navegan por la barra lateral, el pasajero incluido
   const lateral: SeccionLateral[] | null =
-    nav && rol && rol !== 'cliente'
+    nav && rol
       ? rol === 'empresa'
         ? lateralVisible(LATERAL_EMPRESA, modulos)
         : lateralDesdeMenu(nav.menu)
@@ -126,7 +125,7 @@ export function AppChrome() {
 
   return (
     <>
-    {lateral && <BarraLateral secciones={lateral} titulo={nav!.tagline} home={nav!.home} pathname={location.pathname} conBoleteria={modulos?.includes('boleteria') ?? false} />}
+    {lateral && <BarraLateral secciones={lateral} titulo={rol === 'cliente' ? usuario?.nombreCorto ?? usuario?.username ?? 'Mi cuenta' : nav!.tagline} home={nav!.home} pathname={location.pathname} conBoleteria={modulos?.includes('boleteria') ?? false} />}
     <header className={`${styles.chrome} ${lateral ? styles.ocultaEnEscritorio : ''} no-print`}>
       <button
         className={styles.brandZone}

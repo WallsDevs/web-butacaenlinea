@@ -9,6 +9,8 @@ import { StatusChip } from '../../components/ui/StatusChip';
 import { useSeo } from '../../lib/seo';
 import ui from '../../components/ui/ui.module.css';
 import styles from '../flota/flota.module.css';
+import c from './cuenta.module.css';
+import { PaginaPasajero } from './CuentaLayout';
 
 const NOMBRE_MOV: Record<string, string> = {
   recarga: 'Recarga',
@@ -40,6 +42,8 @@ export default function MiWallet() {
   // `desde` es el método de pago guardado con el que pagó; `comprobante`, la captura del pago
   const [form, setForm] = useState<{ montoBs: string; referencia: string; desde: string; comprobante: File | null }>({ montoBs: '', referencia: '', desde: '', comprobante: null });
   const [error, setError] = useState<string | null>(null);
+  // Los movimientos se muestran de a 15: la lista completa era interminable
+  const [verTodos, setVerTodos] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
 
   const { data: wallet, isLoading } = useQuery({
@@ -88,8 +92,10 @@ export default function MiWallet() {
   });
 
   return (
-    <div className={styles.contenido} style={{ maxWidth: 560 }}>
-      <div className={ui.card} style={{ padding: 24, marginBottom: 16, textAlign: 'center' }}>
+    <PaginaPasajero titulo="Mi wallet" sub="Tu saldo para pagar las busetas escaneando su QR.">
+      <div className={c.walletGrid}>
+      <div className={c.walletLado}>
+      <div className={ui.card} style={{ padding: 24, marginBottom: 14, textAlign: 'center' }}>
         <div style={{ fontSize: 13, color: 'var(--text-soft)' }}>Saldo disponible</div>
         <div style={{ fontSize: 40, fontWeight: 700, letterSpacing: '-0.02em', margin: '6px 0 14px' }}>
           {isLoading ? '…' : bs(wallet?.saldoBs ?? 0)}
@@ -113,7 +119,7 @@ export default function MiWallet() {
           style={{ width: '100%', marginTop: 10 }}
           onClick={() => navigate('/busetas')}
         >
-          🚌 ¿Por dónde viene mi buseta?
+          ¿Por dónde viene mi buseta?
         </button>
         <button
           className={ui.btnSecondary}
@@ -136,11 +142,15 @@ export default function MiWallet() {
           {aviso}
         </div>
       )}
+      <button type="button" className={ui.btnGhost} style={{ width: '100%', fontSize: 13 }} onClick={() => navigate('/cuenta/metodos')}>
+        Mis métodos de pago
+      </button>
+      </div>
 
       <div className={ui.card} style={{ overflow: 'hidden' }}>
         <div style={{ padding: '14px 18px', fontWeight: 700, fontSize: 15 }}>Movimientos</div>
         <div>
-          {(wallet?.movimientos ?? []).map((m) => (
+          {(wallet?.movimientos ?? []).slice(0, verTodos ? undefined : 15).map((m) => (
             <div
               key={m.documentId}
               style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 18px', borderTop: '1px solid var(--border)' }}
@@ -174,7 +184,13 @@ export default function MiWallet() {
               Aún no tienes movimientos. Haz tu primera recarga.
             </div>
           )}
+          {!verTodos && (wallet?.movimientos.length ?? 0) > 15 && (
+            <button type="button" className={ui.btnGhost} style={{ width: '100%', borderTop: '1px solid var(--border)', borderRadius: 0, padding: 14, fontSize: 14 }} onClick={() => setVerTodos(true)}>
+              Ver los {wallet!.movimientos.length - 15} anteriores
+            </button>
+          )}
         </div>
+      </div>
       </div>
 
       {recargando && (
@@ -287,6 +303,6 @@ export default function MiWallet() {
           </div>
         </div>
       )}
-    </div>
+    </PaginaPasajero>
   );
 }

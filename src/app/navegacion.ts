@@ -8,6 +8,8 @@ export interface SeccionModulo {
   id: string;
   label: string;
   ruta: string;
+  /** No va en la barra de abajo del teléfono (no cabe): se llega por otro lado. */
+  soloEscritorio?: boolean;
   /**
    * Módulos contratables que dan sentido a la sección: se muestra si la línea
    * tiene AL MENOS uno. Sin esta propiedad, la sección es del núcleo y se ve
@@ -40,7 +42,7 @@ export const MENU_ADMIN: EntradaNav[] = [
     label: 'Finanzas',
     items: [sec('Liquidaciones', '/admin/liquidaciones'), sec('Facturas', '/admin/facturas'), sec('Tasas', '/admin/tasas'), sec('Wallet', '/admin/wallet')],
   },
-  { id: 'sistema', label: 'Sistema', items: [sec('Auditoría', '/admin/auditoria'), sec('Seguridad', '/admin/seguridad')] },
+  { id: 'sistema', label: 'Sistema', items: [sec('Ciudades', '/admin/ciudades'), sec('Auditoría', '/admin/auditoria'), sec('Seguridad', '/admin/seguridad')] },
 ];
 
 /**
@@ -92,10 +94,13 @@ export const SECCIONES_COLECTOR: SeccionModulo[] = [
 ];
 
 export const SECCIONES_CUENTA: SeccionModulo[] = [
+  // Lo primero: buscar y comprar el pasaje (con el próximo viaje y el saldo)
+  { id: 'viajar', label: 'Viajar', ruta: '/cuenta' },
+  { id: 'boletos', label: 'Mis boletos', ruta: '/cuenta/boletos' },
   { id: 'wallet', label: 'Mi wallet', ruta: '/cuenta/wallet' },
-  { id: 'boletos', label: 'Mis boletos', ruta: '/cuenta' },
   { id: 'busetas', label: 'Busetas', ruta: '/busetas' },
-  { id: 'metodos', label: 'Métodos de pago', ruta: '/cuenta/metodos' },
+  // En el teléfono no cabe en la barra de abajo: se llega desde Perfil y desde la wallet
+  { id: 'metodos', label: 'Métodos de pago', ruta: '/cuenta/metodos', soloEscritorio: true },
 ];
 /** Páginas públicas que, con sesión de pasajero, siguen siendo «su área» (la barra del pasajero se queda). */
 export const AREAS_PASAJERO = ['/cuenta', '/busetas', '/mapa', '/pagar'];

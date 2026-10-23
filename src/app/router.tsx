@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { createBrowserRouter, Navigate, Outlet } from 'react-router';
 import { AppChrome } from './AppChrome';
+import { PantallaCarga } from '../components/ui/PantallaCarga';
 import { ErrorPantalla } from '../features/public/NoEncontrada';
 import { RequireAuth } from './RequireAuth';
 
@@ -13,6 +14,7 @@ const Acceso = lazy(() => import('../features/public/Acceso'));
 const NoEncontrada = lazy(() => import('../features/public/NoEncontrada'));
 const Perfil = lazy(() => import('../features/cuenta/Perfil'));
 const MisBoletos = lazy(() => import('../features/cuenta/MisBoletos'));
+const CuentaViajar = lazy(() => import('../features/cuenta/CuentaViajar'));
 const MetodosPago = lazy(() => import('../features/cuenta/MetodosPago'));
 const MiWallet = lazy(() => import('../features/cuenta/MiWallet'));
 const Pos = lazy(() => import('../features/pos/Pos'));
@@ -40,6 +42,7 @@ const AdminSeguridad = lazy(() => import('../features/admin/AdminSeguridad'));
 const AdminWallet = lazy(() => import('../features/admin/AdminWallet'));
 const EmpresaFlota = lazy(() => import('../features/empresa/EmpresaFlota'));
 const AdminPasajeros = lazy(() => import('../features/admin/AdminPasajeros'));
+const AdminCiudades = lazy(() => import('../features/admin/AdminCiudades'));
 const AdminIntegraciones = lazy(() => import('../features/admin/AdminIntegraciones'));
 const AdminConectores = lazy(() => import('../features/admin/AdminConectores'));
 const AdminContratos = lazy(() => import('../features/admin/AdminContratos'));
@@ -54,19 +57,11 @@ const PagoTaquilla = lazy(() => import('../features/caja/PagoTaquilla'));
 const PagoEquipaje = lazy(() => import('../features/equipaje/PagoEquipaje'));
 const Colector = lazy(() => import('../features/urbano/Colector'));
 
-function Cargando() {
-  return (
-    <div style={{ padding: 48, textAlign: 'center', color: 'var(--text-soft)', fontSize: 14 }}>
-      Cargando…
-    </div>
-  );
-}
-
 function AppLayout() {
   return (
     <>
       <AppChrome />
-      <Suspense fallback={<Cargando />}>
+      <Suspense fallback={<PantallaCarga />}>
         <Outlet />
       </Suspense>
     </>
@@ -122,6 +117,7 @@ export const router = createBrowserRouter([
           { path: 'liquidaciones', element: <AdminLiquidaciones /> },
           { path: 'facturas', element: <AdminFacturas /> },
           { path: 'tasas', element: <AdminTasas /> },
+          { path: 'ciudades', element: <AdminCiudades /> },
           { path: 'auditoria', element: <AdminAuditoria /> },
           { path: 'wallet', element: <AdminWallet /> },
           { path: 'seguridad', element: <AdminSeguridad /> },
@@ -129,6 +125,14 @@ export const router = createBrowserRouter([
       },
       {
         path: '/cuenta',
+        element: (
+          <RequireAuth roles={['cliente']}>
+            <CuentaViajar />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: '/cuenta/boletos',
         element: (
           <RequireAuth roles={['cliente']}>
             <MisBoletos />

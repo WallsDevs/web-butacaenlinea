@@ -1,0 +1,103 @@
+/* Pantalla de carga: la marca respira, la barra avanza */
+/* Centrada en lo que quede de ventana (bajo la barra superior o junto a la lateral) */
+.pantalla {
+  min-height: calc(100vh - 140px);
+  min-height: calc(100dvh - 140px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 24px;
+}
+:global(body.con-barra-lateral) .pantalla {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+.marca {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.iso {
+  display: grid;
+  place-items: center;
+  animation: respirar 1.6s ease-in-out infinite;
+}
+.nombre {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 0.85;
+  color: var(--text);
+}
+.sub {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  line-height: 1;
+  color: var(--blue-600);
+}
+.barra {
+  width: 180px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--tint-100);
+  overflow: hidden;
+}
+.progreso {
+  display: block;
+  width: 40%;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--blue-600);
+  animation: avanzar 1.2s ease-in-out infinite;
+}
+.texto {
+  font-size: 13px;
+  color: var(--text-faint);
+}
+
+/* Dentro de una tarjeta: tres puntos y el texto */
+.enLinea {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 28px;
+  font-size: 14px;
+  color: var(--text-soft);
+}
+.puntos {
+  display: inline-flex;
+  gap: 4px;
+}
+.puntos span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--blue-600);
+  animation: latir 1.2s ease-in-out infinite;
+}
+.puntos span:nth-child(2) { animation-delay: 0.2s; }
+.puntos span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes respirar {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(0.92); opacity: 0.75; }
+}
+@keyframes avanzar {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(300%); }
+}
+@keyframes latir {
+  0%, 100% { opacity: 0.25; transform: translateY(0); }
+  50% { opacity: 1; transform: translateY(-3px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .iso, .progreso, .puntos span { animation: none; }
+  .progreso { width: 100%; }
+}

@@ -35,11 +35,12 @@ const TRAZOS: Record<string, React.ReactNode> = {
   facturas: <><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z" /><path d="M9 8h6M9 12h6" /></>,
   auditoria: <><circle cx="11" cy="11" r="6" /><path d="M20 20l-4.5-4.5M8.5 11h5M11 8.5v5" /></>,
   seguridad: <><path d="M12 3l7 3v5c0 4.5-3 8.5-7 10-4-1.5-7-5.5-7-10V6z" /><path d="M9.5 12l2 2 3.5-4" /></>,
+  viajar: <><circle cx="11" cy="11" r="6.5" /><path d="M20 20l-4.3-4.3" /></>,
   busetas: <><path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11z" /><circle cx="12" cy="10" r="2.6" /></>,
 };
 
 /** Algunas entradas tienen como id su ruta ('/empresa'): el icono se busca entonces por la etiqueta. */
-const POR_ETIQUETA: Record<string, string> = { dashboard: 'dashboard', administracion: 'cuenta', 'metodos de pago': 'metodos', 'mi wallet': 'wallet', 'mis boletos': 'boletos', 'cobros en vivo': 'cobros', 'mi unidad': 'unidad', 'mis ventas': 'ventas', 'pagos web': 'pagos', 'cierre de turno': 'cierre', 'escaner': 'escaner', inicio: 'dashboard', 'salidas y rutas': 'ventas', personal: 'clientes', configuracion: 'sistema', 'reportes de turno': 'reportes', 'cobros urbanos': 'cobros' };
+const POR_ETIQUETA: Record<string, string> = { dashboard: 'dashboard', administracion: 'cuenta', 'metodos de pago': 'metodos', 'mi wallet': 'wallet', 'mis boletos': 'boletos', 'cobros en vivo': 'cobros', 'mi unidad': 'unidad', 'mis ventas': 'ventas', 'pagos web': 'pagos', 'cierre de turno': 'cierre', 'escaner': 'escaner', inicio: 'dashboard', ciudades: 'busetas', 'salidas y rutas': 'ventas', personal: 'clientes', configuracion: 'sistema', 'reportes de turno': 'reportes', 'cobros urbanos': 'cobros' };
 const normalizar = (t: string) => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
 export function IconoNav({ id, label, size = 22 }: { id: string; label?: string; size?: number }) {

@@ -1,0 +1,233 @@
+/* Modal de ruta de viaje: se lee como un boleto que se va llenando */
+.panel {
+  /* Como el editor urbano: el mapa manda, el formulario al lado */
+  width: min(1600px, 100%);
+  /* El fondo deja 24px a cada lado en escritorio */
+  height: calc(100dvh - 48px);
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border-radius: 22px;
+  box-shadow: 0 30px 80px rgba(15, 23, 42, 0.28);
+  overflow: hidden;
+}
+.cabecera {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--divider, var(--border));
+}
+.titulo { font-size: 19px; font-weight: 700; letter-spacing: -0.02em; white-space: nowrap; }
+.cerrar {
+  margin-left: auto;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  color: var(--text-soft);
+  background: var(--pill-bg, #EEF2F9);
+  cursor: pointer;
+  flex: none;
+}
+.cerrar:hover { color: var(--text); }
+.cuerpo {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 440px;
+}
+.columnaMapa { display: flex; flex-direction: column; min-width: 0; padding: 10px; }
+.columnaLado {
+  border-left: 1px solid var(--divider, var(--border));
+  padding: 18px 20px 22px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.seccion { display: flex; flex-direction: column; gap: 10px; }
+.rotulo {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.nota { font-size: 12px; color: var(--text-soft); line-height: 1.45; }
+.aviso { font-size: 12px; color: var(--warn-text, #92400E); line-height: 1.45; }
+.error { font-size: 12px; color: var(--bad-text); line-height: 1.45; }
+
+/* ── El trayecto: A arriba, B abajo, unidas por la línea del mapa ── */
+.trayecto {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--tint-50);
+}
+.punta {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  border-radius: 12px;
+}
+.letraPunta {
+  margin-top: 29px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  display: grid;
+  place-items: center;
+  background: var(--surface);
+  border: 2px solid var(--navy);
+  color: var(--navy);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.letraPunta { font: 800 12px/1 'Space Grotesk', system-ui, sans-serif; }
+.letraPunta > span { transform: rotate(45deg); }
+.puntaMarcando .letraPunta { background: var(--blue-600, #2563EB); border-color: var(--blue-600, #2563EB); color: #fff; }
+.letraPunta:focus-visible { outline: 2px solid var(--blue-600); outline-offset: 2px; }
+.puntaCampo { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.conector {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  min-height: 44px;
+}
+.riel { justify-self: center; width: 0; height: 100%; min-height: 44px; border-left: 2px dashed var(--tint-300, #9fb6e4); }
+.sentido {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+  border: 1.5px solid var(--navy);
+  background: var(--surface);
+  color: var(--navy);
+  transition: background 0.15s, color 0.15s;
+}
+.sentidoIdaVuelta { background: var(--navy); color: #fff; }
+.sentido:focus-visible { outline: 2px solid var(--blue-600); outline-offset: 2px; }
+.flecha { font-size: 14px; line-height: 1; }
+.sitio {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--navy);
+}
+.sitioPin { font-size: 9px; color: var(--blue-600); }
+.sitioNombre { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sitioQuitar { color: var(--text-faint); cursor: pointer; font-size: 12px; padding: 0 2px; }
+.sitioQuitar:hover { color: var(--bad-text); }
+.usar { font-weight: 700; color: var(--blue-600); cursor: pointer; }
+
+/* ── Tiempo y datos ──────────────────────────────────────────────── */
+.datos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 12px;
+  align-items: end;
+}
+
+/* ── Precio: una fila por sentido, como la tarifa de un boleto ───── */
+.tarifa {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+.fila {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 104px 24px;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px 10px 16px;
+}
+.tarifaDoble .fila { grid-template-columns: minmax(0, 1fr) 96px 96px 24px; }
+.fila + .fila { border-top: 1px dashed var(--border); }
+.filaCabeza {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  background: var(--tint-50);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.filaCabeza span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.filaCabeza span:nth-child(2), .filaCabeza span:nth-child(3) { text-align: right; }
+.filaEspecial { background: var(--surface-alt, #f8fafc); }
+.filaTramo { font-size: 14px; font-weight: 600; min-width: 0; }
+.filaSub { display: block; font-size: 12px; font-weight: 500; color: var(--text-faint); margin-top: 1px; }
+.monto { position: relative; }
+.monto span {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-faint);
+  pointer-events: none;
+}
+.monto input { padding-left: 26px; text-align: right; font-weight: 700; width: 100%; }
+.monto input::placeholder { font-weight: 500; }
+.monto input { -moz-appearance: textfield; appearance: textfield; }
+.monto input::-webkit-outer-spin-button, .monto input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.quitar { color: var(--text-faint); font-weight: 700; cursor: pointer; font-size: 16px; }
+.quitar:hover { color: var(--bad-text); }
+.agregar {
+  align-self: flex-start;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--blue-600);
+  cursor: pointer;
+}
+
+/* ── Pie fijo: resumen y acciones ────────────────────────────────── */
+.pie {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 24px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+.resumen { min-width: 0; flex: 1; font-size: 13px; color: var(--text-soft); line-height: 1.35; }
+.resumen strong { color: var(--text); font-weight: 700; }
+
+@media (max-width: 900px) {
+  /* Teléfono y tableta: el mapa arriba, el formulario debajo, todo con un solo scroll */
+  .panel { height: calc(100dvh - 24px); border-radius: 18px; }
+  .cuerpo { display: block; overflow-y: auto; }
+  .columnaMapa { height: 340px; padding: 12px 12px 0; }
+  .columnaLado { border-left: none; overflow: visible; padding: 16px; }
+  .cabecera { padding: 16px; }
+}
+@media (max-width: 640px) {
+  .pie { flex-wrap: wrap; padding: 12px 16px; }
+  .resumen { flex-basis: 100%; }
+  .pie > button { flex: 1; }
+  .fila, .tarifaDoble .fila { gap: 6px; padding-left: 12px; padding-right: 8px; }
+  .fila { grid-template-columns: minmax(0, 1fr) 92px 24px; }
+  .tarifaDoble .fila { grid-template-columns: minmax(0, 1fr) 84px 84px 24px; }
+  .filaSub { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sentido, .letraPunta { transition: none; }
+}

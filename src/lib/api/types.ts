@@ -36,7 +36,15 @@ export interface ParadaRuta {
   minutosDeParada?: number | null;
 }
 
+export interface LugarRuta {
+  nombre: string | null;
+  lat: number;
+  lng: number;
+}
+
 export interface RutaDto {
+  /** Id numérico: sirve para enlazar la ida con su vuelta (inversaId). */
+  id: number;
   documentId: string;
   codigo: string;
   nombre: string;
@@ -44,6 +52,12 @@ export interface RutaDto {
   destino: string;
   duracionMin: number;
   distanciaKm: number;
+  /** Ida y vuelta: id (numérico) de la ruta de vuelta enlazada; la línea las ve como una sola. */
+  inversaId?: number | null;
+  idaYVuelta?: boolean;
+  /** Sitio exacto de salida y de llegada (terminal) marcado en el mapa. */
+  origenLugar?: LugarRuta | null;
+  destinoLugar?: LugarRuta | null;
   tarifas?: { claseServicio: string; precioUsd: number }[];
   paradas?: ParadaRuta[];
 }
@@ -65,6 +79,18 @@ export interface SalidaDto {
   estado: 'programada' | 'abordando' | 'en_ruta' | 'finalizada' | 'cancelada';
   fechaHoraLlegadaReal?: string | null;
   preciosUsd: Record<string, number>;
+  /** El bus viaja sin pasajeros (p. ej. regreso vacío): no se vende. */
+  sinPasajeros?: boolean;
+  /** Salidas programadas juntas (calendario o semanal) comparten serie. */
+  serieId?: string | null;
+  /** Conductor asignado; opcional hasta el momento de salir. */
+  chofer?: { documentId: string; nombre: string | null } | null;
+  /** Puestos del bus (0 sin bus: no se vende hasta tenerlo). */
+  capacidad?: number;
+  /** Puestos vendidos o apartados (solo lo ve la línea). */
+  vendidos?: number;
+  /** Compras en curso ahora mismo (puestos apartados pagándose). */
+  comprando?: number;
   ruta?: RutaDto;
   unidad?: UnidadResumenDto;
   linea?: { documentId: string; nombre: string; slug: string };

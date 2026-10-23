@@ -122,3 +122,8 @@ a {
     overflow: visible !important;
   }
 }
+
+/* Texto de apoyo que sobra en pantallas angostas (p. ej. la descripción junto al tipo de ruta) */
+@media (max-width: 900px) {
+  .solo-ancho { display: none; }
+}

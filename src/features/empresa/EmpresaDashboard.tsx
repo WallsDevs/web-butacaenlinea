@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router';
+import { Cargando } from '../../components/ui/PantallaCarga';
 import { useQuery } from '@tanstack/react-query';
 import { getDashboardEmpresa } from '../../lib/api/endpoints';
 import { ApiError } from '../../lib/api/client';
@@ -34,7 +35,7 @@ export default function EmpresaDashboard() {
     );
   }
   if (isLoading || !data) {
-    return <div style={{ padding: 48, textAlign: 'center', color: 'var(--text-soft)' }}>Cargando…</div>;
+    return <Cargando mensaje="Preparando el inicio…" />;
   }
 
   const cards = [

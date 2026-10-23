@@ -1,322 +1,325 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useModulos } from '../../lib/useModulos';
 import { AvisoIntegracion } from '../../components/ui/AvisoIntegracion';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  cancelarSalida,
-  getChoferes,
-  getRutas,
-  getSalidas,
-  getUnidades,
-  programarSalida,
-} from '../../lib/api/endpoints';
-import { fechaCorta, hora, hoyISO, rangoDia } from '../../lib/time';
+import { cancelarSalida, getChoferes, getRutas, getSalidas, getUnidades, programarSalida } from '../../lib/api/endpoints';
+import type { SalidaDto } from '../../lib/api/types';
+import { fechaLarga, hora, hoyISO, rangoDia } from '../../lib/time';
+import { isoDia } from '../../lib/series';
 import { useAuth } from '../../stores/auth';
 import { ApiError } from '../../lib/api/client';
-import { Field } from '../../components/ui/Field';
-import { PillTabs } from '../../components/ui/PillTabs';
 import { StatusChip } from '../../components/ui/StatusChip';
+import { ModalProgramar } from './ModalProgramar';
+import { ModalAsignacion } from './ModalAsignacion';
+import { PanelVentas } from './PanelVentas';
 import ui from '../../components/ui/ui.module.css';
-import styles from '../flota/flota.module.css';
+import styles from './EmpresaSalidas.module.css';
+import flota from '../flota/flota.module.css';
 
-type ModoFiltro = 'dia' | 'rango' | 'todas';
+type Periodo = 'hoy' | 'semana' | 'mes' | 'dia';
+type Pendiente = 'todas' | 'sinBus' | 'sinConductor';
+/** Faltando esto para salir, «sin conductor» deja de ser un recordatorio y pasa a ser urgente. */
+const HORAS_URGENTE = 3;
 
-/** Programación de salidas de la empresa. */
-export default function EmpresaSalidas() {
+const masDias = (n: number) => {
+  const d = new Date();
+  d.setDate(d.getDate() + n);
+  return isoDia(d);
+};
+
+/**
+ * Programación de salidas: una agenda por día. Cada salida dice su bus, su
+ * conductor y cuántos puestos lleva vendidos; lo que falta (bus o conductor)
+ * se ve resaltado y se resuelve ahí mismo, salida por salida.
+ */
+export default function EmpresaSalidas({ abrirProgramar = 0 }: { abrirProgramar?: number }) {
   const queryClient = useQueryClient();
   const slug = useAuth((s) => s.usuario)?.linea?.slug;
-  const [modo, setModo] = useState<ModoFiltro>('todas');
-  const [fecha, setFecha] = useState(hoyISO());
-  const [rango, setRango] = useState({ desde: hoyISO(), hasta: hoyISO() });
   const { integracionActiva } = useModulos();
-  const [form, setForm] = useState({ rutaId: '', unidadId: '', choferId: '', fecha: hoyISO(), hora: '20:30', rampa: 'Rampa 03' });
-  const [mensaje, setMensaje] = useState<string | null>(null);
+  const [periodo, setPeriodo] = useState<Periodo>('semana');
+  const [dia, setDia] = useState(hoyISO());
+  const [rutaFiltro, setRutaFiltro] = useState('');
+  const [pendiente, setPendiente] = useState<Pendiente>('todas');
+  const [verPasadas, setVerPasadas] = useState(false);
+  const [programando, setProgramando] = useState(false);
+  const [asignando, setAsignando] = useState<SalidaDto[] | null>(null);
+  // Salidas marcadas para asignarles el mismo bus o conductor de una vez
+  const [marcadas, setMarcadas] = useState<Set<string>>(new Set());
+  const marcar = (ids: string[], si: boolean) =>
+    setMarcadas((m) => {
+      const n = new Set(m);
+      for (const id of ids) {
+        if (si) n.add(id);
+        else n.delete(id);
+      }
+      return n;
+    });
+  const [aviso, setAviso] = useState<string | null>(null);
+  // Las ventas de una salida, en vivo
+  const [viendoVentas, setViendoVentas] = useState<SalidaDto | null>(null);
 
-  const filtro =
-    modo === 'dia'
-      ? rangoDia(fecha)
-      : modo === 'rango'
-        ? { desde: rangoDia(rango.desde).desde, hasta: rangoDia(rango.hasta).hasta }
-        : {};
-  const { data: salidas } = useQuery({
-    queryKey: ['empresa-salidas', slug, modo, fecha, rango.desde, rango.hasta],
-    queryFn: () =>
-      getSalidas({
-        ...filtro,
-        lineaSlug: slug,
-        estados: ['programada', 'abordando', 'en_ruta', 'finalizada', 'cancelada'],
-      }),
+  // Solo un clic nuevo en «Programar salidas» (cabecera) abre el modal
+  const clicVisto = useRef(abrirProgramar);
+  useEffect(() => {
+    if (abrirProgramar === clicVisto.current) return;
+    clicVisto.current = abrirProgramar;
+    setProgramando(true);
+  }, [abrirProgramar]);
+
+  const rango =
+    periodo === 'hoy'
+      ? rangoDia(hoyISO())
+      : periodo === 'dia'
+        ? rangoDia(dia)
+        : { desde: rangoDia(verPasadas ? masDias(-7) : hoyISO()).desde, hasta: rangoDia(masDias(periodo === 'semana' ? 6 : 30)).hasta };
+  const { data: salidas, isLoading } = useQuery({
+    queryKey: ['empresa-salidas', slug, rango.desde, rango.hasta],
+    queryFn: () => getSalidas({ ...rango, lineaSlug: slug, estados: ['programada', 'abordando', 'en_ruta', 'finalizada', 'cancelada'], limite: 100 }),
+    // En vivo: los vendidos y quién está comprando se actualizan solos
+    refetchInterval: 15_000,
   });
-  const conFecha = modo !== 'dia';
   const { data: rutas } = useQuery({ queryKey: ['rutas', slug], queryFn: () => getRutas(slug) });
   const { data: unidades } = useQuery({ queryKey: ['unidades', slug], queryFn: () => getUnidades(slug) });
   const { data: choferes } = useQuery({ queryKey: ['choferes'], queryFn: getChoferes });
-
-  const programar = useMutation({
-    mutationFn: () =>
-      programarSalida({
-        rutaId: form.rutaId,
-        unidadId: form.unidadId,
-        choferId: form.choferId || undefined,
-        fechaHoraSalida: new Date(`${form.fecha}T${form.hora}:00`).toISOString(),
-        rampa: form.rampa,
-      }),
-    onSuccess: () => {
-      setMensaje(`Salida programada para el ${fechaCorta(`${form.fecha}T12:00:00`)} a las ${form.hora}. Ya está en venta.`);
-      setModo('dia');
-      setFecha(form.fecha); // la lista salta al día programado
-      queryClient.invalidateQueries({ queryKey: ['empresa-salidas'] });
-    },
-    onError: (e) => {
-      const d = (e instanceof ApiError ? e.details : {}) as {
-        faltantes?: string[];
-        conflicto?: { fechaHoraSalida?: string; destino?: string };
-        ubicacion?: string;
-        llegaAlli?: string;
-        origenRuta?: string;
-        proximoOrigen?: string;
-        proximaSalida?: string;
-        destinoRuta?: string;
-      };
-      const cuando = (iso?: string) => (iso ? `el ${fechaCorta(iso)} a las ${hora(iso)}` : '');
-      if (e instanceof ApiError && e.code === 'tarifas_incompletas') {
-        setMensaje(`La ruta no tiene tarifa para la clase de asientos "${(d.faltantes ?? []).join(', ')}" de esa unidad. Edita la ruta en la pestaña Rutas y agrega esa tarifa.`);
-      } else if (e instanceof ApiError && e.code === 'fecha_invalida') {
-        setMensaje('La fecha y hora ya pasaron. Programa una salida futura.');
-      } else if (e instanceof ApiError && e.code === 'unidad_ocupada') {
-        setMensaje(`Esa unidad ya tiene un viaje ${cuando(d.conflicto?.fechaHoraSalida)}${d.conflicto?.destino ? ` hacia ${d.conflicto.destino}` : ''} y estará ocupada a esa hora. Escoge otra unidad u otro horario.`);
-      } else if (e instanceof ApiError && e.code === 'unidad_en_otra_ciudad') {
-        setMensaje(`A esa hora la unidad estará en ${d.ubicacion}${d.llegaAlli ? ` (llega ${cuando(d.llegaAlli)})` : ''}, así que no puede salir desde ${d.origenRuta}. Programa primero el viaje de regreso.`);
-      } else if (e instanceof ApiError && e.code === 'descuadra_itinerario') {
-        setMensaje(`Ese viaje deja la unidad en ${d.destinoRuta}, pero tiene programada una salida desde ${d.proximoOrigen} ${cuando(d.proximaSalida)}. Ajusta el itinerario.`);
-      } else if (e instanceof ApiError && e.code === 'conductor_ocupado') {
-        setMensaje(`Ese conductor ya tiene un viaje ${cuando(d.conflicto?.fechaHoraSalida)}. Asigna otro conductor o cambia la hora.`);
-      } else {
-        setMensaje('No se pudo programar. Revisa ruta, unidad, fecha y hora.');
-      }
-    },
-  });
-
-  // Unidad fija del conductor escogido (si tiene): se preselecciona sola
-  const unidadFijaDe = (choferId: string) =>
-    (unidades ?? []).find((u) => u.choferAsignado?.documentId === choferId);
-  const escogerConductor = (choferId: string) => {
-    const fija = choferId ? unidadFijaDe(choferId) : undefined;
-    setForm({ ...form, choferId, unidadId: fija ? fija.documentId : form.unidadId });
-  };
-  const fijaDelSeleccionado = form.choferId ? unidadFijaDe(form.choferId) : undefined;
+  const refrescar = () => queryClient.invalidateQueries({ queryKey: ['empresa-salidas'] });
 
   const cancelar = useMutation({
     mutationFn: ({ id, force }: { id: string; force?: boolean }) => cancelarSalida(id, force),
     onSuccess: (r) => {
-      setMensaje(
+      setAviso(
         r.afectados
-          ? `Salida cancelada. ${r.afectados} boleto${r.afectados === 1 ? '' : 's'} anulado${r.afectados === 1 ? '' : 's'}; ${r.reembolsosPendientes} con dinero por devolver — están en Pagos como "Reembolsos pendientes".`
+          ? `Salida cancelada. ${r.afectados} boleto${r.afectados === 1 ? '' : 's'} anulado${r.afectados === 1 ? '' : 's'}; ${r.reembolsosPendientes} con dinero por devolver (están en Pagos como «Reembolsos pendientes»).`
           : 'Salida cancelada.'
       );
-      queryClient.invalidateQueries({ queryKey: ['empresa-salidas'] });
+      refrescar();
     },
     onError: (e, vars) => {
       if (e instanceof ApiError && e.code === 'tiene_boletos') {
         const d = e.details as { afectados?: number; pagados?: number };
-        if (
-          confirm(
-            `Esta salida tiene ${d.afectados} boleto${d.afectados === 1 ? '' : 's'} vendido${d.afectados === 1 ? '' : 's'} (${d.pagados} con pago cobrado).\n\nAl cancelar se anulan todos; los cobrados quedan como REEMBOLSO PENDIENTE: debes devolver el dinero al pasajero y marcarlo en Pagos.\n\n¿Cancelar la salida de todas formas?`
-          )
-        ) {
+        if (confirm(`Esta salida tiene ${d.afectados} boleto${d.afectados === 1 ? '' : 's'} (${d.pagados} cobrados).\n\nAl cancelar se anulan todos; los cobrados quedan como REEMBOLSO PENDIENTE.\n\n¿Cancelar de todas formas?`)) {
           cancelar.mutate({ id: vars.id, force: true });
         }
-      } else {
-        setMensaje('No se pudo cancelar la salida.');
-      }
+      } else setAviso('No se pudo cancelar la salida.');
     },
   });
 
-  return (
-    <div className={styles.contenido}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 420px', gap: 20, alignItems: 'start' }}>
-        {/* Lista del día */}
-        <div className={ui.card} style={{ overflow: 'hidden' }}>
-          <div style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-            <span style={{ fontWeight: 700, fontSize: 17 }}>Salidas programadas</span>
-            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-              <PillTabs
-                variant="loose"
-                items={[
-                  { id: 'todas', label: 'Todas' },
-                  { id: 'dia', label: 'Día' },
-                  { id: 'rango', label: 'Rango' },
-                ]}
-                value={modo}
-                onChange={setModo}
-              />
-              {modo === 'dia' && (
-                <input
-                  className={ui.fieldInput}
-                  style={{ width: 160 }}
-                  type="date"
-                  value={fecha}
-                  onChange={(e) => setFecha(e.target.value)}
-                />
-              )}
-              {modo === 'rango' && (
-                <>
-                  <input
-                    className={ui.fieldInput}
-                    style={{ width: 160 }}
-                    type="date"
-                    value={rango.desde}
-                    onChange={(e) => setRango({ ...rango, desde: e.target.value })}
-                  />
-                  <span style={{ color: 'var(--text-faint)' }}>—</span>
-                  <input
-                    className={ui.fieldInput}
-                    style={{ width: 160 }}
-                    type="date"
-                    value={rango.hasta}
-                    onChange={(e) => setRango({ ...rango, hasta: e.target.value })}
-                  />
-                </>
-              )}
-            </div>
-          </div>
-          <table className={styles.tabla}>
-            <thead>
-              <tr>
-                {conFecha && <th>Fecha</th>}
-                <th>Hora</th>
-                <th>Destino</th>
-                <th>Unidad</th>
-                <th>Rampa</th>
-                <th>Estado</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {(salidas ?? []).map((s) => (
-                <tr key={s.documentId}>
-                  {conFecha && <td style={{ fontWeight: 600 }}>{fechaCorta(s.fechaHoraSalida)}</td>}
-                  <td style={{ fontWeight: 700, fontSize: 16 }}>{hora(s.fechaHoraSalida)}</td>
-                  <td style={{ fontWeight: 600 }}>{s.ruta?.destino}</td>
-                  <td style={{ color: 'var(--text-soft)' }}>{s.unidad?.numero}</td>
-                  <td style={{ color: 'var(--text-soft)' }}>{s.rampa}</td>
-                  <td>
-                    {s.estado === 'abordando' ? (
-                      <StatusChip tono="info" size="sm">Abordando</StatusChip>
-                    ) : s.estado === 'en_ruta' ? (
-                      <StatusChip tono="info" size="sm">En Ruta</StatusChip>
-                    ) : s.estado === 'finalizada' ? (
-                      <StatusChip tono="ok" size="sm">Finalizada</StatusChip>
-                    ) : s.estado === 'cancelada' ? (
-                      <StatusChip tono="bad" size="sm">Cancelada</StatusChip>
-                    ) : (
-                      <StatusChip tono="neutral" size="sm">Programada</StatusChip>
-                    )}
-                  </td>
-                  <td style={{ textAlign: 'right' }}>
-                    {['programada', 'abordando'].includes(s.estado) && (
-                      <button
-                        style={{ fontSize: 12, fontWeight: 600, color: 'var(--bad-text)' }}
-                        onClick={() => {
-                          if (confirm(`¿Cancelar la salida de ${hora(s.fechaHoraSalida)} a ${s.ruta?.destino}?`)) {
-                            cancelar.mutate({ id: s.documentId });
-                          }
-                        }}
-                      >
-                        Cancelar
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-              {!salidas?.length && (
-                <tr>
-                  <td colSpan={conFecha ? 7 : 6} style={{ textAlign: 'center', color: 'var(--text-soft)', padding: 24 }}>
-                    {modo === 'dia' ? 'Sin salidas ese día.' : modo === 'rango' ? 'Sin salidas en ese rango.' : 'Sin salidas programadas.'}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+  // Regreso vacío: si el bus quedó en otra ciudad, la línea lo registra sin pasajeros desde la agenda
+  const registrarRegreso = useMutation({
+    mutationFn: (s: SalidaDto) => {
+      const vuelta = (rutas ?? []).find((r) => r.id === s.ruta?.inversaId);
+      return programarSalida({ rutaId: vuelta!.documentId, unidadId: s.unidad?.documentId, fechaHoraSalida: new Date(new Date(s.fechaHoraLlegada).getTime() + 60 * 60_000).toISOString(), sinPasajeros: true });
+    },
+    onSuccess: () => {
+      setAviso('Regreso sin pasajeros registrado una hora después de la llegada. Cámbiale la hora si fue otra.');
+      refrescar();
+    },
+    onError: (e) => setAviso(`No se pudo registrar el regreso (${e instanceof ApiError ? e.code : 'sin conexión'}).`),
+  });
 
-        {/* Programar */}
-        {integracionActiva ? (
-          <AvisoIntegracion que="salidas" />
-        ) : (
-        <div className={ui.card} style={{ padding: 20 }}>
-          <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 14 }}>Programar salida</div>
-          {mensaje && (
-            <div style={{ fontSize: 13, color: 'var(--blue-700)', background: 'var(--tint-50)', borderRadius: 12, padding: '10px 12px', marginBottom: 12 }}>
-              {mensaje}
-            </div>
-          )}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <label className={ui.field}>
-              <span className={ui.fieldLabel}>Ruta</span>
-              <select className={ui.fieldInput} value={form.rutaId} onChange={(e) => setForm({ ...form, rutaId: e.target.value })}>
-                <option value="">Escoge la ruta…</option>
-                {(rutas ?? []).map((r) => (
-                  <option key={r.documentId} value={r.documentId}>
-                    {r.origen} → {r.destino}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className={ui.field}>
-              <span className={ui.fieldLabel}>Conductor (opcional)</span>
-              <select className={ui.fieldInput} value={form.choferId} onChange={(e) => escogerConductor(e.target.value)}>
-                <option value="">Sin asignar</option>
-                {(choferes ?? []).map((c) => (
-                  <option key={c.documentId} value={c.documentId}>
-                    {c.nombre}
-                    {unidadFijaDe(c.documentId) ? ` · unidad ${unidadFijaDe(c.documentId)!.numero}` : ''}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className={ui.field}>
-              <span className={ui.fieldLabel}>Unidad</span>
-              <select className={ui.fieldInput} value={form.unidadId} onChange={(e) => setForm({ ...form, unidadId: e.target.value })}>
-                <option value="">Escoge la unidad…</option>
-                {(unidades ?? [])
-                  .filter((u) => u.estado === 'disponible' || u.estado === 'en_ruta')
-                  .map((u) => (
-                    <option key={u.documentId} value={u.documentId}>
-                      {u.numero} · {u.marcaModelo}
-                    </option>
-                  ))}
-              </select>
-              {form.choferId && (
-                <span style={{ fontSize: 12, color: 'var(--text-faint)', marginTop: 4 }}>
-                  {fijaDelSeleccionado
-                    ? form.unidadId === fijaDelSeleccionado.documentId
-                      ? `Unidad fija del conductor. Puedes cambiarla solo para este viaje.`
-                      : `Ojo: la unidad fija de este conductor es la ${fijaDelSeleccionado.numero}; este viaje irá con otra.`
-                    : 'Este conductor no tiene unidad fija: la que escojas aplica solo a este viaje. Para fijarla: Unidades → ficha.'}
-                </span>
-              )}
-            </label>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <Field label="Fecha" type="date" value={form.fecha} onChange={(e) => setForm({ ...form, fecha: e.target.value })} />
-              <Field label="Hora de salida" type="time" value={form.hora} onChange={(e) => setForm({ ...form, hora: e.target.value })} />
-            </div>
-            <Field label="Rampa" value={form.rampa} onChange={(e) => setForm({ ...form, rampa: e.target.value })} />
-            <button
-              className={`${ui.btnPrimary} ${ui.btnPrimaryLg}`}
-              disabled={!form.rutaId || !form.unidadId || programar.isPending}
-              onClick={() => programar.mutate()}
-            >
-              {programar.isPending ? 'Programando…' : 'Programar salida'}
+  const ahora = Date.now();
+  const lista = (salidas ?? [])
+    .filter((s) => !rutaFiltro || s.ruta?.documentId === rutaFiltro || String(s.ruta?.inversaId ?? '') === rutaFiltro)
+    .filter((s) => pendiente === 'todas' || (pendiente === 'sinBus' ? !s.unidad : !s.chofer))
+    .filter((s) => s.estado !== 'cancelada' || verPasadas);
+  const activas = (salidas ?? []).filter((s) => ['programada', 'abordando'].includes(s.estado));
+  const sinBus = activas.filter((s) => !s.unidad).length;
+  const sinConductor = activas.filter((s) => !s.chofer).length;
+  const porDia = new Map<string, SalidaDto[]>();
+  for (const s of lista) {
+    const k = isoDia(new Date(s.fechaHoraSalida));
+    porDia.set(k, [...(porDia.get(k) ?? []), s]);
+  }
+  const porId = new Map((rutas ?? []).map((r) => [r.id, r]));
+  const rutasVisibles = (rutas ?? []).filter((r) => !r.inversaId || !porId.has(r.inversaId) || r.id < r.inversaId);
+
+  return (
+    <div className={flota.contenido}>
+      {integracionActiva && <AvisoIntegracion que="salidas" />}
+
+      <div className={styles.barra}>
+        <div className={styles.segmento} role="radiogroup" aria-label="Período">
+          {([['hoy', 'Hoy'], ['semana', '7 días'], ['mes', '30 días'], ['dia', 'Un día']] as const).map(([id, txt]) => (
+            <button key={id} type="button" role="radio" aria-checked={periodo === id} className={periodo === id ? styles.segActivo : ''} onClick={() => setPeriodo(id)}>
+              {txt}
             </button>
-            <div style={{ fontSize: 12, color: 'var(--text-faint)' }}>
-              Las tarifas de la ruta quedan congeladas en la salida (snapshot); cambiarlas después no
-              afecta lo ya programado.
-            </div>
-          </div>
+          ))}
         </div>
-        )}
+        {periodo === 'dia' && <input className={ui.fieldInput} style={{ width: 170 }} type="date" value={dia} onChange={(e) => setDia(e.target.value)} aria-label="Día" />}
+        <select className={ui.fieldInput} style={{ width: 240 }} value={rutaFiltro} onChange={(e) => setRutaFiltro(e.target.value)} aria-label="Ruta">
+          <option value="">Todas las rutas</option>
+          {rutasVisibles.map((r) => (
+            <option key={r.documentId} value={r.documentId}>
+              {r.origen} {r.inversaId && porId.has(r.inversaId) ? '⇄' : '→'} {r.destino}
+            </option>
+          ))}
+        </select>
+        <div className={styles.pendientes}>
+          <button type="button" aria-pressed={pendiente === 'sinBus'} className={pendiente === 'sinBus' ? styles.pendActivo : ''} onClick={() => setPendiente((p) => (p === 'sinBus' ? 'todas' : 'sinBus'))}>
+            Sin bus <b>{sinBus}</b>
+          </button>
+          <button type="button" aria-pressed={pendiente === 'sinConductor'} className={pendiente === 'sinConductor' ? styles.pendActivo : ''} onClick={() => setPendiente((p) => (p === 'sinConductor' ? 'todas' : 'sinConductor'))}>
+            Sin conductor <b>{sinConductor}</b>
+          </button>
+        </div>
+        <label className={styles.check} style={{ marginLeft: 'auto' }}>
+          <input type="checkbox" checked={verPasadas} onChange={(e) => setVerPasadas(e.target.checked)} />
+          <span>Ver pasadas y canceladas</span>
+        </label>
       </div>
+
+      {aviso && (
+        <div className={styles.mensaje}>
+          <span>{aviso}</span>
+          <button type="button" onClick={() => setAviso(null)} aria-label="Cerrar aviso">✕</button>
+        </div>
+      )}
+
+      {isLoading ? (
+        <div className={styles.vacio}>Cargando salidas…</div>
+      ) : !lista.length ? (
+        <div className={styles.vacio}>
+          {pendiente !== 'todas' ? 'Nada pendiente en este período.' : 'No hay salidas en este período.'}
+          {!integracionActiva && pendiente === 'todas' && (
+            <button type="button" className={ui.btnPrimary} onClick={() => setProgramando(true)}>Programar salidas</button>
+          )}
+        </div>
+      ) : (
+        [...porDia.entries()].map(([d, delDia]) => (
+          <section key={d} className={styles.dia}>
+            <header className={styles.diaCabecera}>
+              <span className={styles.diaNombre}>{d === hoyISO() ? 'Hoy' : d === masDias(1) ? 'Mañana' : fechaLarga(`${d}T12:00:00`)}</span>
+              {d === hoyISO() || d === masDias(1) ? <span className={styles.diaFecha}>{fechaLarga(`${d}T12:00:00`)}</span> : null}
+              <span className={styles.diaCuenta}>{delDia.length} salida{delDia.length === 1 ? '' : 's'}</span>
+              {!integracionActiva && (() => {
+                const activasDia = delDia.filter((x) => ['programada', 'abordando'].includes(x.estado));
+                const sinBusDia = activasDia.filter((x) => !x.unidad);
+                const todasMarcadas = activasDia.length > 0 && activasDia.every((x) => marcadas.has(x.documentId));
+                return activasDia.length > 0 ? (
+                  <span className={styles.diaAcciones}>
+                    {sinBusDia.length > 0 && (
+                      <button type="button" onClick={() => marcar(sinBusDia.map((x) => x.documentId), true)}>Marcar las sin bus ({sinBusDia.length})</button>
+                    )}
+                    <button type="button" onClick={() => marcar(activasDia.map((x) => x.documentId), !todasMarcadas)}>{todasMarcadas ? 'Desmarcar el día' : 'Marcar el día'}</button>
+                  </span>
+                ) : null;
+              })()}
+            </header>
+            <div className={styles.filas}>
+              {delDia.map((s) => {
+                const activa = ['programada', 'abordando'].includes(s.estado);
+                const faltan = (new Date(s.fechaHoraSalida).getTime() - ahora) / 3600_000;
+                const urgente = activa && faltan < HORAS_URGENTE;
+                const vendidos = s.vendidos ?? 0;
+                const capacidad = s.capacidad ?? 0;
+                const vuelta = s.ruta?.inversaId ? porId.get(s.ruta.inversaId) : undefined;
+                return (
+                  <article key={s.documentId} className={`${styles.salida} ${!activa ? styles.salidaApagada : ''} ${marcadas.has(s.documentId) ? styles.salidaMarcada : ''}`}>
+                    <label className={styles.marca} title={activa ? 'Marcar para asignar varias de una vez' : undefined}>
+                      <input type="checkbox" disabled={!activa || integracionActiva} checked={marcadas.has(s.documentId)} onChange={(e) => marcar([s.documentId], e.target.checked)} aria-label={`Marcar la salida de las ${hora(s.fechaHoraSalida)}`} />
+                    </label>
+                    <div className={styles.horaCol}>
+                      <span className={styles.horaSale}>{hora(s.fechaHoraSalida)}</span>
+                      <span className={styles.horaLlega}>llega {hora(s.fechaHoraLlegada)}</span>
+                    </div>
+                    <div className={styles.rutaCol}>
+                      <span className={styles.rutaNombre}>{s.ruta?.origen ? `${s.ruta.origen} → ${s.ruta.destino}` : 'Ruta borrada'}</span>
+                      <span className={styles.chips}>
+                        {s.serieId && <span className={styles.chipSerie} title="Programada en serie">↻ Serie</span>}
+                        {s.sinPasajeros && <StatusChip tono="neutral" size="sm">Sin pasajeros</StatusChip>}
+                        {s.rampa && <span className={styles.chipSuave}>{s.rampa}</span>}
+                      </span>
+                    </div>
+                    <button type="button" className={`${styles.asig} ${!s.unidad ? styles.falta : ''}`} disabled={!activa || integracionActiva} onClick={() => setAsignando([s])} title={s.unidad ? 'Cambiar el bus' : 'Sin bus no se vende: no hay puestos que ofrecer. Toca para asignarle uno.'}>
+                      <span className={styles.asigRotulo}>Bus</span>
+                      <span className={styles.asigValor}>{s.unidad ? `${s.unidad.numero} · ${capacidad} puestos` : 'Sin bus'}</span>
+                    </button>
+                    <button type="button" className={`${styles.asig} ${!s.chofer ? (urgente ? styles.faltaUrgente : styles.falta) : ''}`} disabled={!activa || integracionActiva} onClick={() => setAsignando([s])} title="Cambiar el conductor">
+                      <span className={styles.asigRotulo}>Conductor</span>
+                      <span className={styles.asigValor}>{s.chofer?.nombre ?? (urgente ? 'Sin conductor · sale pronto' : 'Sin conductor')}</span>
+                    </button>
+                    <button type="button" className={styles.ocupacion} title="Ver quién compró y quién está comprando ahora" onClick={() => setViendoVentas(s)}>
+                      {s.sinPasajeros ? (
+                        <span className={styles.ocupTexto}>No se vende</span>
+                      ) : capacidad ? (
+                        <>
+                          <span className={styles.ocupTexto}><b>{vendidos}</b> / {capacidad}</span>
+                          <span className={styles.ocupBarra}><i style={{ width: `${Math.min(100, (vendidos / capacidad) * 100)}%` }} /></span>
+                        </>
+                      ) : (
+                        <span className={styles.ocupTexto}>—</span>
+                      )}
+                      {(s.comprando ?? 0) > 0 && (
+                        <span className={styles.comprando}><i aria-hidden />{s.comprando} comprando</span>
+                      )}
+                    </button>
+                    <div className={styles.estadoCol}>
+                      {s.estado === 'abordando' ? <StatusChip tono="info" size="sm">Abordando</StatusChip>
+                        : s.estado === 'en_ruta' ? <StatusChip tono="info" size="sm">En ruta</StatusChip>
+                        : s.estado === 'finalizada' ? <StatusChip tono="ok" size="sm">Finalizada</StatusChip>
+                        : s.estado === 'cancelada' ? <StatusChip tono="bad" size="sm">Cancelada</StatusChip>
+                        : <StatusChip tono="neutral" size="sm">Programada</StatusChip>}
+                    </div>
+                    <div className={styles.acciones}>
+                      {activa && !integracionActiva && (
+                        <>
+                          <button type="button" className={styles.enlace} onClick={() => setAsignando([s])}>Bus y conductor</button>
+                          <button type="button" className={styles.enlacePeligro} onClick={() => confirm(`¿Cancelar la salida de las ${hora(s.fechaHoraSalida)} a ${s.ruta?.destino}?`) && cancelar.mutate({ id: s.documentId })}>Cancelar</button>
+                        </>
+                      )}
+                      {s.estado === 'finalizada' && vuelta && s.unidad && (
+                        <button type="button" className={styles.enlace} onClick={() => registrarRegreso.mutate(s)} title={`El bus volvió vacío de ${s.ruta?.destino}`}>¿Volvió vacío?</button>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+        ))
+      )}
+      {(salidas?.length ?? 0) >= 100 && <div className={styles.nota}>Se muestran las primeras 100 salidas del período: acota con «Un día» o por ruta.</div>}
+
+      {marcadas.size > 0 && (
+        <div className={styles.barraMarcadas} role="region" aria-label="Salidas marcadas">
+          <span><b>{marcadas.size}</b> salida{marcadas.size === 1 ? '' : 's'} marcada{marcadas.size === 1 ? '' : 's'}</span>
+          <button type="button" className={ui.btnPrimary} onClick={() => setAsignando((salidas ?? []).filter((x) => marcadas.has(x.documentId)))}>Asignar bus o conductor</button>
+          <button type="button" className={styles.enlaceClaro} onClick={() => setMarcadas(new Set())}>Quitar marcas</button>
+        </div>
+      )}
+
+      {viendoVentas && <PanelVentas salida={viendoVentas} onCerrar={() => setViendoVentas(null)} />}
+
+      {programando && (
+        <ModalProgramar
+          rutas={rutas ?? []}
+          onCerrar={() => setProgramando(false)}
+          onListo={(n, primerDia) => {
+            setProgramando(false);
+            setAviso(`${n} salida${n === 1 ? '' : 's'} programada${n === 1 ? '' : 's'}.`);
+            // Una sola: se ve ese día; una serie: los próximos 30 días
+            if (n === 1) {
+              setPeriodo('dia');
+              setDia(primerDia);
+            } else setPeriodo('mes');
+            refrescar();
+          }}
+        />
+      )}
+      {asignando && (
+        <ModalAsignacion
+          salidas={asignando}
+          unidades={unidades ?? []}
+          choferes={choferes ?? []}
+          onCerrar={() => setAsignando(null)}
+          onListo={(n) => {
+            const varias = asignando.length > 1;
+            setAsignando(null);
+            setAviso(varias ? `${n} salida${n === 1 ? '' : 's'} actualizada${n === 1 ? '' : 's'}.` : 'Salida actualizada.');
+            if (varias) setMarcadas(new Set());
+            refrescar();
+          }}
+        />
+      )}
     </div>
   );
 }

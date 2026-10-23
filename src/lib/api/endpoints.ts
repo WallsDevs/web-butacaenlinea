@@ -276,11 +276,99 @@ export const bloquearUsuarioEmpresa = (id: number, bloqueado: boolean) =>
 
 export const programarSalida = (datos: {
   rutaId: string;
-  unidadId: string;
+  /** Opcional: sin bus la salida no se vende hasta asignarle uno. */
+  unidadId?: string;
   choferId?: string;
   fechaHoraSalida: string;
   rampa?: string;
+  /** Regreso vacío u otro viaje sin pasajeros: no sale a la venta. */
+  sinPasajeros?: boolean;
 }) => api<{ documentId: string }>('/api/empresa/salidas', { method: 'POST', body: datos });
+
+/** Varias salidas de una vez (todo o nada); el bus y el conductor valen para todas. */
+export const programarSerie = (datos: {
+  salidas: { rutaId: string; fechaHoraSalida: string; sinPasajeros?: boolean }[];
+  unidadId?: string;
+  choferId?: string;
+  rampa?: string;
+  sinPasajeros?: boolean;
+}) => api<{ serieId: string; creadas: number; documentIds: string[] }>('/api/empresa/salidas/serie', { method: 'POST', body: datos });
+
+/** El mismo bus o conductor a varias salidas: las que no se pueden vuelven con el motivo, las demás quedan. */
+export const reasignarVarias = (documentIds: string[], cambios: { unidadId?: string | null; choferId?: string | null }) =>
+  api<{ asignadas: string[]; fallidas: { documentId: string; motivo: string; detalles: Record<string, unknown> }[] }>('/api/empresa/salidas/asignacion', { method: 'PUT', body: { documentIds, ...cambios } });
+
+/** Ventas de una salida en vivo (solo la línea). */
+export interface VentasSalida {
+  capacidad: number;
+  resumen: { vendidos: number; porVerificar: number; cobradoUsd: number; comprando: number; apartados: number };
+  enProceso: { canal: string | null; asientos: string[]; quien: string | null; desde: string | null; expira: string | null }[];
+  boletos: {
+    documentId: string;
+    folio: string | null;
+    asiento: string | null;
+    piso: number | null;
+    clase: string | null;
+    pasajero: string | null;
+    documento: string | null;
+    canal: string | null;
+    estado: string | null;
+    estadoPago: string | null;
+    metodoPago: string | null;
+    totalUsd: number;
+    vendidoEn: string | null;
+  }[];
+}
+export const getVentasSalida = (documentId: string) => api<VentasSalida>(`/api/empresa/salidas/${documentId}/ventas`);
+
+/** Un bus frente a una salida: dónde estará a esa hora y si puede hacerla (si no, por qué). */
+export interface BusParaSalida {
+  documentId: string;
+  numero: string;
+  marcaModelo: string | null;
+  puestos: number;
+  estado: string;
+  ubicacion: string | null;
+  /** Desde cuándo está allí (la llegada de su último viaje), o null si es su ubicación registrada. */
+  desde: string | null;
+  actual: boolean;
+  puede: boolean;
+  motivo: string | null;
+  detalles: Record<string, unknown>;
+}
+export const getBusesParaSalida = (documentId: string) =>
+  api<{ origen: string; destino: string; vendidos: number; buses: BusParaSalida[] }>(`/api/empresa/salidas/${documentId}/buses`);
+
+/** Cambia el bus o el conductor de una salida (`null` lo quita). */
+export const reasignarSalida = (documentId: string, cambios: { unidadId?: string | null; choferId?: string | null }) =>
+  api<SalidaDto>(`/api/empresa/salidas/${documentId}/asignacion`, { method: 'PUT', body: cambios });
+
+/** Ciudades comunes a todas las líneas: el origen y el destino de las rutas salen de aquí. */
+export interface Ciudad {
+  id: number;
+  nombre: string;
+  estado: string | null;
+  /** Centro de la ciudad en el mapa (null si aún no se ubicó). */
+  lat?: number | null;
+  lng?: number | null;
+}
+/** Un sitio del mapa con la ciudad del catálogo a la que pertenece (null = lejos de todas; `cercana` sugiere). */
+export interface LugarMapa {
+  nombre: string | null;
+  detalle: string;
+  lat: number;
+  lng: number;
+  ciudad: string | null;
+  cercana?: string | null;
+}
+/** `zona` = [oeste, sur, este, norte]: busca solo dentro (rutas urbanas, la ciudad en pantalla). */
+export const buscarLugares = (q: string, zona?: [number, number, number, number] | null) =>
+  api<{ lugares: LugarMapa[]; buscador: boolean }>(`/api/lugares?q=${encodeURIComponent(q)}${zona ? `&zona=${zona.map((x) => x.toFixed(4)).join(',')}` : ''}`);
+export const lugarEn = (lat: number, lng: number) => api<LugarMapa>(`/api/lugares/en?lat=${lat}&lng=${lng}`);
+export const getCiudades = () => api<Ciudad[]>('/api/ciudades', { auth: false });
+export const crearCiudad = (c: { nombre: string; estado?: string }) => api<Ciudad>('/api/admin/ciudades', { method: 'POST', body: c });
+export const editarCiudad = (id: number, c: { nombre?: string; estado?: string }) => api<Ciudad>(`/api/admin/ciudades/${id}`, { method: 'PUT', body: c });
+export const borrarCiudad = (id: number) => api<{ borrada: boolean }>(`/api/admin/ciudades/${id}`, { method: 'DELETE' });
 
 export const cancelarSalida = (documentId: string, force = false) =>
   api<{ afectados: number; reembolsosPendientes: number }>(
@@ -587,21 +675,39 @@ export interface UnidadUrbana {
   unidad: { documentId: string; numero: string };
   linea: { nombre: string };
   /** `null` = la unidad no tiene ruta urbana guardada: no cobra. */
-  ruta: { documentId?: string; nombre: string; tarifaBs: number } | null;
+  ruta: {
+    documentId?: string;
+    nombre: string;
+    tarifaBs: number;
+    /** Con tramos, el pasajero elige desde qué parada hasta cuál va. */
+    tramos: import('../urbano').Tramo[];
+    /** La ruta da la vuelta y regresa al origen. */
+    circuito?: boolean;
+    /** El cartel del parabrisas: por dónde pasa la buseta. */
+    letreros?: string[];
+    paradas: { orden: number; nombre: string; lat: number; lng: number }[];
+    /** Parada más cercana a la buseta ahora: la propuesta para subirse. */
+    paradaSugerida: number | null;
+  } | null;
   enServicio: boolean;
 }
 export const getUnidadUrbana = (documentId: string) =>
   api<UnidadUrbana>(`/api/urbano/unidad/${documentId}`, { auth: false });
-export const pagarPasajeUrbano = (unidadId: string) =>
-  api<{ pagado: boolean; tarifaBs: number; ruta: string; unidad: string; linea: string; hora: string; saldoBs: number }>(
+export interface ParadaTramo {
+  orden: number;
+  nombre: string;
+}
+export const pagarPasajeUrbano = (unidadId: string, tramo?: { desdeOrden: number; hastaOrden: number }) =>
+  api<{ pagado: boolean; tarifaBs: number; ruta: string; unidad: string; linea: string; desde: ParadaTramo | null; hasta: ParadaTramo | null; hora: string; saldoBs: number }>(
     '/api/urbano/pagar',
-    { method: 'POST', body: { unidadId } }
+    { method: 'POST', body: { unidadId, ...(tramo ?? {}) } }
   );
 export interface CobrosUrbanos {
   unidad: string;
   ruta: string | null;
   tarifaBs: number;
-  pagos: { documentId: string; hora: string; pasajero: string; montoBs: number }[];
+  porTramos?: boolean;
+  pagos: { documentId: string; hora: string; pasajero: string; montoBs: number; desde?: ParadaTramo | null; hasta?: ParadaTramo | null }[];
   totalHoy: number;
   recaudoHoyBs: number;
 }
@@ -611,6 +717,8 @@ export interface MapaRutaUrbana {
   nombre: string;
   linea: string;
   tarifaBs: number;
+  tramos?: import('../urbano').Tramo[];
+  letreros?: string[];
   recorrido: [number, number][];
   /** Dónde para la buseta: la primera es el origen y la última el destino. */
   paradas?: { nombre: string; orden: number; lat: number; lng: number }[];
@@ -622,6 +730,11 @@ export interface RutaUrbanaPublica {
   nombre: string;
   linea: string | null;
   tarifaBs: number;
+  /** Con tramos: el pasaje más caro (tarifaBs es el más barato). */
+  tarifaHastaBs?: number;
+  porTramos?: boolean;
+  /** El cartel del parabrisas. */
+  letreros?: string[];
   origen: string | null;
   destino: string | null;
   paradas: number;
@@ -650,16 +763,49 @@ export interface ParadaUrbana {
   orden: number;
   lat: number;
   lng: number;
+  /** Solo en el editor: precio del tramo que termina aquí (si esta parada es un corte de tarifa). */
+  cortePrecioBs?: string;
+  /** Solo en el editor: cómo va el tramo de esta parada a la siguiente (puntos de paso o a mano). */
+  tramo?: TramoTrazado;
+}
+/** Parada común de la línea: con nombre, se reusa en varias rutas. */
+export interface ParadaComun {
+  id: number;
+  nombre: string;
+  lat: number;
+  lng: number;
+}
+export const getParadasComunes = () => api<ParadaComun[]>('/api/empresa/paradas-urbanas');
+export const crearParadaComun = (p: { nombre: string; lat: number; lng: number }) => api<ParadaComun>('/api/empresa/paradas-urbanas', { method: 'POST', body: p });
+export const editarParadaComun = (id: number, p: { nombre?: string; lat?: number; lng?: number }) => api<ParadaComun>(`/api/empresa/paradas-urbanas/${id}`, { method: 'PUT', body: p });
+export const borrarParadaComun = (id: number) => api<{ borrada: boolean }>(`/api/empresa/paradas-urbanas/${id}`, { method: 'DELETE' });
+
+/** Un tramo del recorrido entre dos paradas: por las calles pasando por los puntos de paso, o dibujado a mano. */
+export interface TramoTrazado {
+  modo: 'calles' | 'mano';
+  puntos: [number, number][];
 }
 export interface RutaUrbanaDto {
   documentId: string;
   nombre: string;
   tarifaBs: number;
+  /** Cortes de tarifa; vacío = tarifa plana. */
+  tramos?: import('../urbano').Tramo[];
+  /** Sale y vuelve al mismo punto: el recorrido cierra de la última parada al origen. */
+  circuito?: boolean;
+  /** El cartel del parabrisas («5ta Avenida», «Centro», «Directo»…). */
+  letreros?: string[];
   activa: boolean;
   /** Trazo sobre las calles (lo calcula el editor entre paradas). */
   recorrido?: [number, number][] | null;
+  /** Cómo se arma cada tramo: `desde` es el orden de la parada donde empieza. */
+  trazado?: (TramoTrazado & { desde: number })[];
   paradas?: ParadaUrbana[];
 }
+/** Catálogo de etiquetas de rutas de la línea («5ta Avenida», «Centro», «Directo»). */
+export const getEtiquetasRutas = () => api<string[]>('/api/empresa/etiquetas-rutas');
+export const guardarEtiquetaRuta = (texto: string) => api<string[]>('/api/empresa/etiquetas-rutas', { method: 'POST', body: { texto } });
+export const borrarEtiquetaRuta = (texto: string) => api<string[]>(`/api/empresa/etiquetas-rutas/${encodeURIComponent(texto)}`, { method: 'DELETE' });
 export const getRutasUrbanas = () =>
   api<RutaUrbanaDto[]>(
     '/api/rutas-urbanas?populate[paradas]=true&sort=nombre&pagination[pageSize]=100'

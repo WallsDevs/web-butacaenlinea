@@ -1,9 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { MapaParadas } from './MapaParadas';
-import { MAX_PARADAS, trazarPorCalles } from './trazado';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { MapaParadas, type Referencia } from './MapaParadas';
+import { MAX_PARADAS, indiceParaInsertar, tramoMasCercano, trazarRecorrido } from './trazado';
+import marco from '../../components/ui/MarcoMapa.module.css';
 import { Field } from '../../components/ui/Field';
+import { ApiError } from '../../lib/api/client';
 import { StatusChip } from '../../components/ui/StatusChip';
-import type { ParadaUrbana, RutaUrbanaDto } from '../../lib/api/endpoints';
+import { Letrero } from '../../components/ui/Letrero';
+import { borrarEtiquetaRuta, crearParadaComun, getEtiquetasRutas, getParadasComunes, guardarEtiquetaRuta, lugarEn, type ParadaComun, type LugarMapa, type ParadaUrbana, type RutaUrbanaDto, type TramoTrazado } from '../../lib/api/endpoints';
 import ui from '../../components/ui/ui.module.css';
 
 /**
@@ -18,52 +21,207 @@ export interface FormUrbana {
   documentId: string | null;
   nombre: string;
   tarifaBs: string;
+  /** Pasaje por tramos: las paradas marcadas como corte llevan el precio del tramo que termina en ellas. */
+  porTramos: boolean;
+  /** Circuito: la buseta vuelve al origen después de la última parada. */
+  circuito: boolean;
+  /** El cartel del parabrisas: etiquetas cortas de por dónde pasa. */
+  letreros: string[];
   paradas: ParadaUrbana[];
   recorrido: [number, number][];
 }
 
 export function nuevaFormUrbana(u?: RutaUrbanaDto): FormUrbana {
+  const tramos = u?.tramos ?? [];
+  const paradas: ParadaUrbana[] = [...(u?.paradas ?? [])].sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0)).map((p) => ({ ...p, cortePrecioBs: undefined }));
+  // Los cortes guardados vuelven a su parada; el último tramo siempre cierra en la última parada
+  for (const t of tramos) {
+    const p = paradas.find((x) => x.orden === t.hastaOrden);
+    if (p) p.cortePrecioBs = String(t.precioBs);
+  }
+  // Cómo va cada tramo (puntos de paso o a mano) vuelve a la parada donde empieza
+  for (const t of u?.trazado ?? []) {
+    const p = paradas.find((x) => x.orden === t.desde);
+    if (p) p.tramo = { modo: t.modo, puntos: t.puntos };
+  }
+  if (tramos.length && paradas.length && paradas[paradas.length - 1].cortePrecioBs === undefined) {
+    paradas[paradas.length - 1].cortePrecioBs = String(tramos[tramos.length - 1].precioBs);
+  }
   return {
     documentId: u?.documentId ?? null,
     nombre: u?.nombre ?? '',
     tarifaBs: u ? String(u.tarifaBs) : '',
-    paradas: [...(u?.paradas ?? [])].sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0)),
+    porTramos: tramos.length > 0,
+    circuito: Boolean(u?.circuito),
+    letreros: u?.letreros ?? [],
+    paradas,
     recorrido: u?.recorrido ?? [],
   };
 }
 
+/** Cómo se arma cada tramo, para el servidor (el último solo cuenta si es circuito: va de vuelta al origen). */
+export function trazadoDe(f: FormUrbana): (TramoTrazado & { desde: number })[] {
+  return f.paradas
+    .map((p, i) => ({ p, i }))
+    .filter(({ p, i }) => p.tramo && (p.tramo.modo === 'mano' || p.tramo.puntos.length) && (i < f.paradas.length - 1 || f.circuito))
+    .map(({ p, i }) => ({ desde: i + 1, modo: p.tramo!.modo, puntos: p.tramo!.puntos }));
+}
+
+/** Las paradas para el servidor, sin lo que solo usa el editor. */
+export function paradasParaGuardar(f: FormUrbana) {
+  return f.paradas.map((x, i) => ({ nombre: x.nombre, lat: x.lat, lng: x.lng, orden: i + 1 }));
+}
+
+/** Los tramos que se mandan al servidor: cada parada-corte cierra el tramo con su precio. */
+export function tramosDe(f: FormUrbana): { hastaOrden: number; precioBs: number }[] {
+  if (!f.porTramos) return [];
+  return f.paradas
+    .filter((p, i) => i > 0 && p.cortePrecioBs !== undefined && Number(p.cortePrecioBs) > 0)
+    .map((p) => ({ hastaOrden: p.orden, precioBs: Number(p.cortePrecioBs) }));
+}
+
 export function EditorRutaUrbana({
   inicial,
+  cabecera,
+  error,
   guardando,
   onGuardar,
   onCancelar,
+  referencias,
 }: {
   inicial: FormUrbana;
+  /** Paradas de las otras rutas urbanas de la línea: puntos de referencia en el mapa. */
+  referencias?: Referencia[];
+  /** Algo que va encima del título (p. ej. el selector Nacional / Urbana al crear). */
+  cabecera?: ReactNode;
+  /** Por qué no se pudo guardar, si pasó. */
+  error?: string | null;
   guardando: boolean;
   onGuardar: (f: FormUrbana) => void;
   onCancelar: () => void;
 }) {
   const [form, setForm] = useState<FormUrbana>(inicial);
+  const [letreroNuevo, setLetreroNuevo] = useState('');
   const [distanciaKm, setDistanciaKm] = useState(0);
+  // Letreros: se agregan con Enter o coma, se quitan con la ×, máximo 8
+  const agregarLetrero = (texto: string) => {
+    const partes = texto.split(',').map((t) => t.trim().replace(/\s+/g, ' ')).filter(Boolean);
+    if (!partes.length) return;
+    setForm((f) => {
+      const vistos = new Set(f.letreros.map((l) => l.toLowerCase()));
+      const nuevos = partes.filter((p) => !vistos.has(p.toLowerCase()) && vistos.add(p.toLowerCase())).map((p) => p.slice(0, 30));
+      return { ...f, letreros: [...f.letreros, ...nuevos].slice(0, 8) };
+    });
+    setLetreroNuevo('');
+  };
+  const quitarLetrero = (l: string) => setForm((f) => ({ ...f, letreros: f.letreros.filter((x) => x.toLowerCase() !== l.toLowerCase()) }));
+  // El catálogo guardado de la línea (más las de esta ruta, por si alguna aún no estaba)
+  const [guardadas, setGuardadas] = useState<string[]>([]);
+  const [errorEtiquetas, setErrorEtiquetas] = useState<string | null>(null);
+  const [creandoEtiqueta, setCreandoEtiqueta] = useState(false);
+  // Un fallo con la lista se dice: antes se callaba y la etiqueta parecía guardada sin estarlo
+  const motivo = (e: unknown) =>
+    e instanceof ApiError
+      ? e.status === 404
+        ? 'El servidor todavía no tiene la lista de etiquetas: hay que actualizar el API.'
+        : e.status === 401
+          ? 'Tu sesión venció: vuelve a entrar.'
+          : `El servidor respondió ${e.status || 'sin conexión'} · ${e.code}.`
+      : 'Sin conexión con el servidor.';
+  useEffect(() => {
+    getEtiquetasRutas()
+      .then(setGuardadas)
+      .catch((e) => setErrorEtiquetas(`No se pudo cargar la lista de etiquetas. ${motivo(e)}`));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  // Paradas comunes de la línea: con nombre, se reusan en varias rutas (como las etiquetas)
+  const [comunes, setComunes] = useState<ParadaComun[]>([]);
+  const [errorParada, setErrorParada] = useState<string | null>(null);
+  useEffect(() => {
+    getParadasComunes()
+      .then(setComunes)
+      .catch(() => {});
+  }, []);
+  const normal = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+  const esComun = (p: ParadaUrbana) => comunes.some((c) => normal(c.nombre) === normal(p.nombre));
+  const guardarComun = async (p: ParadaUrbana) => {
+    setErrorParada(null);
+    try {
+      const c = await crearParadaComun({ nombre: p.nombre.trim(), lat: p.lat, lng: p.lng });
+      setComunes((l) => [...l, c].sort((a, b) => a.nombre.localeCompare(b.nombre)));
+    } catch (e) {
+      setErrorParada(
+        e instanceof ApiError && e.code === 'nombre_generico'
+          ? `Ponle a «${p.nombre}» un nombre que diga dónde queda (p. ej. «Plaza Bolívar») para guardarla como común.`
+          : e instanceof ApiError && e.code === 'parada_repetida'
+            ? `Ya hay una parada común llamada «${(e.details as { existente?: string }).existente}». Cámbiale el nombre a esta.`
+            : e instanceof ApiError && e.code === 'nombre_requerido'
+              ? 'Ponle nombre a la parada para guardarla como común.'
+              : `No se pudo guardar la parada común. ${motivo(e)}`
+      );
+    }
+  };
+  // En el mapa: las comunes (con nombre) y las de las otras rutas que no son comunes
+  const cerca = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => Math.abs(a.lat - b.lat) < 3e-4 && Math.abs(a.lng - b.lng) < 3e-4;
+  const todasReferencias: Referencia[] = [
+    ...comunes.map((c) => ({ nombre: c.nombre, lat: c.lat, lng: c.lng, comun: true, rutas: (referencias ?? []).filter((r) => cerca(r, c)).flatMap((r) => r.rutas) })),
+    ...(referencias ?? []).filter((r) => !comunes.some((c) => cerca(r, c) || normal(c.nombre) === normal(r.nombre))),
+  ];
+  const sitiosPropios = comunes.map((c) => ({ nombre: c.nombre, detalle: 'Parada común de la línea', lat: c.lat, lng: c.lng, ciudad: null }));
+
+  const catalogo = [...new Map([...guardadas, ...form.letreros].map((l) => [l.toLowerCase(), l])).values()];
+  // Crear guarda la etiqueta en la base en ese momento, sin esperar a guardar la ruta
+  const crearEtiqueta = async () => {
+    const texto = letreroNuevo.trim().replace(/\s+/g, ' ');
+    if (!texto || creandoEtiqueta) return;
+    setCreandoEtiqueta(true);
+    try {
+      setGuardadas(await guardarEtiquetaRuta(texto));
+      setErrorEtiquetas(null);
+      agregarLetrero(texto);
+      setLetreroNuevo('');
+    } catch (e) {
+      setErrorEtiquetas(`No se pudo crear «${texto}». ${motivo(e)}`);
+    } finally {
+      setCreandoEtiqueta(false);
+    }
+  };
+  const borrarEtiqueta = async (l: string) => {
+    try {
+      setGuardadas(await borrarEtiquetaRuta(l));
+      quitarLetrero(l);
+      setErrorEtiquetas(null);
+    } catch (e) {
+      setErrorEtiquetas(`No se pudo borrar «${l}». ${motivo(e)}`);
+    }
+  };
   const [sobreCalles, setSobreCalles] = useState(true);
+  // La línea de cada tramo, y qué agrega el próximo toque del mapa
+  const [segmentos, setSegmentos] = useState<[number, number][][]>([]);
+  const [herramienta, setHerramienta] = useState<'parada' | 'paso' | 'mano'>('parada');
   const [calculando, setCalculando] = useState(false);
   const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // El trazador necesita saber si cierra al origen; se lee por ref para no recrear la función
+  const circuitoRef = useRef(inicial.circuito);
 
   const paradas = form.paradas;
 
-  /** Recalcula el trazo. Se agrupa con un respiro para no pedir en cada arrastre. */
-  const recalcular = useCallback((lista: ParadaUrbana[]) => {
+  /** Recalcula el trazo (cerrando al origen si es circuito). Se agrupa con un respiro para no pedir en cada arrastre. */
+  const recalcular = useCallback((lista: ParadaUrbana[], circuito = circuitoRef.current) => {
+    circuitoRef.current = circuito;
     if (temporizador.current) clearTimeout(temporizador.current);
     if (lista.length < 2) {
       setForm((f) => ({ ...f, recorrido: lista.map((p) => [p.lat, p.lng]) }));
+      setSegmentos([]);
       setDistanciaKm(0);
       setSobreCalles(true);
       return;
     }
     setCalculando(true);
     temporizador.current = setTimeout(async () => {
-      const t = await trazarPorCalles(lista);
+      const t = await trazarRecorrido(lista, circuito);
       setForm((f) => ({ ...f, recorrido: t.recorrido }));
+      setSegmentos(t.segmentos);
       setDistanciaKm(t.distanciaKm);
       setSobreCalles(t.sobreCalles);
       setCalculando(false);
@@ -85,13 +243,60 @@ export function EditorRutaUrbana({
     recalcular(conOrden);
   };
 
-  const agregar = (lat: number, lng: number) => {
+  const nombrePorDefecto = (n: string) => /^Parada \d+$/.test(n);
+  const agregar = (lat: number, lng: number, nombre?: string) => {
+    // Punto de paso o a mano: el toque va al tramo que pasa más cerca, no hace falta atinarle a la línea
+    if (herramienta !== 'parada' && cuantosTramos > 0) {
+      const lineas = segmentos.length === cuantosTramos ? segmentos : paradas.slice(0, cuantosTramos).map((p, i) => [[p.lat, p.lng], [destinoDe(i).lat, destinoDe(i).lng]] as [number, number][]);
+      const i = tramoMasCercano(lineas, { lat, lng });
+      fijarTramo(i, (t) => {
+        const k = indiceParaInsertar(paradas[i], t.puntos, destinoDe(i), { lat, lng });
+        const puntos = [...t.puntos];
+        puntos.splice(k, 0, [lat, lng]);
+        return { modo: herramienta === 'mano' ? 'mano' : t.modo, puntos };
+      });
+      return;
+    }
     if (paradas.length >= MAX_PARADAS) return;
+    // La que era la última deja de serlo: su tramo (si cerraba el circuito) ya no aplica
     fijarParadas([
-      ...paradas,
-      { nombre: `Parada ${paradas.length + 1}`, orden: paradas.length + 1, lat, lng },
+      ...paradas.map((p, i) => (i === paradas.length - 1 ? { ...p, tramo: undefined } : p)),
+      { nombre: nombre || `Parada ${paradas.length + 1}`, orden: paradas.length + 1, lat, lng },
     ]);
+    if (nombre) return;
+    // Un toque en el mapa toma el nombre del sitio (la calle, la plaza), si nadie lo cambió todavía
+    void lugarEn(lat, lng)
+      .then((l) => {
+        if (!l.nombre) return;
+        setForm((f) => ({ ...f, paradas: f.paradas.map((p) => (p.lat === lat && p.lng === lng && nombrePorDefecto(p.nombre) ? { ...p, nombre: l.nombre!.slice(0, 80) } : p)) }));
+      })
+      .catch(() => {});
   };
+  // Un sitio del buscador se agrega como parada con su nombre
+  const agregarSitio = (l: LugarMapa) => agregar(l.lat, l.lng, l.nombre ?? undefined);
+
+  /** Cambia el tramo que sale de la parada i (el de vuelta al origen si es la última de un circuito). */
+  const fijarTramo = (i: number, cambio: (t: TramoTrazado) => TramoTrazado | undefined) =>
+    fijarParadas(paradas.map((p, j) => (j === i ? { ...p, tramo: cambio(p.tramo ?? { modo: 'calles', puntos: [] }) } : p)));
+  const destinoDe = (i: number) => paradas[(i + 1) % paradas.length];
+  // Tocar la línea: un punto de paso (o del dibujo) donde menos desvía
+  const tocarLinea = (i: number, lat: number, lng: number) =>
+    fijarTramo(i, (t) => {
+      const k = indiceParaInsertar(paradas[i], t.puntos, destinoDe(i), { lat, lng });
+      const puntos = [...t.puntos];
+      puntos.splice(k, 0, [lat, lng]);
+      return { ...t, puntos };
+    });
+  const moverPaso = (i: number, k: number, lat: number, lng: number) =>
+    fijarTramo(i, (t) => ({ ...t, puntos: t.puntos.map((x, j) => (j === k ? [lat, lng] : x)) }));
+  const quitarPaso = (i: number, k: number) => fijarTramo(i, (t) => ({ ...t, puntos: t.puntos.filter((_, j) => j !== k) }));
+  const cuantosTramos = paradas.length < 2 ? 0 : form.circuito ? paradas.length : paradas.length - 1;
+  const pasos = paradas.flatMap((p, i) => (i < cuantosTramos ? (p.tramo?.puntos ?? []).map(([lat, lng], k) => ({ tramo: i, indice: k, lat, lng })) : []));
+  const modos = paradas.slice(0, cuantosTramos).map((p) => p.tramo?.modo ?? 'calles');
+  // Sin tramos (menos de dos paradas) solo se pueden agregar paradas
+  useEffect(() => {
+    if (cuantosTramos === 0) setHerramienta('parada');
+  }, [cuantosTramos]);
 
   const mover = (i: number, lat: number, lng: number) =>
     fijarParadas(paradas.map((p, j) => (j === i ? { ...p, lat, lng } : p)));
@@ -102,17 +307,36 @@ export function EditorRutaUrbana({
       paradas: f.paradas.map((p, j) => (j === i ? { ...p, nombre } : p)),
     }));
 
-  const eliminar = (i: number) => fijarParadas(paradas.filter((_, j) => j !== i));
+  /** Al cambiar el orden o quitar una parada, los tramos que la tocaban se vuelven a calcular por calles. */
+  const sinTramos = (lista: ParadaUrbana[], indices: number[]) => lista.map((p, j) => (indices.includes(j) ? { ...p, tramo: undefined } : p));
+  const eliminar = (i: number) => {
+    fijarParadas(sinTramos(paradas, [i - 1, i, paradas.length - 1]).filter((_, j) => j !== i));
+  };
+
+  // Cortes de tarifa: la última parada siempre es corte; las demás se marcan a mano
+  const esUltima = (i: number) => i === paradas.length - 1;
+  const esCorte = (i: number) => i > 0 && (esUltima(i) || paradas[i].cortePrecioBs !== undefined);
+  const marcarCorte = (i: number, activo: boolean) =>
+    setForm((f) => ({ ...f, paradas: f.paradas.map((p, j) => (j === i ? { ...p, cortePrecioBs: activo ? (p.cortePrecioBs ?? '') : undefined } : p)) }));
+  const precioCorte = (i: number, v: string) =>
+    setForm((f) => ({ ...f, paradas: f.paradas.map((p, j) => (j === i ? { ...p, cortePrecioBs: v } : p)) }));
+  const corteAnterior = (i: number) => {
+    for (let j = i - 1; j > 0; j--) if (paradas[j].cortePrecioBs !== undefined) return paradas[j].nombre;
+    return paradas[0]?.nombre ?? 'el origen';
+  };
+  const cortesValidos =
+    paradas.length >= 2 &&
+    paradas.every((p, i) => !esCorte(i) || Number(esUltima(i) ? (p.cortePrecioBs ?? '') : p.cortePrecioBs) > 0);
 
   const subir = (i: number) => {
     if (i === 0) return;
-    const l = [...paradas];
+    const l = sinTramos(paradas, [i - 2, i - 1, i, paradas.length - 1]);
     [l[i - 1], l[i]] = [l[i], l[i - 1]];
     fijarParadas(l);
   };
   const bajar = (i: number) => {
     if (i >= paradas.length - 1) return;
-    const l = [...paradas];
+    const l = sinTramos(paradas, [i - 1, i, i + 1, paradas.length - 1]);
     [l[i], l[i + 1]] = [l[i + 1], l[i]];
     fijarParadas(l);
   };
@@ -120,25 +344,32 @@ export function EditorRutaUrbana({
   const etiquetaDe = (i: number) =>
     i === 0 ? 'A' : i === paradas.length - 1 ? 'B' : String(i + 1);
   const papelDe = (i: number) =>
-    paradas.length < 2 ? 'Punto de partida' : i === 0 ? 'Origen' : i === paradas.length - 1 ? 'Destino' : 'Parada';
+    paradas.length < 2 ? 'Punto de partida' : i === 0 ? 'Origen' : i === paradas.length - 1 ? (form.circuito ? 'Última parada · vuelve al origen' : 'Destino') : 'Parada';
 
-  const listo = form.nombre.trim().length > 0 && Number(form.tarifaBs) > 0 && paradas.length >= 2;
+  const listo = form.nombre.trim().length > 0 && paradas.length >= 2 && (form.porTramos ? cortesValidos : Number(form.tarifaBs) > 0);
 
   return (
     <div className={ui.velo ?? ''} style={estilos.velo}>
       <div style={estilos.panel} onClick={(e) => e.stopPropagation()}>
         <div style={estilos.cabecera}>
-          <div>
-            <h3 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em' }}>
-              {form.documentId ? 'Editar ruta urbana' : 'Nueva ruta urbana'}
-            </h3>
-            <p style={{ fontSize: 13, color: 'var(--text-soft)', marginTop: 4 }}>
-              Marca el origen, las paradas del camino y el destino. El recorrido por las calles
-              se calcula solo.
-            </p>
+          <h3 style={{ fontSize: 19, fontWeight: 700, letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>
+            {form.documentId ? 'Editar ruta urbana' : 'Nueva ruta'}
+          </h3>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            {cabecera ?? (
+              <p style={{ fontSize: 12, color: 'var(--text-faint)' }}>
+                Marca el origen, las paradas y el destino; el recorrido por las calles se calcula solo.
+              </p>
+            )}
           </div>
-          <button className={ui.btnSecondary} onClick={onCancelar} style={{ fontSize: 14 }}>
-            Cerrar
+          {/* La misma ✕ que el editor de rutas de viaje */}
+          <button
+            type="button"
+            onClick={onCancelar}
+            aria-label="Cerrar"
+            style={{ width: 34, height: 34, borderRadius: 10, display: 'grid', placeItems: 'center', color: 'var(--text-soft)', background: 'var(--pill-bg, #EEF2F9)', cursor: 'pointer', flex: 'none' }}
+          >
+            ✕
           </button>
         </div>
 
@@ -149,31 +380,192 @@ export function EditorRutaUrbana({
               recorrido={form.recorrido}
               onAgregar={agregar}
               onMover={mover}
+              onBuscar={agregarSitio}
+              referencias={todasReferencias}
+              sitiosPropios={sitiosPropios}
+              segmentos={segmentos}
+              modos={modos}
+              herramientas={
+                <div className={marco.puntas} role="radiogroup" aria-label="Qué agrega un toque en el mapa">
+                  {([
+                    ['parada', '●', 'Parada', 'Toca el mapa para agregar una parada'],
+                    ['paso', '○', 'Punto de paso', 'Toca cerca del tramo: la línea pasará por ahí, sin ser parada'],
+                    ['mano', '✎', 'A mano', 'Toca por donde va la buseta: el tramo más cercano se dibuja en línea recta entre tus puntos'],
+                  ] as const).map(([valor, icono, texto, ayuda]) => (
+                    <button
+                      key={valor}
+                      type="button"
+                      role="radio"
+                      aria-checked={herramienta === valor}
+                      title={ayuda}
+                      disabled={valor !== 'parada' && cuantosTramos === 0}
+                      className={`${marco.punta} ${herramienta === valor ? marco.puntaActiva : ''}`}
+                      onClick={() => setHerramienta(valor)}
+                    >
+                      <span className={marco.letra} aria-hidden>{icono}</span>
+                      {texto}
+                    </button>
+                  ))}
+                </div>
+              }
+              pasos={pasos}
+              onLinea={tocarLinea}
+              onMoverPaso={moverPaso}
+              onQuitarPaso={quitarPaso}
+              pista={
+                herramienta === 'paso' && cuantosTramos > 0
+                  ? 'Toca cerca del tramo por donde de verdad va la buseta: la línea pasará por ahí. Arrastra el punto para afinarlo o tócalo para quitarlo.'
+                  : herramienta === 'mano' && cuantosTramos > 0
+                    ? 'Toca por donde va la buseta: el tramo más cercano se dibuja en línea recta entre tus puntos (para calles que el mapa no conoce).'
+                    : paradas.length === 0
+                  ? referencias?.length
+                    ? 'Busca un sitio, toca el mapa o una parada ya hecha (los puntos; las de nombre son comunes) para arrancar.'
+                    : 'Busca un sitio o toca el mapa donde arranca la ruta.'
+                  : paradas.length === 1
+                    ? 'Ahora busca o toca la siguiente parada.'
+                    : 'Toca para agregar una parada. ¿La línea no va por donde va la buseta? Elige «Punto de paso» arriba.'
+              }
               alto={0}
             />
-            <div style={estilos.piePista}>
-              {paradas.length === 0
-                ? 'Toca el mapa donde arranca la ruta.'
-                : paradas.length === 1
-                  ? 'Ahora toca dónde termina.'
-                  : `Toca para agregar otra parada · arrastra los marcadores para corregir`}
-            </div>
           </div>
 
           <div style={estilos.columnaLado}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 130px', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: form.porTramos ? '1fr' : '1fr 130px', gap: 12 }}>
               <Field
                 label="Nombre de la ruta"
                 value={form.nombre}
                 onChange={(e) => setForm({ ...form, nombre: e.target.value })}
               />
-              <Field
-                label="Pasaje (Bs)"
-                type="number"
-                min={0}
-                value={form.tarifaBs}
-                onChange={(e) => setForm({ ...form, tarifaBs: e.target.value })}
-              />
+              {!form.porTramos && (
+                <Field
+                  label="Pasaje (Bs)"
+                  type="number"
+                  min={0}
+                  value={form.tarifaBs}
+                  onChange={(e) => setForm({ ...form, tarifaBs: e.target.value })}
+                />
+              )}
+            </div>
+
+            {/* Etiquetas: se eligen de la lista guardada de la línea (con buscador) o se crean ahí mismo */}
+            <div style={{ marginTop: 12 }}>
+              <div className={ui.fieldLabel} style={{ marginBottom: 6 }}>Etiquetas de la ruta</div>
+              {form.letreros.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                  {form.letreros.map((l) => (
+                    <span key={l} style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+                      <Letrero letreros={[l]} />
+                      <button type="button" onClick={() => quitarLetrero(l)} aria-label={`Quitar ${l} de la ruta`} style={{ color: 'var(--text-faint)', fontWeight: 700, cursor: 'pointer', fontSize: 13, padding: '0 4px' }}>×</button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div style={{ border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+                <input
+                  className={ui.fieldInput}
+                  placeholder="Buscar o crear etiqueta…"
+                  value={letreroNuevo}
+                  onChange={(e) => setLetreroNuevo(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      const exacta = catalogo.find((l) => l.toLowerCase() === letreroNuevo.trim().toLowerCase());
+                      if (exacta) {
+                        agregarLetrero(exacta);
+                        setLetreroNuevo('');
+                      } else void crearEtiqueta();
+                    }
+                  }}
+                  style={{ border: 'none', borderRadius: 0, borderBottom: '1px solid var(--border)', width: '100%' }}
+                />
+                <div style={{ maxHeight: 180, overflowY: 'auto' }}>
+                  {(() => {
+                    const q = letreroNuevo.trim().toLowerCase();
+                    const filtradas = catalogo.filter((l) => !q || l.toLowerCase().includes(q));
+                    const exacta = catalogo.some((l) => l.toLowerCase() === q);
+                    return (
+                      <>
+                        {q && !exacta && (
+                          <button type="button" onClick={() => void crearEtiqueta()} disabled={form.letreros.length >= 8} style={estilos.filaEtiqueta}>
+                            <span style={{ color: 'var(--blue-600)', fontWeight: 700 }}>{creandoEtiqueta ? 'Creando…' : `+ Crear «${letreroNuevo.trim()}»`}</span>
+                            <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>se guarda ya, para esta y tus otras rutas</span>
+                          </button>
+                        )}
+                        {filtradas.map((l) => {
+                          const puesta = form.letreros.some((x) => x.toLowerCase() === l.toLowerCase());
+                          return (
+                            <div key={l} style={{ ...estilos.filaEtiqueta, background: puesta ? 'var(--tint-50)' : undefined }}>
+                              <label style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, cursor: 'pointer' }}>
+                                <input type="checkbox" checked={puesta} disabled={!puesta && form.letreros.length >= 8} onChange={() => (puesta ? quitarLetrero(l) : agregarLetrero(l))} />
+                                <span style={{ fontSize: 13, fontWeight: 600 }}>{l}</span>
+                              </label>
+                              <button type="button" title="Borrar de la lista" aria-label={`Borrar ${l} de la lista`} onClick={() => void borrarEtiqueta(l)} style={{ fontSize: 12, color: 'var(--text-faint)', cursor: 'pointer', padding: '0 4px' }}>
+                                Borrar
+                              </button>
+                            </div>
+                          );
+                        })}
+                        {!filtradas.length && !q && <div style={{ ...estilos.filaEtiqueta, color: 'var(--text-faint)', fontSize: 12 }}>Todavía no hay etiquetas. Escribe una arriba para crearla.</div>}
+                        {!filtradas.length && q && exacta === false && null}
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+              {errorEtiquetas && <div style={{ fontSize: 12, color: 'var(--bad-text)', marginTop: 6 }}>{errorEtiquetas}</div>}
+              <div style={{ fontSize: 12, color: 'var(--text-soft)', marginTop: 6 }}>
+                Marca hasta 8: por dónde pasa la buseta y si es directa. Los pasajeros las ven cuando viene.
+              </div>
+            </div>
+
+            {/* Cómo se cobra: un solo pasaje, o por tramos entre paradas marcadas como corte */}
+            <div style={{ marginTop: 12 }}>
+              <div className={ui.fieldLabel} style={{ marginBottom: 6 }}>Cómo se cobra el pasaje</div>
+              <div role="tablist" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4, padding: 4, borderRadius: 12, background: 'var(--pill-bg, #EEF2F9)' }}>
+                {([[false, 'Pasaje único'], [true, 'Por tramos']] as [boolean, string][]).map(([valor, etiqueta]) => (
+                  <button
+                    key={etiqueta}
+                    type="button"
+                    role="tab"
+                    aria-selected={form.porTramos === valor}
+                    onClick={() => setForm((f) => ({ ...f, porTramos: valor }))}
+                    style={{
+                      padding: '9px 12px',
+                      borderRadius: 9,
+                      fontSize: 13,
+                      fontWeight: 700,
+                      color: form.porTramos === valor ? 'var(--blue-700)' : 'var(--text-soft)',
+                      background: form.porTramos === valor ? 'var(--surface)' : 'transparent',
+                      boxShadow: form.porTramos === valor ? '0 1px 2px rgba(15, 23, 42, 0.08), 0 0 0 1px var(--border)' : 'none',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {etiqueta}
+                  </button>
+                ))}
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text-soft)', marginTop: 6, lineHeight: 1.45 }}>
+                {form.porTramos
+                  ? 'Marca en la lista las paradas donde cambia el precio (cortes) y ponle precio a cada tramo. El pasajero dice desde dónde hasta dónde va y paga los tramos que cruza; el colector ve dónde se baja.'
+                  : 'Todos pagan lo mismo sin importar dónde suban o bajen.'}
+              </div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, fontSize: 14, cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={form.circuito}
+                  onChange={(e) => {
+                    const circuito = e.target.checked;
+                    setForm((f) => ({ ...f, circuito }));
+                    recalcular(paradas, circuito);
+                  }}
+                />
+                <span>
+                  Es un circuito: vuelve al origen
+                  <span style={{ display: 'block', fontSize: 12, color: 'var(--text-soft)' }}>
+                    Después de la última parada la buseta regresa al punto de salida; el recorrido se cierra solo.
+                  </span>
+                </span>
+              </label>
             </div>
 
             <div style={estilos.filaResumen}>
@@ -239,8 +631,59 @@ export function EditorRutaUrbana({
                       <div style={estilos.coords}>
                         {papelDe(i)} · {p.lat.toFixed(4)}, {p.lng.toFixed(4)}
                       </div>
+                      {form.porTramos && i > 0 && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-soft)' }}>
+                            <input type="checkbox" checked={esCorte(i)} disabled={esUltima(i)} onChange={(e) => marcarCorte(i, e.target.checked)} />
+                            Corte de tarifa
+                          </label>
+                          {esCorte(i) && (
+                            <>
+                              <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>{corteAnterior(i)} → aquí</span>
+                              <input
+                                type="number"
+                                min={0}
+                                placeholder="Bs"
+                                value={p.cortePrecioBs ?? ''}
+                                onChange={(e) => precioCorte(i, e.target.value)}
+                                style={{ ...estilos.inputNombre, width: 96, fontSize: 13, padding: '5px 8px', border: '1px solid var(--border-input)', borderRadius: 8 }}
+                              />
+                            </>
+                          )}
+                        </div>
+                      )}
+                      {i < cuantosTramos && (() => {
+                        const t = p.tramo;
+                        const mano = t?.modo === 'mano';
+                        const n = t?.puntos.length ?? 0;
+                        const hacia = i === paradas.length - 1 ? 'el origen' : paradas[i + 1].nombre || etiquetaDe(i + 1);
+                        return (
+                          <div style={estilos.tramo}>
+                            <span style={{ fontSize: 12, color: 'var(--text-soft)' }}>
+                              Hacia {hacia} ·{' '}
+                              {mano ? (n ? `a mano, ${n} punto${n === 1 ? '' : 's'}` : 'a mano, en línea recta') : n ? `por calles, ${n} punto${n === 1 ? '' : 's'} de paso` : 'por calles, camino más corto'}
+                            </span>
+                            {(n > 0 || mano) && (
+                              <button type="button" style={estilos.enlace} onClick={() => fijarTramo(i, () => undefined)}>
+                                {mano ? 'Volver a calles' : 'Quitar puntos'}
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
                     <div style={{ display: 'flex', gap: 2 }}>
+                      {/* Guardarla como común: queda con su nombre para otras rutas */}
+                      <button
+                        type="button"
+                        style={{ ...estilos.botonIcono, color: esComun(p) ? 'var(--warn-text, #B45309)' : 'var(--text-faint)' }}
+                        disabled={esComun(p)}
+                        onClick={() => void guardarComun(p)}
+                        title={esComun(p) ? 'Ya es una parada común de la línea' : 'Guardar como parada común para usarla en otras rutas'}
+                        aria-label={esComun(p) ? 'Ya es parada común' : 'Guardar como parada común'}
+                      >
+                        {esComun(p) ? '★' : '☆'}
+                      </button>
                       <button
                         style={estilos.botonIcono}
                         disabled={i === 0}
@@ -270,12 +713,17 @@ export function EditorRutaUrbana({
               </div>
             )}
 
+            {errorParada && <div style={estilos.avisoAmbar}>{errorParada}</div>}
+
             {paradas.length >= MAX_PARADAS && (
               <div style={estilos.avisoAmbar}>
                 Máximo {MAX_PARADAS} paradas por ruta.
               </div>
             )}
 
+            {error && (
+              <div style={{ ...estilos.avisoAmbar, background: 'var(--bad-bg, #FEF2F2)', color: 'var(--bad-text)', borderColor: 'var(--bad-text)' }}>{error}</div>
+            )}
             <div style={estilos.pie}>
               <button
                 className={ui.btnSecondary}
@@ -297,9 +745,11 @@ export function EditorRutaUrbana({
               <div style={estilos.pista}>
                 {!form.nombre.trim()
                   ? 'Ponle nombre a la ruta.'
-                  : !(Number(form.tarifaBs) > 0)
-                    ? 'Falta el pasaje en bolívares.'
-                    : 'Marca al menos el origen y el destino.'}
+                  : paradas.length < 2
+                    ? 'Marca al menos el origen y el destino.'
+                    : form.porTramos
+                      ? 'Ponle precio a cada tramo (incluido el que termina en el destino).'
+                      : 'Falta el pasaje en bolívares.'}
               </div>
             )}
           </div>
@@ -310,20 +760,22 @@ export function EditorRutaUrbana({
 }
 
 const estilos: Record<string, React.CSSProperties> = {
+  filaEtiqueta: { display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', padding: '8px 12px', borderBottom: '1px solid var(--divider)', cursor: 'pointer', background: 'transparent' },
   velo: {
     position: 'fixed',
     inset: 0,
     background: 'rgba(11,42,107,0.45)',
     display: 'grid',
     placeItems: 'center',
-    padding: 20,
+    padding: 12,
     zIndex: 1000,
   },
   panel: {
     background: 'var(--surface)',
     borderRadius: 22,
-    width: 'min(1320px, 100%)',
-    height: 'min(860px, 92vh)',
+    // Casi toda la pantalla: el mapa es la herramienta
+    width: 'min(1600px, 100%)',
+    height: 'calc(100dvh - 24px)',
     display: 'flex',
     flexDirection: 'column',
     overflow: 'hidden',
@@ -331,14 +783,13 @@ const estilos: Record<string, React.CSSProperties> = {
   },
   cabecera: {
     display: 'flex',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: 16,
-    padding: '22px 26px 16px',
+    padding: '12px 18px',
     borderBottom: '1px solid var(--divider)',
   },
   cuerpo: { flex: 1, display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 400px', minHeight: 0 },
-  columnaMapa: { display: 'flex', flexDirection: 'column', minWidth: 0, padding: 18, gap: 10 },
-  piePista: { fontSize: 13, color: 'var(--text-soft)' },
+  columnaMapa: { display: 'flex', flexDirection: 'column', minWidth: 0, padding: 10 },
   columnaLado: {
     borderLeft: '1px solid var(--divider)',
     padding: 18,
@@ -362,7 +813,8 @@ const estilos: Record<string, React.CSSProperties> = {
   lista: { display: 'flex', flexDirection: 'column', gap: 8 },
   parada: {
     display: 'flex',
-    alignItems: 'center',
+    // Arriba, junto al nombre: debajo puede venir el corte de tarifa y el tramo
+    alignItems: 'flex-start',
     gap: 10,
     border: '1px solid var(--border)',
     borderRadius: 13,
@@ -407,4 +859,6 @@ const estilos: Record<string, React.CSSProperties> = {
   },
   pie: { display: 'flex', gap: 10, marginTop: 'auto', paddingTop: 8 },
   pista: { fontSize: 12, color: 'var(--text-faint)', textAlign: 'right' },
+  tramo: { display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginTop: 6, paddingTop: 6, borderTop: '1px dashed var(--border)' },
+  enlace: { border: 0, background: 'transparent', padding: 0, fontSize: 12, fontWeight: 700, color: 'var(--blue-600)', cursor: 'pointer' },
 };

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Cargando } from '../../components/ui/PantallaCarga';
 import { EncabezadoPantalla } from '../../components/ui/EncabezadoPantalla';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { cerrarTurno, getArqueo, getTurnoActual } from '../../lib/api/endpoints';
@@ -49,7 +50,7 @@ export default function CierreTurno() {
     },
   });
 
-  if (isLoading) return <div style={{ padding: 48, textAlign: 'center', color: 'var(--text-soft)' }}>Cargando…</div>;
+  if (isLoading) return <Cargando mensaje="Buscando el turno…" />;
   if (!turno && !cerrado) {
     return (
       <div className={styles.cierreContenido}>

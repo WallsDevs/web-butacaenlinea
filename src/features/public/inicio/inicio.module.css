@@ -22,3 +22,12 @@
   .ciudades { grid-template-columns: minmax(0, 1fr) !important; }
   .ciudades > button { justify-self: center; transform: rotate(90deg); }
 }
+
+/* Buscador dentro del panel del pasajero */
+.buscadorPanel { }
+/* Salida en tarjeta (pantallas angostas): hora, línea y precio, sin deslizar de lado */
+.salidaTarjeta { display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 16px; background: transparent; border: none; text-align: left; cursor: pointer; font-family: inherit; }
+.salidaTarjeta:focus-visible { outline: 2px solid #60A5FA; outline-offset: -2px; }
+@media (max-width: 720px) {
+  .buscadorPanel { padding: 16px !important; }
+}
