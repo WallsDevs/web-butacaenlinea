@@ -91,7 +91,9 @@ export const adjuntarComprobante = (qrIds: string[], archivo: File) => {
 
 /** Recuperar boletos sin cuenta: cédula + teléfono o folio que se pusieron al comprar. */
 export interface BoletoRecuperado {
-  qrId: string;
+  /** null si se compró con una cuenta: se ve ingresando a ella */
+  qrId: string | null;
+  deCuenta?: boolean;
   folio: string;
   asientoId: string;
   estado: string;

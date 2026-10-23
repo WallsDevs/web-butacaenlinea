@@ -73,7 +73,7 @@ export default function RecuperarBoletos() {
       )}
       {resultado && resultado.length > 0 && (
         <section style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 10 }} aria-label="Boletos encontrados">
-          {resultado.map((b) => <Fila key={b.qrId} b={b} />)}
+          {resultado.map((b) => <Fila key={b.qrId ?? b.folio} b={b} />)}
           <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--text-faint)', lineHeight: 1.5 }}>
             Para no perderlos otra vez, <Link to="/registro">crea tu cuenta</Link> con el mismo teléfono.
           </p>
@@ -86,8 +86,10 @@ export default function RecuperarBoletos() {
 function Fila({ b }: { b: BoletoRecuperado }) {
   const s = b.salida;
   const anulado = b.estado === 'anulado';
+  // Comprado con cuenta: no se abre desde aquí, se ve ingresando a esa cuenta
+  const destino = b.qrId ? `/boleto/${b.qrId}` : `/ingresar?next=${encodeURIComponent('/cuenta/boletos')}`;
   return (
-    <Link to={`/boleto/${b.qrId}`} className={ui.card} style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none', color: 'inherit', opacity: anulado ? 0.6 : 1 }}>
+    <Link to={destino} className={ui.card} style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none', color: 'inherit', opacity: anulado ? 0.6 : 1 }}>
       <div style={{ minWidth: 0, flex: 1 }}>
         <div style={{ fontWeight: 700, fontSize: 15 }}>
           {s?.ruta?.origen ?? '—'} → {s?.ruta?.destino ?? '—'}
@@ -100,6 +102,11 @@ function Fila({ b }: { b: BoletoRecuperado }) {
           {b.pasajeroNombre} · Puesto {b.asientoId} · {b.folio}
           {anulado ? ' · Anulado' : b.estadoPago === 'por_verificar' ? ' · Pago por verificar' : ''}
         </div>
+        {!b.qrId && (
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--blue-700)', marginTop: 2 }}>
+            Está en una cuenta de Butaca: ingresa para verlo
+          </div>
+        )}
       </div>
       <span aria-hidden style={{ fontSize: 18, color: 'var(--text-faint)' }}>›</span>
     </Link>

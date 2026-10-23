@@ -26,7 +26,11 @@ export const useAuth = create<AuthState>()(
       jwt: null,
       usuario: null,
       iniciarSesion: (jwt, usuario) => set({ jwt, usuario }),
-      cerrarSesion: () => set({ jwt: null, usuario: null }),
+      cerrarSesion: () => {
+        set({ jwt: null, usuario: null });
+        // Los boletos guardados para verlos sin señal son de esta cuenta: no quedan en el equipo
+        if (typeof caches !== 'undefined') void caches.delete('boletos').catch(() => undefined);
+      },
     }),
     {
       name: 'bel-auth',

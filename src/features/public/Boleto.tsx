@@ -2,6 +2,7 @@ import { useLocation, useNavigate, useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { getBoletoPorCodigo } from '../../lib/api/endpoints';
 import { ApiError } from '../../lib/api/client';
+import { useAuth } from '../../stores/auth';
 import { hora, fechaCorta } from '../../lib/time';
 import { TicketCard } from '../../components/ticket/TicketCard';
 import { StatusChip } from '../../components/ui/StatusChip';
@@ -19,18 +20,38 @@ export default function Boleto() {
   const location = useLocation();
   const grupo = (location.state as { grupo?: { qrId: string; asientoId: string }[] } | null)?.grupo;
 
+  const usuarioId = useAuth((s) => s.usuario?.id ?? null);
   const { data: boleto, isLoading, error, refetch, isFetching } = useQuery({
-    queryKey: ['boleto', codigo],
+    // Con el usuario en la clave: al cerrar sesión no queda a la vista el boleto de la cuenta
+    queryKey: ['boleto', codigo, usuarioId],
     queryFn: () => getBoletoPorCodigo(codigo!),
     enabled: Boolean(codigo),
     staleTime: Infinity,
     gcTime: Infinity,
     // Un boleto que no existe no aparece por reintentar; una caída del servidor sí se recupera
-    retry: (n, e) => !(e instanceof ApiError && e.status === 404) && n < 2,
+    retry: (n, e) => !(e instanceof ApiError && [401, 403, 404].includes(e.status)) && n < 2,
   });
 
   if (isLoading) {
     return <div style={{ padding: 48, textAlign: 'center', color: 'var(--text-soft)' }}>Cargando boleto…</div>;
+  }
+  if (!boleto && error instanceof ApiError && (error.code === 'boleto_de_cuenta' || error.code === 'boleto_ajeno')) {
+    const ajeno = error.code === 'boleto_ajeno';
+    return (
+      <div style={{ maxWidth: 430, margin: '0 auto', padding: '48px 16px', textAlign: 'center', color: 'var(--text-soft)', lineHeight: 1.5 }}>
+        <div style={{ fontWeight: 700, fontSize: 18, color: 'var(--text)', marginBottom: 8 }}>
+          {ajeno ? 'Este boleto es de otra cuenta' : 'Ingresa para ver este boleto'}
+        </div>
+        <p style={{ margin: '0 0 16px', fontSize: 14 }}>
+          {ajeno
+            ? 'Se compró con otra cuenta de Butaca. Para verlo, ingresa con esa cuenta.'
+            : 'Se compró con una cuenta de Butaca: solo lo ve quien lo compró.'}
+        </p>
+        <button className={ui.btnPrimary} onClick={() => navigate(`/ingresar?next=${encodeURIComponent(`/boleto/${codigo}`)}`)}>
+          {ajeno ? 'Ingresar con otra cuenta' : 'Ingresar'}
+        </button>
+      </div>
+    );
   }
   if (!boleto) {
     const noExiste = error instanceof ApiError && error.status === 404;
