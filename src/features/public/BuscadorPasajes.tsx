@@ -95,7 +95,7 @@ export function BuscadorPasajes({ enPanel = false }: { enPanel?: boolean }) {
       <div style={enPanel ? { position: 'relative', marginBottom: 18 } : { position: 'relative', maxWidth: 1440, margin: '-110px auto 0', padding: '0 28px 28px', boxSizing: 'border-box' }}>
         <div style={{ background: '#FFFFFF', borderRadius: 22, boxShadow: enPanel ? '0 1px 2px rgba(15,23,42,.06)' : '0 24px 60px rgba(11,42,107,.22)', overflow: 'hidden', border: '1px solid #E6EBF4' }}>
           <div className={enPanel ? css.buscadorPanel : undefined} style={{ padding: enPanel ? 20 : 28, display: 'flex', flexDirection: 'column', gap: enPanel ? 16 : 20 }}>
-            <div className={css.ciudades} style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 48px minmax(0,1fr)', alignItems: 'center', gap: 10 }}>
+            <div data-guia="buscar-ciudades" className={css.ciudades} style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 48px minmax(0,1fr)', alignItems: 'center', gap: 10 }}>
               <label style={cajaCiudad}>
                 <span style={{ width: 12, height: 12, borderRadius: '50%', border: `3px solid ${sinRutas ? '#C3CBD8' : '#2563EB'}`, boxSizing: 'border-box', flex: 'none' }} />
                 <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0, flex: 1 }}>
@@ -126,7 +126,7 @@ export function BuscadorPasajes({ enPanel = false }: { enPanel?: boolean }) {
               </label>
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <div data-guia="buscar-dias" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {dias.map((d) => {
                   const on = d.fecha === fecha;
                   return (
@@ -143,7 +143,7 @@ export function BuscadorPasajes({ enPanel = false }: { enPanel?: boolean }) {
                   );
                 })}
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div data-guia="buscar-pasajeros" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <span style={{ fontSize: 14, color: '#475569' }}>Pasajeros</span>
                 <div style={{ display: 'flex', alignItems: 'center', border: '1.5px solid #E2E8F2', borderRadius: 12 }}>
                   <button onClick={() => setCriterios({ pasajeros: Math.max(1, pax - 1) })} disabled={sinRutas} aria-label="Menos" style={{ width: 44, height: 44, border: 'none', background: 'transparent', fontSize: 20, color: sinRutas ? '#C3CBD8' : '#2563EB', cursor: sinRutas ? 'default' : 'pointer', fontFamily: 'inherit' }}>−</button>
@@ -174,7 +174,7 @@ export function BuscadorPasajes({ enPanel = false }: { enPanel?: boolean }) {
 
       {/* Salidas: tablero de terminal */}
       <div style={enPanel ? { position: 'relative' } : { position: 'relative', maxWidth: 1440, margin: '0 auto', padding: '0 28px 80px' }}>
-        <section id="salidas" style={{ background: '#081F52', borderRadius: angosta ? 20 : 24, boxShadow: '0 24px 60px rgba(11,42,107,.22)', padding: angosta ? '18px 12px 14px' : '26px 26px 28px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <section id="salidas" data-guia="buscar-salidas" style={{ background: '#081F52', borderRadius: angosta ? 20 : 24, boxShadow: '0 24px 60px rgba(11,42,107,.22)', padding: angosta ? '18px 12px 14px' : '26px 26px 28px', display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px 14px', paddingBottom: 8 }}>
             <Isotipo size={24} trazo={5} contorno="#FFFFFF" acento="#60A5FA" />
             <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, letterSpacing: '0.14em', color: '#FFFFFF' }}>SALIDAS</h2>

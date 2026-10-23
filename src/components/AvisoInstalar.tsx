@@ -18,7 +18,7 @@ const Compartir = () => (
 
 /**
  * Cada vez que se abre la web en un teléfono o tablet (y no está instalada),
- * un aviso abajo ofrece agregarla a la pantalla de inicio. En Android abre el
+ * un aviso arriba, debajo de la cabecera, ofrece agregarla a la pantalla de inicio. En Android abre el
  * diálogo del navegador; en iPhone explica «Compartir → Agregar a inicio».
  * «Ahora no» lo esconde hasta la próxima vez que se abra.
  */
@@ -42,11 +42,6 @@ export function AvisoInstalar() {
   // Mientras escanea o paga en la buseta no estorba
   const pantallaDePago = pathname.startsWith('/pagar') || pathname.startsWith('/checkout');
   const visible = !(instalada || cerrado || !telefono || pantallaDePago);
-  // La página le deja sitio abajo mientras se ve (si no, tapaba el final: p. ej. enlaces de ingresar)
-  useEffect(() => {
-    document.body.classList.toggle('con-aviso-instalar', visible);
-    return () => document.body.classList.remove('con-aviso-instalar');
-  }, [visible]);
   if (!visible) return null;
 
   const cerrar = () => {

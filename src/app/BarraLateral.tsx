@@ -127,6 +127,7 @@ export function BarraLateral({ secciones, titulo, home, pathname, conBoleteria }
                 <div key={i.id}>
                   <button
                     type="button"
+                    data-guia={`nav-${i.id}`}
                     className={`${styles.item} ${esActivo ? styles.itemActivo : ''}`}
                     aria-current={esActivo ? 'page' : undefined}
                     title={plegada && !flotante ? i.label : undefined}

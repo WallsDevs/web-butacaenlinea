@@ -4,6 +4,8 @@ import { useAuth } from '../../stores/auth';
 import { useSeo } from '../../lib/seo';
 import { useInstalacion } from '../../lib/instalacion';
 import { PaginaPasajero } from '../cuenta/CuentaLayout';
+import { useGuia } from '../guia/useGuia';
+import { GUIAS } from '../guia/guias';
 import ui from '../../components/ui/ui.module.css';
 import styles from './ayuda.module.css';
 
@@ -82,6 +84,9 @@ export default function Ayuda() {
   const { hash } = useLocation();
   const conCuenta = useAuth((s) => s.usuario?.role?.type) === 'cliente';
   const { puede, instalada, plataforma, instalar } = useInstalacion();
+  const iniciarGuia = useGuia((s) => s.iniciar);
+  // La guía va sobre las pantallas de la cuenta: sin sesión, primero ingresar
+  const guiar = (id: string) => (conCuenta ? iniciarGuia(id) : navigate('/ingresar'));
 
   // Desde un enlace «¿Cómo recargo?» se llega directo a ese tutorial
   useEffect(() => {
@@ -101,7 +106,14 @@ export default function Ayuda() {
 
       {TUTORIALES.map((t) => (
         <section key={t.id} id={t.id} className={styles.tutorial}>
-          <h2 className={styles.tutorialTitulo}>{t.titulo}</h2>
+          <div className={styles.tutorialCabeza}>
+            <h2 className={styles.tutorialTitulo}>{t.titulo}</h2>
+            {GUIAS[t.id] && (
+              <button type="button" className={styles.hazlo} onClick={() => guiar(t.id)}>
+                <span aria-hidden>▶</span> {conCuenta ? 'Hazlo conmigo' : 'Ingresa y hazlo conmigo'}
+              </button>
+            )}
+          </div>
           <ol className={styles.pasos}>
             {t.pasos.map((p) => (
               <li key={p.titulo}>

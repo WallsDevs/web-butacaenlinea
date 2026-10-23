@@ -6,6 +6,7 @@ import { useAuth } from '../../stores/auth';
 import { useSeo } from '../../lib/seo';
 import { BuscadorPasajes } from '../public/BuscadorPasajes';
 import { PaginaPasajero } from './CuentaLayout';
+import { useGuia } from '../guia/useGuia';
 import styles from './cuenta.module.css';
 
 /** El boleto vigente más cercano: emitido, no anulado y que todavía no salió (o salió hace poco). */
@@ -28,6 +29,7 @@ export default function CuentaViajar() {
   const { data: boletos } = useQuery({ queryKey: ['mis-boletos'], queryFn: getMisBoletos });
   const { data: wallet } = useQuery({ queryKey: ['wallet'], queryFn: getWallet });
   const proximo = proximoViaje(boletos ?? []);
+  const iniciarGuia = useGuia((s) => s.iniciar);
   const nombre = (usuario?.nombreCorto ?? usuario?.username ?? '').split(' ')[0];
 
   return (
@@ -36,7 +38,7 @@ export default function CuentaViajar() {
       sub={
         <>
           Busca tu salida, escoge tu puesto y paga en línea.{' '}
-          <a href="/ayuda#comprar" onClick={(e) => { e.preventDefault(); navigate('/ayuda#comprar'); }}>¿Primera vez? Así se compra</a>
+          <button type="button" className={styles.enlace} style={{ fontSize: 14, marginTop: 0, padding: 0 }} onClick={() => iniciarGuia('comprar')}>¿Primera vez? Te enseño a comprar</button>
         </>
       }
     >

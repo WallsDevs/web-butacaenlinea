@@ -1,10 +1,8 @@
-/* Aviso para instalar: abajo, sobre la barra de pestañas del teléfono */
+/* Aviso para instalar: arriba, debajo de la cabecera, dentro de la página (no tapa nada) */
 .aviso {
-  position: fixed;
-  left: 12px;
-  right: 12px;
-  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
-  z-index: 60;
+  position: relative;
+  margin: 12px 12px 0;
+  z-index: 5;
   display: grid;
   grid-template-columns: 44px minmax(0, 1fr);
   grid-template-areas: 'icono texto' 'botones botones';
@@ -13,11 +11,10 @@
   border-radius: 18px;
   background: var(--navy, #0B2A6B);
   color: #fff;
-  box-shadow: 0 18px 40px rgba(11, 42, 107, 0.4);
+  box-shadow: 0 10px 26px rgba(11, 42, 107, 0.25);
   animation: sube 0.28s ease-out;
 }
-:global(body.con-barra-inferior) .aviso { bottom: calc(80px + env(safe-area-inset-bottom, 0px)); }
-@keyframes sube { from { transform: translateY(16px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes sube { from { transform: translateY(-10px); opacity: 0; } to { transform: none; opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .aviso { animation: none; } }
 .icono { grid-area: icono; width: 44px; height: 44px; border-radius: 12px; background: rgba(255, 255, 255, 0.1); display: grid; place-items: center; }
 .texto { grid-area: texto; display: flex; flex-direction: column; gap: 3px; font-size: 13px; line-height: 1.45; color: #C7D9FB; }
