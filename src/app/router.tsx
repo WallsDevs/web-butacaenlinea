@@ -14,6 +14,7 @@ const Acceso = lazy(() => import('../features/public/Acceso'));
 const NoEncontrada = lazy(() => import('../features/public/NoEncontrada'));
 const Perfil = lazy(() => import('../features/cuenta/Perfil'));
 const MisBoletos = lazy(() => import('../features/cuenta/MisBoletos'));
+const CuentaViajar = lazy(() => import('../features/cuenta/CuentaViajar'));
 const MetodosPago = lazy(() => import('../features/cuenta/MetodosPago'));
 const MiWallet = lazy(() => import('../features/cuenta/MiWallet'));
 const Pos = lazy(() => import('../features/pos/Pos'));
@@ -124,6 +125,14 @@ export const router = createBrowserRouter([
       },
       {
         path: '/cuenta',
+        element: (
+          <RequireAuth roles={['cliente']}>
+            <CuentaViajar />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: '/cuenta/boletos',
         element: (
           <RequireAuth roles={['cliente']}>
             <MisBoletos />

@@ -47,6 +47,16 @@ export default function Perfil() {
           {fila('Taquilla', usuario.taquilla?.nombre)}
         </div>
       </div>
+      {usuario.role?.type === 'cliente' && (
+        <div className={ui.card} style={{ padding: 8, marginTop: 14, display: 'flex', flexDirection: 'column' }}>
+          {([['Mis boletos', '/cuenta/boletos'], ['Mi wallet', '/cuenta/wallet'], ['Métodos de pago', '/cuenta/metodos']] as const).map(([txt, ruta]) => (
+            <button key={ruta} type="button" onClick={() => navigate(ruta)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '13px 16px', borderRadius: 12, fontSize: 15, fontWeight: 600, textAlign: 'left', cursor: 'pointer' }}>
+              {txt}
+              <span aria-hidden style={{ color: 'var(--text-faint)' }}>›</span>
+            </button>
+          ))}
+        </div>
+      )}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginTop: 18, flexWrap: 'wrap' }}>
         <span style={{ fontSize: 13, color: 'var(--text-soft)' }}>Al cerrar sesión, este dispositivo vuelve al sitio público.</span>
         <button

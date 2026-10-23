@@ -45,7 +45,7 @@ export function BarraInferior({ menu, pathname }: { menu: EntradaNav[]; pathname
         </div>
       )}
       <nav className={styles.barraInferior} aria-label="Menú principal">
-        {menu.map((e) => {
+        {menu.filter((e) => esGrupo(e) || !e.soloEscritorio).map((e) => {
           const esG = esGrupo(e);
           const on = esG ? e.items.some((i) => i.id === activa) || abierto === e.id : activa === e.id;
           return (

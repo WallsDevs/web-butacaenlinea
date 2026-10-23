@@ -218,6 +218,7 @@
   align-items: center;
   font-size: 12px;
   color: var(--text-muted);
+  flex-wrap: wrap;
 }
 .leyendaItem {
   display: flex;

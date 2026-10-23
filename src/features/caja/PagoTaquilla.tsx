@@ -139,7 +139,7 @@ export default function PagoTaquilla() {
         <div style={{ textAlign: 'center', marginTop: 14, fontSize: 14, color: 'var(--text-soft)' }}>
           Saldo restante: <strong>{bs(r.saldoBs)}</strong>
         </div>
-        <button className={ui.btnSecondary} style={{ width: '100%', marginTop: 12 }} onClick={() => navigate('/cuenta')}>
+        <button className={ui.btnSecondary} style={{ width: '100%', marginTop: 12 }} onClick={() => navigate('/cuenta/boletos')}>
           Ver mis boletos
         </button>
       </div>

@@ -1,10 +1,12 @@
 import { useNavigate } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { getMisBoletos } from '../../lib/api/endpoints';
+import type { BoletoMio } from '../../lib/api/types';
 import { hora, fechaCorta } from '../../lib/time';
 import { StatusChip } from '../../components/ui/StatusChip';
-import { CuentaLayout } from './CuentaLayout';
+import { PaginaPasajero } from './CuentaLayout';
 import ui from '../../components/ui/ui.module.css';
+import styles from './cuenta.module.css';
 
 const CHIP: Record<string, { tono: 'ok' | 'warn' | 'bad' | 'neutral'; label: string }> = {
   abordado: { tono: 'ok', label: 'Abordado' },
@@ -12,55 +14,63 @@ const CHIP: Record<string, { tono: 'ok' | 'warn' | 'bad' | 'neutral'; label: str
   no_show: { tono: 'neutral', label: 'No viajó' },
 };
 
-/** Mis boletos — historial del cliente. */
+/** Un boleto como el de papel: la ruta y la hora, y el talón con el puesto. */
+function Boleto({ b, pasado }: { b: BoletoMio; pasado?: boolean }) {
+  const navigate = useNavigate();
+  const chip = b.estadoPago === 'por_verificar' ? { tono: 'warn' as const, label: 'Pago por verificar' } : CHIP[b.estado] ?? { tono: 'ok' as const, label: 'Pagado' };
+  return (
+    <button type="button" className={`${styles.boleto} ${pasado ? styles.boletoPasado : ''}`} onClick={() => navigate(`/boleto/${b.qrId}`)}>
+      <span className={styles.boletoCuerpo}>
+        <span className={styles.boletoRuta}>{b.salida?.ruta?.origen} → {b.salida?.ruta?.destino}</span>
+        <span className={styles.boletoCuando}>
+          <b>{b.salida ? hora(b.salida.fechaHoraSalida) : '—'}</b>
+          <span>{b.salida ? fechaCorta(b.salida.fechaHoraSalida) : ''}{b.salida?.fechaHoraLlegada ? ` · llega ${hora(b.salida.fechaHoraLlegada)}` : ''}</span>
+        </span>
+        <span className={styles.boletoDatos}>{b.linea?.nombre} · {b.pasajeroNombre} · {b.folio}</span>
+        <span><StatusChip tono={chip.tono} size="sm">{chip.label}</StatusChip></span>
+      </span>
+      <span className={styles.talon}>
+        <span>Puesto</span>
+        <b>{b.asientoId}</b>
+      </span>
+    </button>
+  );
+}
+
+/** Mis boletos: los próximos viajes primero, luego los anteriores. Cada boleto abre su QR. */
 export default function MisBoletos() {
   const navigate = useNavigate();
   const { data: boletos, isLoading } = useQuery({ queryKey: ['mis-boletos'], queryFn: getMisBoletos });
+  const ahora = Date.now() - 2 * 3600_000;
+  const cuando = (b: BoletoMio) => (b.salida ? new Date(b.salida.fechaHoraSalida).getTime() : 0);
+  const proximos = (boletos ?? []).filter((b) => b.estado === 'emitido' && cuando(b) > ahora).sort((a, b) => cuando(a) - cuando(b));
+  const anteriores = (boletos ?? []).filter((b) => !proximos.includes(b)).sort((a, b) => cuando(b) - cuando(a));
 
   return (
-    <CuentaLayout activa="boletos">
+    <PaginaPasajero
+      titulo="Mis boletos"
+      sub="Toca un boleto para ver su QR: es lo que muestras al abordar."
+      acciones={<button type="button" className={ui.btnPrimary} onClick={() => navigate('/cuenta')}>Comprar pasaje</button>}
+    >
       {isLoading && <div style={{ padding: 24, color: 'var(--text-soft)' }}>Cargando…</div>}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {(boletos ?? []).map((b) => {
-          const chip =
-            b.estadoPago === 'por_verificar'
-              ? { tono: 'warn' as const, label: 'Pago por verificar' }
-              : CHIP[b.estado] ?? { tono: 'ok' as const, label: 'Pagado' };
-          return (
-            <button
-              key={b.qrId}
-              className={ui.card}
-              style={{ padding: 18, display: 'flex', gap: 16, alignItems: 'center', textAlign: 'left', cursor: 'pointer' }}
-              onClick={() => navigate(`/boleto/${b.qrId}`)}
-            >
-              <div style={{ textAlign: 'center', minWidth: 54 }}>
-                <div style={{ fontSize: 22, fontWeight: 700 }}>
-                  {b.salida ? hora(b.salida.fechaHoraSalida) : '—'}
-                </div>
-                <div style={{ fontSize: 11, color: 'var(--text-faint)' }}>
-                  {b.salida ? fechaCorta(b.salida.fechaHoraSalida) : ''}
-                </div>
-              </div>
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ fontWeight: 700, fontSize: 16 }}>
-                  {b.salida?.ruta?.origen} → {b.salida?.ruta?.destino}
-                </div>
-                <div style={{ fontSize: 13, color: 'var(--text-soft)', marginTop: 2 }}>
-                  {b.linea?.nombre} · Puesto {b.asientoId} · {b.folio}
-                </div>
-              </div>
-              <StatusChip tono={chip.tono} size="sm">
-                {chip.label}
-              </StatusChip>
-            </button>
-          );
-        })}
-        {!isLoading && !boletos?.length && (
-          <div className={ui.card} style={{ padding: 32, textAlign: 'center', color: 'var(--text-soft)' }}>
-            Aún no tienes boletos. <a href="/">Busca tu salida</a> y compra con tu cuenta para verlos aquí.
-          </div>
-        )}
-      </div>
-    </CuentaLayout>
+      {!isLoading && !boletos?.length && (
+        <div className={styles.vacio}>
+          <span>Aún no tienes boletos. Compra con tu cuenta y aparecen aquí con su QR.</span>
+          <button type="button" className={ui.btnPrimary} onClick={() => navigate('/cuenta')}>Buscar salidas</button>
+        </div>
+      )}
+      {proximos.length > 0 && (
+        <section className={styles.grupo}>
+          <div className={styles.grupoTitulo}>Próximos viajes · {proximos.length}</div>
+          <div className={styles.boletos}>{proximos.map((b) => <Boleto key={b.qrId} b={b} />)}</div>
+        </section>
+      )}
+      {anteriores.length > 0 && (
+        <section className={styles.grupo}>
+          <div className={styles.grupoTitulo}>Anteriores · {anteriores.length}</div>
+          <div className={styles.boletos}>{anteriores.map((b) => <Boleto key={b.qrId} b={b} pasado />)}</div>
+        </section>
+      )}
+    </PaginaPasajero>
   );
 }
