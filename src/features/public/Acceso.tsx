@@ -164,7 +164,8 @@ export default function Acceso({ modo }: { modo: 'login' | 'registro' }) {
 
       <main className={css.main} style={{ flex: '1 1 480px', display: 'flex', flexDirection: 'column', padding: '28px 40px 40px', boxSizing: 'border-box', background: '#FFFFFF' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-          <a className={css.enlace} href="/" style={{ fontSize: 15, fontWeight: 600 }} onClick={(e) => { e.preventDefault(); navigate('/'); }}>← Volver al inicio</a>
+          {/* En teléfono y tablet la portada no existe (lleva de vuelta aquí): solo en escritorio */}
+          <a className={`${css.enlace} solo-escritorio`} href="/" style={{ fontSize: 15, fontWeight: 600 }} onClick={(e) => { e.preventDefault(); navigate('/'); }}>← Volver al inicio</a>
           <a className={css.marcaMovil} href="/" aria-label="Butaca En Línea" style={{ marginLeft: 'auto', alignItems: 'center', gap: 8 }}>
             <Isotipo size={28} trazo={5} fondo="claro" />
             <span style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.04em', color: '#0F172A' }}>Butaca</span>

@@ -15,6 +15,11 @@
 .atajo span { font-size: 13px; color: #C7D9FB; line-height: 1.4; }
 
 .tutorial { scroll-margin-top: 16px; margin-bottom: 30px; display: flex; flex-direction: column; align-items: flex-start; gap: 14px; }
+.tutorialCabeza { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; width: 100%; }
+/* Guía en vivo: la acción principal de cada tutorial */
+.hazlo { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 12px; border: none; background: var(--blue-600, #2563EB); color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; }
+.hazlo span { font-size: 10px; }
+.hazlo:focus-visible { outline: 2px solid #60A5FA; outline-offset: 2px; }
 .tutorialTitulo { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
 .nota { margin: 0; font-size: 14px; color: var(--text-soft); line-height: 1.5; }
 

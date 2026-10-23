@@ -51,6 +51,7 @@ export function BarraInferior({ menu, pathname }: { menu: EntradaNav[]; pathname
           return (
             <button
               key={e.id}
+              data-guia={`nav-${e.id}`}
               className={`${styles.barraTab} ${on ? styles.barraTabActiva : ''}`}
               aria-current={!esG && on ? 'page' : undefined}
               aria-haspopup={esG ? 'menu' : undefined}

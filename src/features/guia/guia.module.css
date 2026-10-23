@@ -1,0 +1,47 @@
+/* Guía paso a paso sobre la web real */
+.capa { position: fixed; inset: 0; z-index: 3000; }
+/* Lo resaltado queda a la vista: un hueco con la sombra alrededor */
+.hueco {
+  position: fixed;
+  border-radius: 14px;
+  box-shadow: 0 0 0 9999px rgba(8, 20, 50, 0.66), 0 0 0 3px #60A5FA;
+  transition: top 0.25s ease, left 0.25s ease, width 0.25s ease, height 0.25s ease;
+  pointer-events: none;
+}
+.velo { position: fixed; inset: 0; background: rgba(8, 20, 50, 0.66); }
+
+.tarjeta {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(420px, calc(100% - 24px));
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 18px 18px 14px;
+  border-radius: 20px;
+  background: var(--surface, #fff);
+  box-shadow: 0 24px 60px rgba(8, 20, 50, 0.4);
+  animation: entra 0.2s ease-out;
+}
+.tarjetaAbajo { bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
+.tarjetaArriba { top: calc(16px + env(safe-area-inset-top, 0px)); }
+@keyframes entra { from { opacity: 0; transform: translate(-50%, 6px); } to { opacity: 1; transform: translateX(-50%); } }
+@media (prefers-reduced-motion: reduce) { .tarjeta { animation: none; } .hueco { transition: none; } }
+
+.cabeza { display: flex; justify-content: space-between; gap: 10px; font-size: 11px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; }
+.guia { color: var(--blue-600, #2563EB); }
+.cuenta { color: var(--text-faint, #94A3B8); }
+.titulo { font-size: 18px; letter-spacing: -0.01em; color: var(--text, #0F172A); }
+.texto { margin: 0; font-size: 14px; line-height: 1.55; color: var(--text-soft, #475569); }
+.puntos { display: flex; gap: 5px; margin-top: 2px; }
+.puntos i { width: 7px; height: 7px; border-radius: 50%; background: var(--pill-bg, #E2E8F2); }
+.puntos .puntoHecho { background: #9FC0FF; }
+.puntos .puntoActivo { background: var(--blue-600, #2563EB); width: 18px; border-radius: 999px; }
+.botones { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.salir { margin-right: auto; font-size: 14px; font-weight: 600; color: var(--text-faint, #94A3B8); background: none; border: none; cursor: pointer; padding: 8px 0; font-family: inherit; }
+.atras, .siguiente { height: 40px; padding: 0 16px; border-radius: 11px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; }
+.atras { background: var(--surface, #fff); color: var(--text, #0F172A); border: 1px solid var(--border, #E2E8F2); }
+.siguiente { background: var(--blue-600, #2563EB); color: #fff; border: none; }
+.salir:focus-visible, .atras:focus-visible, .siguiente:focus-visible { outline: 2px solid #60A5FA; outline-offset: 2px; }

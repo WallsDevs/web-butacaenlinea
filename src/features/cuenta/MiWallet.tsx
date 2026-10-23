@@ -11,6 +11,7 @@ import ui from '../../components/ui/ui.module.css';
 import styles from '../flota/flota.module.css';
 import c from './cuenta.module.css';
 import { PaginaPasajero } from './CuentaLayout';
+import { useGuia } from '../guia/useGuia';
 
 const NOMBRE_MOV: Record<string, string> = {
   recarga: 'Recarga',
@@ -42,6 +43,7 @@ export default function MiWallet() {
   // `desde` es el método de pago guardado con el que pagó; `comprobante`, la captura del pago
   const [form, setForm] = useState<{ montoBs: string; referencia: string; desde: string; comprobante: File | null }>({ montoBs: '', referencia: '', desde: '', comprobante: null });
   const [error, setError] = useState<string | null>(null);
+  const iniciarGuia = useGuia((s) => s.iniciar);
   // Los movimientos se muestran de a 15: la lista completa era interminable
   const [verTodos, setVerTodos] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
@@ -97,7 +99,7 @@ export default function MiWallet() {
       <div className={c.walletLado}>
       <div className={ui.card} style={{ padding: 24, marginBottom: 14, textAlign: 'center' }}>
         <div style={{ fontSize: 13, color: 'var(--text-soft)' }}>Saldo disponible</div>
-        <div style={{ fontSize: 40, fontWeight: 700, letterSpacing: '-0.02em', margin: '6px 0 14px' }}>
+        <div data-guia="wallet-saldo" style={{ fontSize: 40, fontWeight: 700, letterSpacing: '-0.02em', margin: '6px 0 14px' }}>
           {isLoading ? '…' : bs(wallet?.saldoBs ?? 0)}
         </div>
         {recargasPendientes.length > 0 && (
@@ -108,6 +110,7 @@ export default function MiWallet() {
           </div>
         )}
         <button
+          data-guia="wallet-pagar"
           className={`${ui.btnPrimary} ${ui.btnPrimaryLg}`}
           style={{ width: '100%' }}
           onClick={() => navigate('/pagar')}
@@ -122,6 +125,7 @@ export default function MiWallet() {
           ¿Por dónde viene mi buseta?
         </button>
         <button
+          data-guia="wallet-recargar"
           className={ui.btnSecondary}
           style={{ width: '100%', marginTop: 10 }}
           onClick={() => {
@@ -143,13 +147,13 @@ export default function MiWallet() {
         </div>
       )}
       <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '6px 16px', fontSize: 13 }}>
-        <button type="button" className={c.enlace} style={{ fontSize: 13, marginTop: 0 }} onClick={() => navigate('/cuenta/metodos')}>Mis métodos de pago</button>
-        <button type="button" className={c.enlace} style={{ fontSize: 13, marginTop: 0 }} onClick={() => navigate('/ayuda#recargar')}>¿Cómo recargo?</button>
-        <button type="button" className={c.enlace} style={{ fontSize: 13, marginTop: 0 }} onClick={() => navigate('/ayuda#pagar-buseta')}>¿Cómo pago la buseta?</button>
+        <button type="button" data-guia="wallet-metodos" className={c.enlace} style={{ fontSize: 13, marginTop: 0 }} onClick={() => navigate('/cuenta/metodos')}>Mis métodos de pago</button>
+        <button type="button" className={c.enlace} style={{ fontSize: 13, marginTop: 0 }} onClick={() => iniciarGuia('recargar')}>¿Cómo recargo?</button>
+        <button type="button" className={c.enlace} style={{ fontSize: 13, marginTop: 0 }} onClick={() => iniciarGuia('pagar-buseta')}>¿Cómo pago la buseta?</button>
       </div>
       </div>
 
-      <div className={ui.card} style={{ overflow: 'hidden' }}>
+      <div data-guia="wallet-movimientos" className={ui.card} style={{ overflow: 'hidden' }}>
         <div style={{ padding: '14px 18px', fontWeight: 700, fontSize: 15 }}>Movimientos</div>
         <div>
           {(wallet?.movimientos ?? []).slice(0, verTodos ? undefined : 15).map((m) => (

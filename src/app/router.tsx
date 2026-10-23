@@ -28,6 +28,7 @@ function lazy<T extends ComponentType<any>>(cargar: () => Promise<{ default: T }
 import { createBrowserRouter, Navigate, Outlet } from 'react-router';
 import { AppChrome } from './AppChrome';
 import { AvisoInstalar } from '../components/AvisoInstalar';
+import { GuiaActiva } from '../features/guia/GuiaActiva';
 import { PantallaCarga } from '../components/ui/PantallaCarga';
 import { ErrorPantalla } from '../features/public/NoEncontrada';
 import { RequireAuth } from './RequireAuth';
@@ -89,10 +90,13 @@ function AppLayout() {
   return (
     <>
       <AppChrome />
+      {/* Arriba, debajo de la cabecera: en el flujo de la página, no flota ni tapa nada */}
+      <AvisoInstalar />
       <Suspense fallback={<PantallaCarga />}>
         <Outlet />
       </Suspense>
-      <AvisoInstalar />
+      {/* La guía paso a paso, encima de la web real */}
+      <GuiaActiva />
     </>
   );
 }
