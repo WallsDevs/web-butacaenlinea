@@ -127,3 +127,7 @@ a {
 @media (max-width: 900px) {
   .solo-ancho { display: none; }
 }
+
+/* Mientras se ve el aviso de instalar, la página le deja sitio abajo para no tapar nada */
+body.con-aviso-instalar { padding-bottom: calc(170px + env(safe-area-inset-bottom)); }
+body.con-aviso-instalar.con-barra-inferior { padding-bottom: calc(240px + env(safe-area-inset-bottom)); }

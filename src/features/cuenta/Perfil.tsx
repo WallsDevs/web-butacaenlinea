@@ -49,7 +49,7 @@ export default function Perfil() {
       </div>
       {usuario.role?.type === 'cliente' && (
         <div className={ui.card} style={{ padding: 8, marginTop: 14, display: 'flex', flexDirection: 'column' }}>
-          {([['Mis boletos', '/cuenta/boletos'], ['Mi wallet', '/cuenta/wallet'], ['Métodos de pago', '/cuenta/metodos']] as const).map(([txt, ruta]) => (
+          {([['Mis boletos', '/cuenta/boletos'], ['Mi wallet', '/cuenta/wallet'], ['Métodos de pago', '/cuenta/metodos'], ['Ayuda y tutoriales', '/ayuda']] as const).map(([txt, ruta]) => (
             <button key={ruta} type="button" onClick={() => navigate(ruta)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '13px 16px', borderRadius: 12, fontSize: 15, fontWeight: 600, textAlign: 'left', cursor: 'pointer' }}>
               {txt}
               <span aria-hidden style={{ color: 'var(--text-faint)' }}>›</span>

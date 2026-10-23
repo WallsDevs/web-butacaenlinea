@@ -5,6 +5,8 @@ import { RouterProvider } from 'react-router/dom';
 import { router } from './app/router';
 import { ApiError } from './lib/api/client';
 import './styles/base.css';
+// Escucha el ofrecimiento de instalación desde el arranque (si no, se pierde)
+import './lib/instalacion';
 
 const esDeContrato = (e: unknown) => e instanceof ApiError && (e.code === 'modulo_no_contratado' || e.code === 'contrato_vencido' || e.code === 'sin_contrato' || e.code === 'modulo_suspendido_por_pago');
 
