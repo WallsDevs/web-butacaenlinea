@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { PantallaCarga } from '../components/ui/PantallaCarga';
 import { Navigate, useLocation } from 'react-router';
 import { login, getMe } from '../lib/api/endpoints';
-import { useAuth } from '../stores/auth';
+import { useAuth, vidaToken } from '../stores/auth';
 import { DEMO_MODE } from './AppChrome';
 
 /** Credenciales sembradas para el auto-login del modo demo. */
@@ -18,13 +18,18 @@ const DEMO_USERS: Record<string, { identifier: string; password: string }> = {
  * frente al cliente. En producción redirige a /ingresar.
  */
 export function RequireAuth({ roles, children }: { roles: string[]; children: React.ReactNode }) {
-  const { jwt, usuario, iniciarSesion } = useAuth();
+  const { jwt, usuario, iniciarSesion, cerrarSesion } = useAuth();
   const location = useLocation();
   const [cargando, setCargando] = useState(false);
   const [fallo, setFallo] = useState(false);
   const intentado = useRef(false);
 
-  const autorizado = Boolean(jwt && usuario && roles.includes(usuario.role?.type ?? ''));
+  // Un token vencido no es una sesión: se cierra y se va a ingresar
+  const vencido = Boolean(jwt) && vidaToken(jwt) <= 0;
+  useEffect(() => {
+    if (vencido) cerrarSesion();
+  }, [vencido, cerrarSesion]);
+  const autorizado = Boolean(jwt && usuario && !vencido && roles.includes(usuario.role?.type ?? ''));
 
   useEffect(() => {
     if (autorizado || !DEMO_MODE || intentado.current) return;

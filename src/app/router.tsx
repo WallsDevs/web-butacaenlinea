@@ -1,4 +1,30 @@
-import { lazy, Suspense } from 'react';
+import { lazy as lazyReact, Suspense, type ComponentType } from 'react';
+
+/**
+ * Como `lazy`, pero si el archivo de la pantalla ya no existe (se desplegó una
+ * versión nueva y esta página es de la anterior), recarga una vez para traer
+ * la nueva en vez de mostrar «Algo salió mal».
+ */
+const CLAVE_RECARGA = 'bel-recarga-version';
+function lazy<T extends ComponentType<any>>(cargar: () => Promise<{ default: T }>) {
+  return lazyReact(() =>
+    cargar().then(
+      (m) => {
+        sessionStorage.removeItem(CLAVE_RECARGA);
+        return m;
+      },
+      (e: unknown) => {
+        const yaRecargo = Number(sessionStorage.getItem(CLAVE_RECARGA) ?? 0) > Date.now() - 30_000;
+        if (!yaRecargo) {
+          sessionStorage.setItem(CLAVE_RECARGA, String(Date.now()));
+          window.location.reload();
+          return new Promise<never>(() => {});
+        }
+        throw e;
+      }
+    )
+  );
+}
 import { createBrowserRouter, Navigate, Outlet } from 'react-router';
 import { AppChrome } from './AppChrome';
 import { PantallaCarga } from '../components/ui/PantallaCarga';
