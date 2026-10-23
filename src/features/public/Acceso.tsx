@@ -259,6 +259,9 @@ export default function Acceso({ modo }: { modo: 'login' | 'registro' }) {
                 {reg ? 'Ingresar' : 'Crea tu cuenta de pasajero'}
               </a>
             </div>
+            <div style={{ fontSize: 14, color: '#475569', textAlign: 'center' }}>
+              <a className={css.enlace} href="/ayuda" onClick={(e) => { e.preventDefault(); ir('/ayuda'); }}>¿Cómo funciona? Mira la ayuda</a>
+            </div>
 
           </form>
         </div>

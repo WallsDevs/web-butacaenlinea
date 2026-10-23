@@ -101,9 +101,11 @@ export const SECCIONES_CUENTA: SeccionModulo[] = [
   { id: 'busetas', label: 'Busetas', ruta: '/busetas' },
   // En el teléfono no cabe en la barra de abajo: se llega desde Perfil y desde la wallet
   { id: 'metodos', label: 'Métodos de pago', ruta: '/cuenta/metodos', soloEscritorio: true },
+  // Tutoriales y preguntas frecuentes (en el teléfono, desde Perfil)
+  { id: 'ayuda', label: 'Ayuda', ruta: '/ayuda', soloEscritorio: true },
 ];
 /** Páginas públicas que, con sesión de pasajero, siguen siendo «su área» (la barra del pasajero se queda). */
-export const AREAS_PASAJERO = ['/cuenta', '/busetas', '/mapa', '/pagar'];
+export const AREAS_PASAJERO = ['/cuenta', '/busetas', '/mapa', '/pagar', '/ayuda'];
 
 /** Las secciones que aplican a una línea según sus módulos (`null` = todas). */
 export function seccionesVisibles(secciones: SeccionModulo[], modulos: ClaveModulo[] | null): SeccionModulo[] {

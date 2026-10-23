@@ -27,6 +27,7 @@ function lazy<T extends ComponentType<any>>(cargar: () => Promise<{ default: T }
 }
 import { createBrowserRouter, Navigate, Outlet } from 'react-router';
 import { AppChrome } from './AppChrome';
+import { AvisoInstalar } from '../components/AvisoInstalar';
 import { PantallaCarga } from '../components/ui/PantallaCarga';
 import { ErrorPantalla } from '../features/public/NoEncontrada';
 import { RequireAuth } from './RequireAuth';
@@ -41,6 +42,7 @@ const NoEncontrada = lazy(() => import('../features/public/NoEncontrada'));
 const Perfil = lazy(() => import('../features/cuenta/Perfil'));
 const MisBoletos = lazy(() => import('../features/cuenta/MisBoletos'));
 const CuentaViajar = lazy(() => import('../features/cuenta/CuentaViajar'));
+const Ayuda = lazy(() => import('../features/public/Ayuda'));
 const MetodosPago = lazy(() => import('../features/cuenta/MetodosPago'));
 const MiWallet = lazy(() => import('../features/cuenta/MiWallet'));
 const Pos = lazy(() => import('../features/pos/Pos'));
@@ -90,6 +92,7 @@ function AppLayout() {
       <Suspense fallback={<PantallaCarga />}>
         <Outlet />
       </Suspense>
+      <AvisoInstalar />
     </>
   );
 }
@@ -114,6 +117,7 @@ export const router = createBrowserRouter([
       { path: '/mapa/:rutaId', element: <MapaRuta /> },
       // El que ESPERA en la parada: llega sin escanear ningún QR
       { path: '/busetas', element: <Busetas /> },
+      { path: '/ayuda', element: <Ayuda /> },
       // QR fijo de la taquilla: el pasajero paga la venta en curso con su wallet
       { path: '/caja/:taquillaId', element: <PagoTaquilla /> },
       // QR que muestra el conductor para cobrar la pieza de equipaje extra

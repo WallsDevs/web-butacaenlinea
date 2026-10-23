@@ -1,0 +1,31 @@
+/* Aviso para instalar: abajo, sobre la barra de pestañas del teléfono */
+.aviso {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  z-index: 60;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  grid-template-areas: 'icono texto' 'botones botones';
+  gap: 10px 12px;
+  padding: 14px;
+  border-radius: 18px;
+  background: var(--navy, #0B2A6B);
+  color: #fff;
+  box-shadow: 0 18px 40px rgba(11, 42, 107, 0.4);
+  animation: sube 0.28s ease-out;
+}
+:global(body.con-barra-inferior) .aviso { bottom: calc(80px + env(safe-area-inset-bottom, 0px)); }
+@keyframes sube { from { transform: translateY(16px); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .aviso { animation: none; } }
+.icono { grid-area: icono; width: 44px; height: 44px; border-radius: 12px; background: rgba(255, 255, 255, 0.1); display: grid; place-items: center; }
+.texto { grid-area: texto; display: flex; flex-direction: column; gap: 3px; font-size: 13px; line-height: 1.45; color: #C7D9FB; }
+.texto > b { font-size: 15px; color: #fff; }
+.texto b { color: #fff; }
+.paso { display: inline-flex; vertical-align: -3px; padding: 1px 4px; border-radius: 6px; background: rgba(255, 255, 255, 0.14); color: #fff; }
+.botones { grid-area: botones; display: flex; gap: 8px; justify-content: flex-end; }
+.instalar, .ahoraNo { height: 38px; padding: 0 16px; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; }
+.instalar { background: #fff; color: var(--navy, #0B2A6B); border: none; }
+.ahoraNo { background: transparent; color: #C7D9FB; border: 1px solid rgba(199, 217, 251, 0.35); }
+.instalar:focus-visible, .ahoraNo:focus-visible { outline: 2px solid #60A5FA; outline-offset: 2px; }

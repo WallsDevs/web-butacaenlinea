@@ -142,9 +142,11 @@ export default function MiWallet() {
           {aviso}
         </div>
       )}
-      <button type="button" className={ui.btnGhost} style={{ width: '100%', fontSize: 13 }} onClick={() => navigate('/cuenta/metodos')}>
-        Mis métodos de pago
-      </button>
+      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '6px 16px', fontSize: 13 }}>
+        <button type="button" className={ui.btnGhost} style={{ fontSize: 13 }} onClick={() => navigate('/cuenta/metodos')}>Mis métodos de pago</button>
+        <button type="button" className={ui.btnGhost} style={{ fontSize: 13 }} onClick={() => navigate('/ayuda#recargar')}>¿Cómo recargo?</button>
+        <button type="button" className={ui.btnGhost} style={{ fontSize: 13 }} onClick={() => navigate('/ayuda#pagar-buseta')}>¿Cómo pago la buseta?</button>
+      </div>
       </div>
 
       <div className={ui.card} style={{ overflow: 'hidden' }}>

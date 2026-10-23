@@ -292,7 +292,7 @@ function PortadaCompleta() {
             </div>
             <div style={{ flex: '2 1 560px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))', gap: 32 }}>
               {[
-                ['Viajar', [['Destinos', '#destinos'], ['Todas las salidas', '/salidas'], ['Promociones', '#promos'], ['Mis boletos', '/cuenta/boletos'], ['Horarios', '#salidas']]],
+                ['Viajar', [['Destinos', '#destinos'], ['Todas las salidas', '/salidas'], ['Promociones', '#promos'], ['Mis boletos', '/cuenta/boletos'], ['Ayuda', '/ayuda'], ['Horarios', '#salidas']]],
                 ['Kilómetros', [['Cómo funcionan', '#kilometros'], ['Niveles', '#kilometros'], ['Canjear premios', '#kilometros']]],
                 ['Empresa', [['Quiénes somos', '#nosotros'], ['Líneas afiliadas', '#lineas'], ['Afiliar mi línea', 'mailto:hola@butacaenlinea.com?subject=Afiliar%20mi%20l%C3%ADnea']]],
               ].map(([titulo, links]) => (

@@ -31,7 +31,15 @@ export default function CuentaViajar() {
   const nombre = (usuario?.nombreCorto ?? usuario?.username ?? '').split(' ')[0];
 
   return (
-    <PaginaPasajero titulo={nombre ? `Hola, ${nombre}` : 'Viajar'} sub="Busca tu salida, escoge tu puesto y paga en línea.">
+    <PaginaPasajero
+      titulo={nombre ? `Hola, ${nombre}` : 'Viajar'}
+      sub={
+        <>
+          Busca tu salida, escoge tu puesto y paga en línea.{' '}
+          <a href="/ayuda#comprar" onClick={(e) => { e.preventDefault(); navigate('/ayuda#comprar'); }}>¿Primera vez? Así se compra</a>
+        </>
+      }
+    >
       <div className={styles.resumen}>
         {proximo ? (
           <button type="button" className={styles.proximo} onClick={() => navigate(`/boleto/${proximo.qrId}`)}>
