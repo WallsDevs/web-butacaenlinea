@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { emitirBoletos, getMapaAsientos, getMetodosPago, getWallet } from '../../lib/api/endpoints';
+import { adjuntarComprobante, emitirBoletos, getMapaAsientos, getMetodosPago, getWallet } from '../../lib/api/endpoints';
 import { ApiError } from '../../lib/api/client';
 import { hora, fechaCorta } from '../../lib/time';
 import { Field } from '../../components/ui/Field';
@@ -12,6 +12,36 @@ import { useAuth } from '../../stores/auth';
 import type { MetodoPago } from '../../lib/api/types';
 import ui from '../../components/ui/ui.module.css';
 import styles from './public.module.css';
+
+/**
+ * Por qué no se pudo emitir, dicho para el pasajero. Lo que no esté aquí
+ * muestra su código, para poder rastrearlo (antes todo decía «revisa los datos»).
+ */
+function motivoEmision(e: unknown): string {
+  if (!(e instanceof ApiError)) return 'Sin conexión con el servidor. Revisa tu internet e intenta de nuevo; tus puestos siguen apartados mientras corre el tiempo.';
+  switch (e.code) {
+    case 'linea_sin_venta':
+      return 'Esta línea no está vendiendo en línea en este momento. Compra en la taquilla del terminal o escoge otra salida.';
+    case 'sistema_de_la_linea_no_responde':
+      return 'El sistema de la línea no respondió. No se cobró nada: intenta de nuevo en un momento.';
+    case 'asientos_no_disponibles':
+      return 'Alguien tomó uno de tus puestos. Regresa al mapa y escoge otro.';
+    case 'asientos_fuera_de_reserva':
+    case 'reserva_no_encontrada':
+      return 'Tu apartado de puestos ya no está vigente. Regresa al mapa y escógelos de nuevo.';
+    case 'pasajeros_invalidos':
+      return 'Falta el nombre de algún pasajero.';
+    case 'wallet_requiere_sesion':
+      return 'Para pagar con tu wallet tienes que ingresar a tu cuenta.';
+    case 'payload_invalido':
+      return 'Falta algún dato del pago. Revisa el método y la referencia.';
+    case 'demasiadas_solicitudes':
+    case 'demasiados_intentos':
+      return 'Demasiados intentos seguidos. Espera un minuto e intenta de nuevo.';
+    default:
+      return `No se pudo emitir el boleto (${e.status || 'sin conexión'} · ${e.code}). Si sigue pasando, escríbenos por WhatsApp con este código.`;
+  }
+}
 
 const METODOS: { id: MetodoPago; moneda: 'BS' | 'USD' | 'COP'; label: string; sub: string }[] = [
   { id: 'pago_movil', moneda: 'BS', label: 'Pago Móvil', sub: 'Bs · C2P' },
@@ -36,6 +66,8 @@ export default function Checkout() {
   const [expirada, setExpirada] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [referencia, setReferencia] = useState('');
+  // La captura de la transferencia (Pago Móvil o Zelle): la línea la ve al verificar
+  const [captura, setCaptura] = useState<File | null>(null);
 
   // Cliente con sesión: prefill del primer pasajero y método guardado
   const usuario = useAuth((s) => s.usuario);
@@ -94,7 +126,11 @@ export default function Checkout() {
         },
       });
     },
-    onSuccess: (r) => {
+    onSuccess: async (r) => {
+      // La captura se adjunta a toda la compra; si falla, el boleto ya está emitido igual
+      if (captura && metodoPago !== 'wallet') {
+        await adjuntarComprobante(r.boletos.map((b) => b.qrId), captura).catch(() => undefined);
+      }
       reiniciar();
       navigate(`/boleto/${r.boletos[0].qrId}`, {
         state: { grupo: r.boletos.map((b) => ({ qrId: b.qrId, asientoId: b.asientoId })) },
@@ -107,7 +143,7 @@ export default function Checkout() {
         setError(
           `Saldo insuficiente: tienes Bs ${(d.saldoBs ?? 0).toLocaleString('es-VE')} y el total es Bs ${(d.requeridoBs ?? 0).toLocaleString('es-VE')}. Recarga tu wallet o usa otro método.`
         );
-      } else setError('No se pudo emitir el boleto. Revisa los datos e intenta de nuevo.');
+      } else setError(motivoEmision(e));
     },
   });
 
@@ -244,9 +280,20 @@ export default function Checkout() {
               onChange={(e) => setReferencia(e.target.value)}
               placeholder="Ej. 00482913"
             />
+            <label className={ui.field} style={{ marginTop: 12 }}>
+              <span className={ui.fieldLabel}>Captura de la transferencia (recomendado)</span>
+              <input
+                className={ui.fieldInput}
+                type="file"
+                accept="image/*,application/pdf"
+                onChange={(e) => setCaptura(e.target.files?.[0] ?? null)}
+                style={{ padding: 10 }}
+              />
+              {captura && <span style={{ fontSize: 12, color: 'var(--ok-text)', marginTop: 4 }}>Adjunta: {captura.name}</span>}
+            </label>
             <p style={{ fontSize: 12, color: 'var(--text-faint)', marginTop: 8, lineHeight: 1.5 }}>
               Tu boleto se emite de inmediato y la línea verifica el pago contra su banco antes de la
-              salida. Guarda tu comprobante.
+              salida. Con la captura lo verifican más rápido.
             </p>
           </div>
         )}

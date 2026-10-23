@@ -44,6 +44,7 @@ const Perfil = lazy(() => import('../features/cuenta/Perfil'));
 const MisBoletos = lazy(() => import('../features/cuenta/MisBoletos'));
 const CuentaViajar = lazy(() => import('../features/cuenta/CuentaViajar'));
 const Ayuda = lazy(() => import('../features/public/Ayuda'));
+const RecuperarBoletos = lazy(() => import('../features/public/RecuperarBoletos'));
 const Pasajes = lazy(() => import('../features/public/Pasajes'));
 const MetodosPago = lazy(() => import('../features/cuenta/MetodosPago'));
 const MiWallet = lazy(() => import('../features/cuenta/MiWallet'));
@@ -113,6 +114,7 @@ export const router = createBrowserRouter([
       { path: '/salidas/:id/asientos', element: <Asientos /> },
       { path: '/checkout', element: <Checkout /> },
       { path: '/boleto/:codigo', element: <Boleto /> },
+      { path: '/recuperar-boletos', element: <RecuperarBoletos /> },
       { path: '/ingresar', element: <Acceso modo="login" /> },
       { path: '/plataforma', element: <AccesoPlataforma /> },
       { path: '/registro', element: <Acceso modo="registro" /> },

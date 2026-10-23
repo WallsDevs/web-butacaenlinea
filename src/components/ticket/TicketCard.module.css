@@ -23,8 +23,8 @@
 .headerLogo {
   width: 26px;
   height: 26px;
-  border-radius: var(--r-8);
-  background: var(--grad-logo);
+  display: grid;
+  place-items: center;
   flex: none;
 }
 .headerTitle {

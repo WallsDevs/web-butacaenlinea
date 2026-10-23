@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router';
+import { Link, useLocation, useNavigate } from 'react-router';
 import { useAuth } from '../../stores/auth';
 import { useSeo } from '../../lib/seo';
 import { useInstalacion } from '../../lib/instalacion';
@@ -70,6 +70,7 @@ const PREGUNTAS: { p: string; r: string }[] = [
   { p: 'Hice una recarga y no aparece en mi saldo', r: 'Se acredita cuando la plataforma verifica el pago; mientras tanto se ve como «Por confirmar». Si aparece «Rechazada», revisa que el monto y la referencia coincidan con tu Pago Móvil.' },
   { p: '¿Puedo pagar la buseta sin saldo?', r: 'No: el pasaje urbano se descuenta de tu wallet. Recarga antes de subir.' },
   { p: '¿Cómo sé por dónde viene mi buseta?', r: 'En «Busetas» ves en el mapa las busetas que están en servicio en cada ruta y por dónde van.' },
+  { p: 'Compré sin cuenta y perdí mi boleto', r: 'Entra en «Recuperar mis boletos» (enlace abajo) y escribe la cédula del pasajero con el teléfono o el folio que pusiste al comprar. Aparecen tus boletos y puedes abrirlos de nuevo.' },
   { p: '¿Puedo cambiar o devolver un boleto?', r: 'Escríbenos por WhatsApp con el folio de tu boleto (aparece en el boleto) y te ayudamos con la línea.' },
 ];
 
@@ -169,6 +170,10 @@ export default function Ayuda() {
           ))}
         </div>
       </section>
+
+      <p style={{ textAlign: 'center', margin: '4px 0 18px', fontSize: 15 }}>
+        <Link to="/recuperar-boletos" style={{ fontWeight: 700, textDecoration: 'underline' }}>Recuperar mis boletos (compré sin cuenta)</Link>
+      </p>
 
       <div className={styles.contacto}>
         <span>¿No encontraste lo que buscabas?</span>

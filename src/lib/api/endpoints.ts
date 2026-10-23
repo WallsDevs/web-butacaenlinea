@@ -81,6 +81,27 @@ export const emitirBoletos = (payload: {
   turnoId?: string | null;
 }) => api<ResultadoEmision>('/api/boletos/emitir', { method: 'POST', body: payload });
 
+/** La captura de la transferencia de una compra web, para todos sus boletos. */
+export const adjuntarComprobante = (qrIds: string[], archivo: File) => {
+  const fd = new FormData();
+  fd.append('qrIds', qrIds.join(','));
+  fd.append('comprobante', archivo);
+  return api<{ adjuntado: number }>('/api/boletos/comprobante', { method: 'POST', body: fd, auth: false });
+};
+
+/** Recuperar boletos sin cuenta: cédula + teléfono o folio que se pusieron al comprar. */
+export interface BoletoRecuperado {
+  qrId: string;
+  folio: string;
+  asientoId: string;
+  estado: string;
+  estadoPago: string;
+  pasajeroNombre: string;
+  salida?: { fechaHoraSalida?: string; ruta?: { origen?: string; destino?: string }; linea?: { nombre?: string } } | null;
+}
+export const recuperarBoletos = (datos: { documento: string; telefono?: string; folio?: string }) =>
+  api<BoletoRecuperado[]>('/api/boletos/recuperar', { method: 'POST', body: datos, auth: false });
+
 export const getBoletoPorCodigo = (qrId: string) =>
   api<BoletoPublico>(`/api/boletos/codigo/${qrId}`);
 

@@ -1,3 +1,4 @@
+import { urlMedia } from '../../lib/api/client';
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getBoletosPorVerificar, getReembolsos, marcarReembolsado, verificarPago } from '../../lib/api/endpoints';
@@ -85,6 +86,11 @@ export default function VerificacionPagos() {
               <div style={{ minWidth: 140 }}>
                 <div style={{ fontSize: 12, color: 'var(--text-faint)' }}>Referencia</div>
                 <div style={{ fontWeight: 700, letterSpacing: '0.06em' }}>{b.referenciaPago || '—'}</div>
+                {b.comprobanteUrl && (
+                  <a href={urlMedia(b.comprobanteUrl) ?? undefined} target="_blank" rel="noreferrer" style={{ fontSize: 12, fontWeight: 700 }}>
+                    Ver captura del pago
+                  </a>
+                )}
               </div>
               <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
                 <input
