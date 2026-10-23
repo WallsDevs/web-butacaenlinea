@@ -44,6 +44,7 @@ const Perfil = lazy(() => import('../features/cuenta/Perfil'));
 const MisBoletos = lazy(() => import('../features/cuenta/MisBoletos'));
 const CuentaViajar = lazy(() => import('../features/cuenta/CuentaViajar'));
 const Ayuda = lazy(() => import('../features/public/Ayuda'));
+const Pasajes = lazy(() => import('../features/public/Pasajes'));
 const MetodosPago = lazy(() => import('../features/cuenta/MetodosPago'));
 const MiWallet = lazy(() => import('../features/cuenta/MiWallet'));
 const Pos = lazy(() => import('../features/pos/Pos'));
@@ -122,6 +123,10 @@ export const router = createBrowserRouter([
       // El que ESPERA en la parada: llega sin escanear ningún QR
       { path: '/busetas', element: <Busetas /> },
       { path: '/ayuda', element: <Ayuda /> },
+      // Páginas de pasajes para buscadores: todas, por ciudad y por ruta
+      { path: '/pasajes', element: <Pasajes /> },
+      { path: '/pasajes/:ciudad', element: <Pasajes /> },
+      { path: '/pasajes/:origen/:destino', element: <Pasajes /> },
       // QR fijo de la taquilla: el pasajero paga la venta en curso con su wallet
       { path: '/caja/:taquillaId', element: <PagoTaquilla /> },
       // QR que muestra el conductor para cobrar la pieza de equipaje extra

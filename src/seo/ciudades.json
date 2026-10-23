@@ -1,0 +1,238 @@
+[
+ {
+  "nombre": "Caracas",
+  "estado": "Distrito Capital"
+ },
+ {
+  "nombre": "Maracaibo",
+  "estado": "Zulia"
+ },
+ {
+  "nombre": "Cabimas",
+  "estado": "Zulia"
+ },
+ {
+  "nombre": "Ciudad Ojeda",
+  "estado": "Zulia"
+ },
+ {
+  "nombre": "Machiques",
+  "estado": "Zulia"
+ },
+ {
+  "nombre": "Santa Bárbara del Zulia",
+  "estado": "Zulia"
+ },
+ {
+  "nombre": "Valencia",
+  "estado": "Carabobo"
+ },
+ {
+  "nombre": "Puerto Cabello",
+  "estado": "Carabobo"
+ },
+ {
+  "nombre": "Barquisimeto",
+  "estado": "Lara"
+ },
+ {
+  "nombre": "Carora",
+  "estado": "Lara"
+ },
+ {
+  "nombre": "Quíbor",
+  "estado": "Lara"
+ },
+ {
+  "nombre": "Maracay",
+  "estado": "Aragua"
+ },
+ {
+  "nombre": "Turmero",
+  "estado": "Aragua"
+ },
+ {
+  "nombre": "La Victoria",
+  "estado": "Aragua"
+ },
+ {
+  "nombre": "Ciudad Bolívar",
+  "estado": "Bolívar"
+ },
+ {
+  "nombre": "Ciudad Guayana",
+  "estado": "Bolívar"
+ },
+ {
+  "nombre": "Upata",
+  "estado": "Bolívar"
+ },
+ {
+  "nombre": "Barcelona",
+  "estado": "Anzoátegui"
+ },
+ {
+  "nombre": "Puerto La Cruz",
+  "estado": "Anzoátegui"
+ },
+ {
+  "nombre": "El Tigre",
+  "estado": "Anzoátegui"
+ },
+ {
+  "nombre": "Anaco",
+  "estado": "Anzoátegui"
+ },
+ {
+  "nombre": "Maturín",
+  "estado": "Monagas"
+ },
+ {
+  "nombre": "Cumaná",
+  "estado": "Sucre"
+ },
+ {
+  "nombre": "Carúpano",
+  "estado": "Sucre"
+ },
+ {
+  "nombre": "San Cristóbal",
+  "estado": "Táchira"
+ },
+ {
+  "nombre": "Táriba",
+  "estado": "Táchira"
+ },
+ {
+  "nombre": "La Grita",
+  "estado": "Táchira"
+ },
+ {
+  "nombre": "Rubio",
+  "estado": "Táchira"
+ },
+ {
+  "nombre": "San Antonio del Táchira",
+  "estado": "Táchira"
+ },
+ {
+  "nombre": "Mérida",
+  "estado": "Mérida"
+ },
+ {
+  "nombre": "El Vigía",
+  "estado": "Mérida"
+ },
+ {
+  "nombre": "Tovar",
+  "estado": "Mérida"
+ },
+ {
+  "nombre": "Barinas",
+  "estado": "Barinas"
+ },
+ {
+  "nombre": "Guanare",
+  "estado": "Portuguesa"
+ },
+ {
+  "nombre": "Acarigua",
+  "estado": "Portuguesa"
+ },
+ {
+  "nombre": "Araure",
+  "estado": "Portuguesa"
+ },
+ {
+  "nombre": "San Fernando de Apure",
+  "estado": "Apure"
+ },
+ {
+  "nombre": "Guasdualito",
+  "estado": "Apure"
+ },
+ {
+  "nombre": "San Carlos",
+  "estado": "Cojedes"
+ },
+ {
+  "nombre": "Tinaquillo",
+  "estado": "Cojedes"
+ },
+ {
+  "nombre": "Valera",
+  "estado": "Trujillo"
+ },
+ {
+  "nombre": "Trujillo",
+  "estado": "Trujillo"
+ },
+ {
+  "nombre": "Boconó",
+  "estado": "Trujillo"
+ },
+ {
+  "nombre": "Coro",
+  "estado": "Falcón"
+ },
+ {
+  "nombre": "Punto Fijo",
+  "estado": "Falcón"
+ },
+ {
+  "nombre": "San Felipe",
+  "estado": "Yaracuy"
+ },
+ {
+  "nombre": "Los Teques",
+  "estado": "Miranda"
+ },
+ {
+  "nombre": "Higuerote",
+  "estado": "Miranda"
+ },
+ {
+  "nombre": "Guarenas",
+  "estado": "Miranda"
+ },
+ {
+  "nombre": "Guatire",
+  "estado": "Miranda"
+ },
+ {
+  "nombre": "Ocumare del Tuy",
+  "estado": "Miranda"
+ },
+ {
+  "nombre": "Charallave",
+  "estado": "Miranda"
+ },
+ {
+  "nombre": "La Guaira",
+  "estado": "La Guaira"
+ },
+ {
+  "nombre": "Calabozo",
+  "estado": "Guárico"
+ },
+ {
+  "nombre": "San Juan de los Morros",
+  "estado": "Guárico"
+ },
+ {
+  "nombre": "Valle de la Pascua",
+  "estado": "Guárico"
+ },
+ {
+  "nombre": "Tucupita",
+  "estado": "Delta Amacuro"
+ },
+ {
+  "nombre": "Puerto Ayacucho",
+  "estado": "Amazonas"
+ },
+ {
+  "nombre": "Porlamar",
+  "estado": "Nueva Esparta"
+ }
+]

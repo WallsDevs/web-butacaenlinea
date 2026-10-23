@@ -1,11 +1,18 @@
 User-agent: *
 Allow: /
+Allow: /pasajes
+# Áreas privadas o de operación: no son para buscadores
 Disallow: /admin
 Disallow: /empresa
 Disallow: /pos
 Disallow: /chofer
+Disallow: /colector
 Disallow: /cuenta
+Disallow: /perfil
 Disallow: /plataforma
+Disallow: /checkout
+Disallow: /pagar
 Disallow: /boleto/
+Disallow: /app-conductor
 
 Sitemap: https://butacaenlinea.com/sitemap.xml
