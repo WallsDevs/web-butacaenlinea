@@ -9,11 +9,20 @@
  * El diseño asume conectividad intermitente en carretera: ninguna acción
  * crítica del chófer requiere red en el momento.
  */
-import { precacheAndRoute, createHandlerBoundToURL } from 'workbox-precaching';
+import { clientsClaim } from 'workbox-core';
+import { precacheAndRoute, cleanupOutdatedCaches, createHandlerBoundToURL } from 'workbox-precaching';
 import { registerRoute, NavigationRoute } from 'workbox-routing';
 import { CacheFirst, NetworkFirst, StaleWhileRevalidate } from 'workbox-strategies';
 
 declare let self: ServiceWorkerGlobalScope;
+
+// Una versión nueva entra apenas se descarga: si esperaba a que se cerraran
+// todas las pestañas, en el teléfono (que casi nunca cierra la app) se seguía
+// viendo la versión vieja después de cada despliegue. Al tomar el control, la
+// página se recarga sola con lo nuevo (registerType: 'autoUpdate').
+self.skipWaiting();
+clientsClaim();
+cleanupOutdatedCaches();
 
 precacheAndRoute(self.__WB_MANIFEST);
 
