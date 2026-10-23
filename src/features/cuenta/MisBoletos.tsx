@@ -5,7 +5,6 @@ import type { BoletoMio } from '../../lib/api/types';
 import { hora, fechaCorta } from '../../lib/time';
 import { StatusChip } from '../../components/ui/StatusChip';
 import { PaginaPasajero } from './CuentaLayout';
-import ui from '../../components/ui/ui.module.css';
 import styles from './cuenta.module.css';
 
 const CHIP: Record<string, { tono: 'ok' | 'warn' | 'bad' | 'neutral'; label: string }> = {
@@ -49,14 +48,16 @@ export default function MisBoletos() {
   return (
     <PaginaPasajero
       titulo="Mis boletos"
-      sub="Toca un boleto para ver su QR: es lo que muestras al abordar."
-      acciones={<button type="button" className={ui.btnPrimary} onClick={() => navigate('/cuenta')}>Comprar pasaje</button>}
+      sub={boletos?.length ? 'Toca un boleto para ver su QR: es lo que muestras al abordar.' : 'Los pasajes que compres con esta cuenta.'}
+      // Con boletos, comprar otro es un enlace; sin boletos, el enlace va en el aviso (no dos botones iguales)
+      acciones={boletos?.length ? <button type="button" className={styles.enlace} onClick={() => navigate('/cuenta')}>Comprar otro pasaje</button> : undefined}
     >
       {isLoading && <div style={{ padding: 24, color: 'var(--text-soft)' }}>Cargando…</div>}
       {!isLoading && !boletos?.length && (
         <div className={styles.vacio}>
-          <span>Aún no tienes boletos. Compra con tu cuenta y aparecen aquí con su QR.</span>
-          <button type="button" className={ui.btnPrimary} onClick={() => navigate('/cuenta')}>Buscar salidas</button>
+          <b>Todavía no tienes boletos</b>
+          <span>Cuando compres un pasaje con tu cuenta, aparece aquí con su QR para abordar.</span>
+          <button type="button" className={styles.enlace} onClick={() => navigate('/cuenta')}>Buscar salidas</button>
         </div>
       )}
       {proximos.length > 0 && (

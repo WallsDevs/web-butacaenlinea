@@ -56,7 +56,11 @@
 .talon span { font-size: 10px; font-weight: 800; letter-spacing: 0.12em; color: var(--text-faint); text-transform: uppercase; }
 .talon b { font-size: 26px; font-weight: 800; color: var(--navy, #0B2A6B); font-variant-numeric: tabular-nums; }
 .boletoPasado { opacity: 0.66; }
-.vacio { padding: 36px 20px; text-align: center; color: var(--text-soft); border: 1.5px dashed var(--border); border-radius: 18px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.vacio { padding: 32px 20px; text-align: center; color: var(--text-soft); border: 1.5px dashed var(--border); border-radius: 18px; display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 14px; line-height: 1.5; }
+.vacio b { font-size: 17px; color: var(--text); }
+/* Enlace subrayado (acciones secundarias: ir a comprar, a métodos de pago…) */
+.enlace { margin-top: 6px; font-size: 15px; font-weight: 700; color: var(--blue-600); text-decoration: underline; text-underline-offset: 3px; background: none; border: none; padding: 4px 0; cursor: pointer; font-family: inherit; }
+.enlace:hover { color: var(--blue-700); }
 
 /* Wallet: el saldo fijo a la izquierda y los movimientos a la derecha */
 .walletGrid { display: grid; grid-template-columns: 380px minmax(0, 1fr); gap: 18px; align-items: start; }
