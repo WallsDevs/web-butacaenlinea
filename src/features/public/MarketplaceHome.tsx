@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router';
+import { Navigate, useNavigate } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { getLineas, getSalidas } from '../../lib/api/endpoints';
 import { fechaCorta, hora } from '../../lib/time';
@@ -47,7 +47,30 @@ const QR = patronQr();
  * marketplace de la plataforma. Búsqueda y salidas son reales; promociones y
  * kilómetros son demostración hasta que exista el programa en el servidor.
  */
+/** Teléfonos y tablets: hasta este ancho la portada no se muestra. */
+const ANCHO_MAXIMO_TACTIL = 1024;
+/** Los buscadores (Google rastrea como teléfono) sí ven la portada: si no, desaparece de los resultados. */
+const ES_BUSCADOR = /bot|crawl|spider|slurp|bingpreview|facebookexternalhit|whatsapp|telegrambot|linkedinbot|twitterbot/i;
+
+/**
+ * En teléfono y tablet la portada no se muestra a las personas: sin sesión
+ * van directo a «Ingresar» y con sesión, a su panel (el pasajero, a Viajar,
+ * donde también compra). Se decide antes de pintar, así no se alcanza a ver.
+ */
 export default function MarketplaceHome() {
+  const usuario = useAuth((s) => s.usuario);
+  const tactil =
+    typeof window !== 'undefined' &&
+    window.matchMedia(`(max-width: ${ANCHO_MAXIMO_TACTIL}px)`).matches &&
+    !ES_BUSCADOR.test(navigator.userAgent);
+  if (tactil) {
+    const rol = usuario?.role?.type;
+    return <Navigate to={rol ? HOME_POR_ROL[rol] ?? '/cuenta' : '/ingresar'} replace />;
+  }
+  return <PortadaCompleta />;
+}
+
+function PortadaCompleta() {
   useSeo(
     'Butaca En Línea — Pasajes de autobús en Venezuela',
     'Busca salidas de todas las líneas, escoge tu puesto en el mapa y compra tu pasaje en línea. Boleto electrónico con QR.'
