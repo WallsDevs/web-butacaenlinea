@@ -263,6 +263,11 @@ export default function Acceso({ modo }: { modo: 'login' | 'registro' }) {
             <div style={{ fontSize: 14, color: '#475569', textAlign: 'center' }}>
               <a className={css.enlace} href="/ayuda" onClick={(e) => { e.preventDefault(); ir('/ayuda'); }}>¿Cómo funciona? Mira la ayuda</a>
             </div>
+            {!reg && (
+              <div style={{ fontSize: 14, color: '#475569', textAlign: 'center' }}>
+                <a className={css.enlace} href="/recuperar-boletos" onClick={(e) => { e.preventDefault(); navigate('/recuperar-boletos'); }}>¿Compraste sin cuenta? Recupera tus boletos</a>
+              </div>
+            )}
 
           </form>
         </div>

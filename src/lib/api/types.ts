@@ -220,7 +220,8 @@ export interface ResultadoEmision {
 export interface BoletoPublico {
   folio: string;
   qrId: string;
-  qr: string;
+  /** null si el servidor no pudo firmarlo en ese momento (el boleto existe igual) */
+  qr: string | null;
   estado: 'emitido' | 'abordado' | 'no_show' | 'anulado';
   estadoPago: EstadoPago;
   asientoId: string;
@@ -283,6 +284,8 @@ export interface BoletoPorVerificar {
   montoCobrado: number;
   totalUsd: number;
   referenciaPago?: string;
+  /** La captura de la transferencia que adjuntó el pasajero. */
+  comprobanteUrl?: string | null;
   salida?: { fechaHoraSalida: string; destino?: string };
 }
 

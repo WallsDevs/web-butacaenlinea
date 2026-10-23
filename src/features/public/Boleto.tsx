@@ -1,6 +1,7 @@
 import { useLocation, useNavigate, useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { getBoletoPorCodigo } from '../../lib/api/endpoints';
+import { ApiError } from '../../lib/api/client';
 import { hora, fechaCorta } from '../../lib/time';
 import { TicketCard } from '../../components/ticket/TicketCard';
 import { StatusChip } from '../../components/ui/StatusChip';
@@ -18,19 +19,40 @@ export default function Boleto() {
   const location = useLocation();
   const grupo = (location.state as { grupo?: { qrId: string; asientoId: string }[] } | null)?.grupo;
 
-  const { data: boleto, isLoading } = useQuery({
+  const { data: boleto, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ['boleto', codigo],
     queryFn: () => getBoletoPorCodigo(codigo!),
     enabled: Boolean(codigo),
     staleTime: Infinity,
     gcTime: Infinity,
+    // Un boleto que no existe no aparece por reintentar; una caída del servidor sí se recupera
+    retry: (n, e) => !(e instanceof ApiError && e.status === 404) && n < 2,
   });
 
   if (isLoading) {
     return <div style={{ padding: 48, textAlign: 'center', color: 'var(--text-soft)' }}>Cargando boleto…</div>;
   }
   if (!boleto) {
-    return <div style={{ padding: 48, textAlign: 'center', color: 'var(--text-soft)' }}>Boleto no encontrado.</div>;
+    const noExiste = error instanceof ApiError && error.status === 404;
+    return (
+      <div style={{ maxWidth: 430, margin: '0 auto', padding: '48px 16px', textAlign: 'center', color: 'var(--text-soft)', lineHeight: 1.5 }}>
+        <div style={{ fontWeight: 700, fontSize: 18, color: 'var(--text)', marginBottom: 8 }}>
+          {noExiste ? 'No encontramos este boleto' : 'No pudimos abrir tu boleto'}
+        </div>
+        <p style={{ margin: '0 0 16px', fontSize: 14 }}>
+          {noExiste
+            ? 'Revisa el enlace. Si compraste sin cuenta, puedes buscarlo con tu cédula.'
+            : 'Tu boleto está guardado; el problema es de conexión con el servidor. Intenta de nuevo en un momento.'}
+        </p>
+        {noExiste ? (
+          <button className={ui.btnPrimary} onClick={() => navigate('/recuperar-boletos')}>Buscar mis boletos</button>
+        ) : (
+          <button className={ui.btnPrimary} disabled={isFetching} onClick={() => refetch()}>
+            {isFetching ? 'Intentando…' : 'Intentar de nuevo'}
+          </button>
+        )}
+      </div>
+    );
   }
 
   const chip =
@@ -55,12 +77,22 @@ export default function Boleto() {
         </span>
       </div>
 
+      {!boleto.qr && (
+        <div className="no-print" role="status" style={{ marginBottom: 12, padding: '12px 14px', borderRadius: 'var(--r-14)', background: 'var(--warn-bg, #FEF3C7)', color: 'var(--warn-text, #92400E)', fontSize: 13, lineHeight: 1.45 }}>
+          Tu boleto es válido, pero el código QR no se pudo generar ahora.{' '}
+          <button type="button" onClick={() => refetch()} style={{ background: 'none', border: 0, padding: 0, color: 'inherit', fontWeight: 700, textDecoration: 'underline', cursor: 'pointer' }}>
+            Volver a intentar
+          </button>
+          {' '}· En el terminal también te ubican por el folio {boleto.folio}.
+        </div>
+      )}
+
       <TicketCard
         variant="movil"
         data={{
           folio: boleto.folio,
           codigo: boleto.qrId.slice(0, 8).toUpperCase(),
-          qrValue: boleto.qr,
+          qrValue: boleto.qr ?? undefined,
           lineaNombre: boleto.linea?.nombre,
           origen: boleto.salida.ruta?.origen ?? '',
           destino: boleto.salida.ruta?.destino ?? '',

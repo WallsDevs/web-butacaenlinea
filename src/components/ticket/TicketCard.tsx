@@ -1,3 +1,4 @@
+import { Isotipo } from '../brand/LogoMark';
 import { QRCodeSVG } from 'qrcode.react';
 import { StatusChip } from '../ui/StatusChip';
 import { Money, MoneyAlt } from '../ui/Money';
@@ -44,7 +45,9 @@ export function TicketCard({
   return (
     <div className={`${styles.card} ${esHero ? styles.cardHero : ''}`}>
       <div className={styles.header}>
-        <span className={styles.headerLogo} />
+        <span className={styles.headerLogo} aria-hidden>
+          <Isotipo size={22} trazo={5} fondo="claro" />
+        </span>
         <span className={styles.headerTitle}>Boleto electrónico</span>
         {data.folio && <span className={styles.headerFolio}>{data.folio}</span>}
       </div>
