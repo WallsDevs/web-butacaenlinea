@@ -37,6 +37,12 @@ export default function Asientos() {
         const ocupados = (e.details as { asientos?: string[] })?.asientos ?? [];
         setError(`Alguien tomó ${ocupados.length === 1 ? 'el puesto' : 'los puestos'} ${ocupados.join(', ')} antes que tú. Escoge otros.`);
         queryClient.invalidateQueries({ queryKey: ['mapa', id] });
+      } else if (e instanceof ApiError && e.code === 'demasiados_puestos') {
+        setError(`Puedes apartar hasta ${(e.details as { maximo?: number })?.maximo ?? 10} puestos por compra.`);
+      } else if (e instanceof ApiError && e.code === 'demasiadas_reservas') {
+        setError('Apartaste muchos puestos seguidos. Espera unos minutos e intenta de nuevo.');
+      } else if (e instanceof ApiError && e.code === 'salida_no_vendible') {
+        setError('Esta salida ya no está a la venta (se canceló o ya partió). Busca otra.');
       } else {
         setError('No se pudo apartar. Intenta de nuevo.');
       }

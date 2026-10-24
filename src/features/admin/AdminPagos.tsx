@@ -186,6 +186,9 @@ export default function AdminPagos() {
             <div style={{ minWidth: 140 }}>
               <div style={{ fontSize: 12, color: 'var(--text-faint)' }}>{METODO[r.metodoPago ?? ''] ?? r.metodoPago} · ref {r.referenciaPago ?? '—'}</div>
               <div style={{ fontWeight: 700 }}>{monto(r.montoCobrado, r.monedaPago)}</div>
+              {!r.pagoConfirmado && (
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--warn-text)' }}>Pago nunca confirmado: revisa el banco antes de devolver</div>
+              )}
             </div>
             <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
               <input className={ui.fieldInput} style={{ width: 170, fontSize: 13 }} placeholder="Referencia de la devolución" value={refs[r.documentId] ?? ''} onChange={(e) => setRefs({ ...refs, [r.documentId]: e.target.value })} />
