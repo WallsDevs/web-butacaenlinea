@@ -29,7 +29,9 @@ precacheAndRoute(self.__WB_MANIFEST);
 // SPA: navegaciones caen al shell precacheado (solo en build: en dev el
 // manifest de precache está vacío y createHandlerBoundToURL fallaría)
 if (import.meta.env.PROD) {
-  registerRoute(new NavigationRoute(createHandlerBoundToURL('index.html')));
+  // Lo que es un archivo (sitemap.xml, robots.txt, una imagen subida) va a la red tal cual:
+  // si cayera al shell, la app lo mostraría como «esta página no existe»
+  registerRoute(new NavigationRoute(createHandlerBoundToURL('index.html'), { denylist: [/\/[^/?]+\.[a-z0-9]{2,5}$/i, /^\/uploads\//] }));
 }
 
 // Tipografía de Google Fonts
