@@ -23,6 +23,8 @@ export interface TicketData {
   equipaje?: string;
   totalUsd?: number;
   estadoChip?: { tono: 'ok' | 'warn' | 'bad' | 'neutral'; label: string };
+  /** Boleto anulado: en lugar del QR, el aviso (un QR de un boleto que ya no vale confunde al abordar). */
+  anulado?: boolean;
 }
 
 /**
@@ -126,13 +128,20 @@ export function TicketCard({
         </div>
       ) : (
         <div className={`${styles.troquel} ${styles.zonaQr}`}>
-          <span className={styles.qrMarco}>
-            <QRCodeSVG
-              value={data.qrValue ?? data.codigo ?? 'butacaenlinea.com'}
-              size={esMovil ? 140 : 150}
-              level="M"
-            />
-          </span>
+          {data.anulado ? (
+            <div className={styles.qrMarco} style={{ width: esMovil ? 140 : 150, height: esMovil ? 140 : 150, display: 'grid', placeItems: 'center', textAlign: 'center', color: 'var(--bad-text)', fontWeight: 700, fontSize: 14, padding: 12 }}>
+              Boleto anulado
+              <span style={{ display: 'block', fontWeight: 400, fontSize: 12, color: 'var(--text-soft)', marginTop: 4 }}>No sirve para abordar</span>
+            </div>
+          ) : (
+            <span className={styles.qrMarco}>
+              <QRCodeSVG
+                value={data.qrValue ?? data.codigo ?? 'butacaenlinea.com'}
+                size={esMovil ? 140 : 150}
+                level="M"
+              />
+            </span>
+          )}
           {data.codigo && <div className={styles.qrCodigo}>{data.codigo}</div>}
           {esMovil && data.pasajeroNombre && (
             <div className={styles.qrNombre}>
