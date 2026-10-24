@@ -3,6 +3,7 @@ import { fechaCorta, hora } from '../../lib/time';
 
 type Detalles = {
   faltantes?: string[];
+  afectados?: number;
   conflicto?: { fechaHoraSalida?: string; destino?: string };
   ubicacion?: string;
   llegaAlli?: string;
@@ -29,6 +30,12 @@ export function explicarSalida(codigo: string, d: Detalles = {}): string {
       return `La ruta no tiene precio para los puestos «${(d.faltantes ?? []).join(', ')}» de ese bus. Edita la ruta y ponle el precio del pasaje (vale para todos) o uno para esa clase.`;
     case 'fecha_invalida':
       return 'Esa fecha y hora ya pasaron. Programa una salida futura.';
+    case 'fecha_pasada':
+      return 'Con esa hora la salida quedaría en el pasado.';
+    case 'tiene_boletos':
+      return `Ya tiene ${d.vendidos ?? d.afectados ?? 'puestos'} ${Number(d.vendidos ?? d.afectados) === 1 ? 'puesto vendido' : 'puestos vendidos'}: cámbiala sola, avisando antes a los pasajeros.`;
+    case 'estado_invalido':
+      return 'Ya partió, terminó o estaba cancelada.';
     case 'unidad_ocupada':
       return `Ese bus ya tiene un viaje ${cuando(d.conflicto?.fechaHoraSalida)}${d.conflicto?.destino ? ` hacia ${d.conflicto.destino}` : ''} y estará ocupado a esa hora.`;
     case 'unidad_en_otra_ciudad':

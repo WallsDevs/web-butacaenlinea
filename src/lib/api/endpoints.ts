@@ -400,6 +400,29 @@ export const cancelarSalida = (documentId: string, force = false) =>
     `/api/empresa/salidas/${documentId}/cancelar`,
     { method: 'POST', body: { force } }
   );
+type Fallida = { documentId: string; motivo: string; detalles: Record<string, unknown> };
+/** Cancela esta y las siguientes de su serie; las que no se pueden (p. ej. con boletos) se informan. */
+export const cancelarSiguientes = (documentId: string, force = false) =>
+  api<{ canceladas: string[]; fallidas: Fallida[] }>(`/api/empresa/salidas/${documentId}/cancelar`, { method: 'POST', body: { force, alcance: 'siguientes' } });
+/** Esta salida y las posteriores de su serie que no han partido. */
+export const getSiguientesSerie = (documentId: string) => api<{ serieId: string | null; documentIds: string[] }>(`/api/empresa/salidas/${documentId}/siguientes`);
+/** Hora nueva (de Venezuela, «HH:MM») para esta salida o esta y las siguientes. */
+export const cambiarHoraSalida = (documentId: string, hora: string, alcance: 'esta' | 'siguientes') =>
+  api<{ cambiadas: string[]; fallidas: Fallida[] }>(`/api/empresa/salidas/${documentId}/hora`, { method: 'PUT', body: { hora, alcance } });
+export interface BusParaVarias {
+  documentId: string;
+  numero: string;
+  marcaModelo: string | null;
+  puestos: number;
+  ubicacion: string | null;
+  desde: string | null;
+  pueden: number;
+  total: number;
+  motivo: string | null;
+  detalles: Record<string, unknown>;
+}
+export const getBusesParaVarias = (documentIds: string[]) =>
+  api<{ origen: string | null; total: number; buses: BusParaVarias[] }>('/api/empresa/salidas/buses', { method: 'POST', body: { documentIds } });
 
 export const marcarLlegada = (salidaId: string) =>
   api<{ ubicacion: string | null }>(`/api/salidas/${salidaId}/llegada`, { method: 'POST', body: {} });
