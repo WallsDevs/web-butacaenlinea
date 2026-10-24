@@ -164,7 +164,7 @@ export const anularBoleto = (
   boletoId: string,
   motivo: string,
   supervisor?: { identifier: string; password: string }
-) => api<{ folio: string; estado: string }>(`/api/boletos/${boletoId}/anular`, {
+) => api<{ folio: string; estado: string; estadoPago?: string; devueltoBs?: number }>(`/api/boletos/${boletoId}/anular`, {
   method: 'POST',
   body: { motivo, supervisor },
 });

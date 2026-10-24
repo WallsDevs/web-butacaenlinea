@@ -26,6 +26,7 @@ export default function EmpresaBoletos() {
   const [fecha, setFecha] = useState(hoyISO());
   const [anulando, setAnulando] = useState<string | null>(null);
   const [motivo, setMotivo] = useState('');
+  const [aviso, setAviso] = useState<string | null>(null);
 
   const { data: boletos, isLoading } = useQuery({
     queryKey: ['empresa-boletos', folio, fecha],
@@ -34,10 +35,18 @@ export default function EmpresaBoletos() {
 
   const anular = useMutation({
     mutationFn: (id: string) => anularBoleto(id, motivo),
-    onSuccess: () => {
+    onSuccess: (r) => {
       queryClient.invalidateQueries({ queryKey: ['empresa-boletos'] });
+      queryClient.invalidateQueries({ queryKey: ['wallet-linea'] });
       setAnulando(null);
       setMotivo('');
+      setAviso(
+        r.estadoPago === 'reembolsado'
+          ? `Boleto ${r.folio} anulado. Se devolvieron Bs ${(r.devueltoBs ?? 0).toLocaleString('es-VE', { minimumFractionDigits: 2 })} a la wallet del pasajero (sale de la wallet de la línea).`
+          : r.estadoPago === 'reembolso_pendiente'
+            ? `Boleto ${r.folio} anulado. Se pagó por Pago Móvil o Zelle: queda en «Reembolsos pendientes» para devolverlo por el mismo medio.`
+            : `Boleto ${r.folio} anulado. Si se cobró en taquilla, devuelve el dinero en la caja.`
+      );
     },
   });
 
@@ -118,13 +127,21 @@ export default function EmpresaBoletos() {
         </table>
       </div>
 
+      {aviso && (
+        <div role="status" className={ui.card} style={{ marginTop: 14, padding: '12px 16px', fontSize: 14, display: 'flex', gap: 12, alignItems: 'center' }}>
+          <span style={{ flex: 1 }}>{aviso}</span>
+          <button className={ui.btnSecondary} onClick={() => setAviso(null)}>Entendido</button>
+        </div>
+      )}
+
       {anulando && (
         <div className={styles.velo}>
           <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
             <h3 style={{ fontSize: 20, fontWeight: 700 }}>Anular boleto</h3>
             <p style={{ fontSize: 13, color: 'var(--text-soft)', marginTop: 4 }}>
               El puesto vuelve a estar disponible y la anulación queda auditada con tu usuario y la
-              hora. El registro original no se borra.
+              hora. El registro original no se borra. Si se pagó con wallet, el dinero vuelve a la
+              wallet del pasajero en el acto.
             </p>
             <div style={{ marginTop: 14 }}>
               <Field label="Motivo de la anulación" value={motivo} onChange={(e) => setMotivo(e.target.value)} autoFocus />

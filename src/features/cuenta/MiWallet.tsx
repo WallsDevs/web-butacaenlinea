@@ -20,7 +20,11 @@ const NOMBRE_MOV: Record<string, string> = {
   ajuste: 'Ajuste',
   comision: 'Comisión',
   reparto: 'Reparto',
+  reembolso: 'Devolución',
 };
+/** El pasaje urbano lleva unidad; el boleto de viaje, su folio. */
+const nombreMov = (m: { tipo: string; unidad?: string | null }) =>
+  m.tipo === 'pasaje' ? (m.unidad ? 'Pasaje urbano' : 'Boleto de viaje') : (NOMBRE_MOV[m.tipo] ?? m.tipo);
 
 const bs = (n: number) => `Bs ${n.toLocaleString('es-VE', { minimumFractionDigits: 2 })}`;
 /** «100,50» y «1.250,00» (como se escribe aquí) valen igual que «100.50». */
@@ -163,12 +167,12 @@ export default function MiWallet() {
             >
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div style={{ fontWeight: 600, fontSize: 14 }}>
-                  {NOMBRE_MOV[m.tipo] ?? m.tipo}
+                  {nombreMov(m)}
                   {m.unidad ? ` · unidad ${m.unidad}` : ''}
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--text-faint)' }}>
                   {fechaCorta(m.fecha)} {hora(m.fecha)}
-                  {m.referencia ? ` · ref ${m.referencia}` : ''}
+                  {m.referencia ? ` · ${m.tipo === 'pasaje' || m.tipo === 'reembolso' ? 'boleto' : 'ref'} ${m.referencia}` : ''}
                 </div>
               </div>
               {m.estado === 'pendiente' && <StatusChip tono="warn" size="sm">Por confirmar</StatusChip>}
