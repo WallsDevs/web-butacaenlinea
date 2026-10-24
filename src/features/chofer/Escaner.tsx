@@ -265,7 +265,7 @@ export default function Escaner() {
                       display: 'inline-block',
                     }}
                   >
-                    Pago por verificar en taquilla
+                    Pago en revisión por Butaca
                   </div>
                 )}
               </>

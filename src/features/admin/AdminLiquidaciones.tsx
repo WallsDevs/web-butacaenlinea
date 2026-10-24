@@ -16,7 +16,8 @@ const usd = (n: number) => `$ ${n.toLocaleString('es-VE', { minimumFractionDigit
  */
 export default function AdminLiquidaciones() {
   const queryClient = useQueryClient();
-  const [estado, setEstado] = useState<'pendiente' | 'cobrada' | 'todas'>('pendiente');
+  // Desde que todo pasa por Butaca la comisión se retiene en cada cobro: las nuevas nacen «retenidas»
+  const [estado, setEstado] = useState<'pendiente' | 'cobrada' | 'retenida' | 'todas'>('pendiente');
   const [nota, setNota] = useState<Record<string, string>>({});
 
   const { data: liquidaciones, isLoading } = useQuery({
@@ -47,6 +48,7 @@ export default function AdminLiquidaciones() {
             items={[
               { id: 'pendiente', label: 'Pendientes' },
               { id: 'cobrada', label: 'Cobradas' },
+              { id: 'retenida', label: 'Retenidas' },
               { id: 'todas', label: 'Todas' },
             ]}
             value={estado}
@@ -84,6 +86,8 @@ export default function AdminLiquidaciones() {
                 <td>
                   {l.estado === 'cobrada' ? (
                     <StatusChip tono="ok" size="sm">Cobrada</StatusChip>
+                  ) : l.estado === 'retenida' ? (
+                    <StatusChip tono="ok" size="sm">Retenida por Butaca</StatusChip>
                   ) : (
                     <StatusChip tono="warn" size="sm">Pendiente</StatusChip>
                   )}

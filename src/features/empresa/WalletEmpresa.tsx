@@ -55,7 +55,7 @@ export function WalletEmpresa() {
       <div style={{ fontSize: 13, color: 'var(--text-soft)' }}>
         {errorWallet
           ? `No se pudo leer el saldo (${errorWallet instanceof ApiError ? `${errorWallet.status || 'sin conexión'} · ${errorWallet.code}` : String(errorWallet)}).`
-          : 'Pasajes urbanos y ventas cobradas con wallet, ya con la comisión descontada.'}
+          : 'Lo que vendes por Butaca (pasajes urbanos, boletos de viaje y depósitos de taquilla), ya con la comisión descontada.'}
       </div>
 
       {mensaje && (

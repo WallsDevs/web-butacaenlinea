@@ -9,6 +9,8 @@ import {
   getRetirosPendientes,
   resolverRetiro,
   verificarRecarga,
+  getDatosPago,
+  fijarOtrasCuentas,
 } from '../../lib/api/endpoints';
 import { API_URL, ApiError } from '../../lib/api/client';
 import { fechaCorta, hora } from '../../lib/time';
@@ -77,6 +79,7 @@ export default function AdminWallet() {
       </h2>
 
       <PagoMovilCard />
+      <OtrasCuentasCard />
 
       {/* Conciliación: el espejo del banco */}
       <div className={ui.card} style={{ padding: 20, marginBottom: 18 }}>
@@ -130,6 +133,13 @@ export default function AdminWallet() {
                 <div style={{ fontSize: 12, color: 'var(--text-faint)' }}>Referencia</div>
                 <div style={{ fontWeight: 700, letterSpacing: '0.06em' }}>{r.referencia || '—'}</div>
               </div>
+              {r.boletos && r.boletos.length > 0 && (
+                <div style={{ minWidth: 170, fontSize: 12, color: 'var(--blue-700)' }}>
+                  <div style={{ fontWeight: 700 }}>Paga {r.boletos.length === 1 ? 'un boleto' : `${r.boletos.length} boletos`}</div>
+                  <div>{r.boletos.map((b) => `${b.folio} · ${b.ruta ?? ''}`).join(' · ')}</div>
+                  <div style={{ color: 'var(--text-faint)' }}>Al confirmar se cobran de su wallet; al rechazar se anulan</div>
+                </div>
+              )}
               <div style={{ minWidth: 110, fontSize: 13 }}>
                 {r.comprobanteUrl ? (
                   <a href={`${API_URL}${r.comprobanteUrl}`} target="_blank" rel="noreferrer" style={{ color: 'var(--blue-600)', fontWeight: 600 }}>
@@ -308,6 +318,82 @@ function PagoMovilCard() {
             {error && <span style={{ fontSize: 13, color: 'var(--bad-text)', marginRight: 'auto' }}>{error}</span>}
             <button className={ui.btnSecondary} onClick={() => setForm(null)}>Cancelar</button>
             <button className={ui.btnPrimary} disabled={!form.banco.trim() || !form.telefono.trim() || !form.documento.trim() || guardar.isPending} onClick={() => guardar.mutate()}>
+              Guardar
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Zelle y transferencia de Butaca: los ve quien paga sin cuenta (y la recarga por transferencia). */
+function OtrasCuentasCard() {
+  const queryClient = useQueryClient();
+  const { data: datos, isLoading } = useQuery({ queryKey: ['datos-pago'], queryFn: getDatosPago });
+  const [form, setForm] = useState<{ correo: string; titularZelle: string; banco: string; cuenta: string; titular: string; documento: string } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const guardar = useMutation({
+    mutationFn: () =>
+      fijarOtrasCuentas({
+        zelle: form!.correo.trim() ? { correo: form!.correo.trim(), titular: form!.titularZelle.trim() || undefined } : null,
+        transferencia: form!.banco.trim() ? { banco: form!.banco.trim(), cuenta: form!.cuenta.trim(), titular: form!.titular.trim(), documento: form!.documento.trim() || undefined } : null,
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['datos-pago'] });
+      setForm(null);
+      setError(null);
+    },
+    onError: (e) => {
+      const code = e instanceof ApiError ? e.code : '';
+      setError(code === 'correo_invalido' ? 'El correo de Zelle no es válido.' : code === 'payload_invalido' ? 'Para la transferencia hacen falta banco, cuenta y titular.' : code === 'sin_conexion' ? 'Sin conexión con el servidor.' : `No se pudo guardar (${code || 'error'}).`);
+    },
+  });
+  const abrir = () =>
+    setForm({ correo: datos?.zelle?.correo ?? '', titularZelle: datos?.zelle?.titular ?? '', banco: datos?.transferencia?.banco ?? '', cuenta: datos?.transferencia?.cuenta ?? '', titular: datos?.transferencia?.titular ?? '', documento: datos?.transferencia?.documento ?? '' });
+  const campo = (etiqueta: string, clave: keyof NonNullable<typeof form>, placeholder: string) => (
+    <label className={ui.field}>
+      <span className={ui.fieldLabel}>{etiqueta}</span>
+      <input className={ui.fieldInput} value={form![clave]} placeholder={placeholder} onChange={(e) => setForm({ ...form!, [clave]: e.target.value })} />
+    </label>
+  );
+  return (
+    <div className={ui.card} style={{ padding: 20, marginBottom: 18 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ flex: 1, minWidth: 240 }}>
+          <div style={{ fontSize: 12, color: 'var(--text-faint)' }}>Zelle y transferencia de Butaca (las ve quien paga su pasaje sin cuenta)</div>
+          {isLoading ? (
+            <div style={{ fontSize: 14, color: 'var(--text-soft)', marginTop: 4 }}>Cargando…</div>
+          ) : (
+            <div style={{ fontSize: 14, marginTop: 4, display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <span>
+                <strong>Zelle:</strong> {datos?.zelle ? `${datos.zelle.correo}${datos.zelle.titular ? ` · ${datos.zelle.titular}` : ''}` : <span style={{ color: 'var(--bad-text)' }}>sin publicar</span>}
+              </span>
+              <span>
+                <strong>Transferencia:</strong>{' '}
+                {datos?.transferencia ? `${datos.transferencia.banco} · ${datos.transferencia.cuenta} · ${datos.transferencia.titular}` : <span style={{ color: 'var(--bad-text)' }}>sin publicar</span>}
+              </span>
+            </div>
+          )}
+        </div>
+        {!form && (
+          <button className={ui.btnSecondary} style={{ fontSize: 14 }} onClick={abrir}>
+            Editar
+          </button>
+        )}
+      </div>
+      {form && (
+        <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
+          {campo('Correo Zelle', 'correo', 'pagos@butacaenlinea.com')}
+          {campo('Titular Zelle (opcional)', 'titularZelle', 'Butaca En Línea LLC')}
+          {campo('Banco (transferencia)', 'banco', 'Banesco')}
+          {campo('Número de cuenta', 'cuenta', '0134-0000-00-0000000000')}
+          {campo('Titular de la cuenta', 'titular', 'Butaca En Línea C.A.')}
+          {campo('Cédula o RIF (opcional)', 'documento', 'J-12345678-9')}
+          <div style={{ gridColumn: '1 / -1', display: 'flex', gap: 10, justifyContent: 'flex-end', alignItems: 'center' }}>
+            {error && <span style={{ fontSize: 13, color: 'var(--bad-text)', marginRight: 'auto' }}>{error}</span>}
+            <button className={ui.btnSecondary} onClick={() => setForm(null)}>Cancelar</button>
+            <button className={ui.btnPrimary} disabled={guardar.isPending} onClick={() => guardar.mutate()}>
               Guardar
             </button>
           </div>

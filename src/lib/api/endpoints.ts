@@ -78,6 +78,8 @@ export const emitirBoletos = (payload: {
   reservaToken: string;
   pasajeros: PasajeroEmision[];
   pago: { metodoPago: MetodoPago; monedaPago: 'USD' | 'BS' | 'COP'; referencia?: string };
+  /** Con wallet sin saldo suficiente: la recarga a Butaca que el pasajero reporta en la misma compra. */
+  recarga?: { referencia: string; banco?: string };
   turnoId?: string | null;
 }) => api<ResultadoEmision>('/api/boletos/emitir', { method: 'POST', body: payload });
 
@@ -507,7 +509,8 @@ export interface AdminLiquidacion {
   ventasUsd: number;
   comisionUsd: number;
   comisionPct: number;
-  estado: 'pendiente' | 'cobrada';
+  /** `retenida`: Butaca ya se quedó la comisión en cada cobro (desde 2026-10-24); no es una deuda. */
+  estado: 'pendiente' | 'cobrada' | 'retenida';
   cobradaEn?: string | null;
   notaCobro?: string | null;
 }
@@ -667,9 +670,91 @@ export const getPagoMovilPlataforma = () => api<PagoMovilPlataforma | null>('/ap
 export const fijarPagoMovilPlataforma = (datos: { banco: string; telefono: string; documento: string; titular?: string; nota?: string }) =>
   api<PagoMovilPlataforma>('/api/admin/ajustes/pago-movil', { method: 'PUT', body: datos });
 
+/** Todas las cuentas de Butaca a las que se paga: recargas de wallet y pasajes sin cuenta. */
+export interface DatosPagoPlataforma {
+  pagoMovil: PagoMovilPlataforma | null;
+  zelle: { correo: string; titular: string | null } | null;
+  transferencia: { banco: string; cuenta: string; titular: string; documento: string | null } | null;
+}
+export const getDatosPago = () => api<DatosPagoPlataforma>('/api/ajustes/datos-pago', { auth: false });
+export const fijarOtrasCuentas = (datos: { zelle?: { correo: string; titular?: string } | null; transferencia?: { banco: string; cuenta: string; titular: string; documento?: string } | null }) =>
+  api<Omit<DatosPagoPlataforma, 'pagoMovil'>>('/api/admin/ajustes/otras-cuentas', { method: 'PUT', body: datos });
+
+/** Una compra sin cuenta por verificar: todos sus boletos comparten salida y referencia. */
+export interface CompraPorVerificar {
+  clave: string;
+  referencia: string | null;
+  metodoPago: string | null;
+  moneda: string | null;
+  monto: number;
+  montoBs: number;
+  comprobanteUrl: string | null;
+  creadoEn: string | null;
+  linea: string | null;
+  ruta: string | null;
+  salida: string | null;
+  conCuenta: boolean;
+  contacto: { nombre: string | null; documento: string | null; telefono: string | null };
+  boletos: { documentId: string; folio: string; asientoId: string; pasajero: string | null }[];
+}
+export const getComprasPorVerificar = () => api<CompraPorVerificar[]>('/api/admin/pagos-boletos');
+export const verificarCompra = (boletos: string[], aprobar: boolean, nota?: string) =>
+  api<{ ok: boolean; estadoPago: string }>('/api/admin/pagos-boletos/verificar', { method: 'POST', body: { boletos, aprobar, nota } });
+export interface ReembolsoPlataforma {
+  documentId: string;
+  folio: string;
+  linea: string | null;
+  ruta: string | null;
+  salida: string | null;
+  anuladoEn: string | null;
+  pasajeroNombre: string | null;
+  pasajeroDocumento: string | null;
+  pasajeroTelefono: string | null;
+  metodoPago: string | null;
+  monedaPago: string | null;
+  montoCobrado: number;
+  referenciaPago: string | null;
+}
+/** Lo cobrado en caja de un turno que la línea deposita a Butaca, por moneda. */
+export interface DepositoTaquilla {
+  documentId: string;
+  linea: string | null;
+  turno: { documentId: string | null; cerradoEn: string | null; taquilla: string | null; cajero: string | null };
+  moneda: 'BS' | 'USD' | 'COP';
+  monto: number;
+  montoBs: number;
+  comisionBs: number;
+  netoBs: number;
+  boletos: number;
+  estado: 'pendiente' | 'reportado' | 'verificado' | 'rechazado';
+  referencia: string | null;
+  banco: string | null;
+  comprobanteUrl: string | null;
+  reportadoEn: string | null;
+  verificadoEn: string | null;
+  nota: string | null;
+}
+export const getDepositos = () => api<DepositoTaquilla[]>('/api/depositos');
+export const reportarDeposito = (documentId: string, referencia: string, banco?: string, archivo?: File | null) => {
+  const fd = new FormData();
+  fd.append('referencia', referencia);
+  if (banco) fd.append('banco', banco);
+  if (archivo) fd.append('comprobante', archivo);
+  return api<{ estado: string }>(`/api/depositos/${documentId}/reportar`, { method: 'POST', body: fd });
+};
+export const getDepositosAdmin = () => api<DepositoTaquilla[]>('/api/admin/depositos');
+export const verificarDeposito = (documentId: string, aprobar: boolean, nota?: string) =>
+  api<{ estado: string }>(`/api/admin/depositos/${documentId}/verificar`, { method: 'POST', body: { aprobar, nota } });
+
+export const getReembolsosPlataforma = () => api<ReembolsoPlataforma[]>('/api/admin/reembolsos');
+export const marcarReembolsoPlataforma = (documentId: string, referencia?: string) =>
+  api<{ reembolsado: boolean }>(`/api/admin/reembolsos/${documentId}/reembolsar`, { method: 'POST', body: { referencia } });
+
 export interface RecargaPendiente {
   documentId: string;
   montoBs: number;
+  /** Boletos de una compra con wallet que esperan esta recarga para cobrarse. */
+  boletos?: { folio: string; asientoId: string; ruta: string | null; salida: string | null }[];
   referencia?: string | null;
   banco?: string | null;
   /** Captura del pago que subió el pasajero, relativa al API (`/uploads/…`). */

@@ -71,6 +71,7 @@ const AdminTasas = lazy(() => import('../features/admin/AdminTasas'));
 const AdminAuditoria = lazy(() => import('../features/admin/AdminAuditoria'));
 const AdminSeguridad = lazy(() => import('../features/admin/AdminSeguridad'));
 const AdminWallet = lazy(() => import('../features/admin/AdminWallet'));
+const AdminPagos = lazy(() => import('../features/admin/AdminPagos'));
 const EmpresaFlota = lazy(() => import('../features/empresa/EmpresaFlota'));
 const AdminPasajeros = lazy(() => import('../features/admin/AdminPasajeros'));
 const AdminCiudades = lazy(() => import('../features/admin/AdminCiudades'));
@@ -161,6 +162,7 @@ export const router = createBrowserRouter([
           { path: 'ciudades', element: <AdminCiudades /> },
           { path: 'auditoria', element: <AdminAuditoria /> },
           { path: 'wallet', element: <AdminWallet /> },
+          { path: 'pagos', element: <AdminPagos /> },
           { path: 'seguridad', element: <AdminSeguridad /> },
         ],
       },

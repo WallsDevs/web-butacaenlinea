@@ -125,7 +125,7 @@ export function AppChrome() {
 
   return (
     <>
-    {lateral && <BarraLateral secciones={lateral} titulo={rol === 'cliente' ? usuario?.nombreCorto ?? usuario?.username ?? 'Mi cuenta' : nav!.tagline} home={nav!.home} pathname={location.pathname} conBoleteria={modulos?.includes('boleteria') ?? false} />}
+    {lateral && <BarraLateral secciones={lateral} titulo={rol === 'cliente' ? usuario?.nombreCorto ?? usuario?.username ?? 'Mi cuenta' : nav!.tagline} home={nav!.home} pathname={location.pathname} />}
     <header className={`${styles.chrome} ${lateral ? styles.ocultaEnEscritorio : ''} no-print`}>
       <button
         className={styles.brandZone}

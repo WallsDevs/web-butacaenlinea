@@ -142,6 +142,8 @@ export default function EmpresaReportes() {
                     <td>
                       {l.estado === 'cobrada' ? (
                         <StatusChip tono="ok" size="sm">Cobrada</StatusChip>
+                      ) : l.estado === 'retenida' ? (
+                        <StatusChip tono="ok" size="sm">Retenida por Butaca</StatusChip>
                       ) : (
                         <StatusChip tono="warn" size="sm">Pendiente</StatusChip>
                       )}

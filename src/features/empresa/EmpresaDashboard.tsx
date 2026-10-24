@@ -149,10 +149,10 @@ export default function EmpresaDashboard() {
           {data.porVerificar > 0 && (
             <button className={ui.card} style={{ padding: 18, textAlign: 'left', cursor: 'pointer', borderColor: 'var(--warn-border-soft)' }} onClick={() => navigate('/empresa/pagos')}>
               <span style={{ fontWeight: 700, color: 'var(--warn-text)' }}>
-                {data.porVerificar} pago{data.porVerificar === 1 ? '' : 's'} web por verificar
+                {data.porVerificar} pago{data.porVerificar === 1 ? '' : 's'} web en revisión
               </span>
               <span style={{ display: 'block', fontSize: 13, color: 'var(--text-soft)', marginTop: 4 }}>
-                Confirma las referencias contra tu banco →
+                Los confirma Butaca; el neto llega a tu wallet →
               </span>
             </button>
           )}

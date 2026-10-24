@@ -65,7 +65,8 @@ const TUTORIALES: Tutorial[] = [
 const PREGUNTAS: { p: string; r: string }[] = [
   { p: '¿Necesito una cuenta para comprar?', r: 'No: puedes comprar sin cuenta. Con una cuenta tus boletos quedan guardados en «Mis boletos», puedes pagar con tu saldo y pagar las busetas con QR.' },
   { p: '¿Cuánto tiempo tengo para pagar?', r: 'Los puestos quedan apartados 5 minutos desde que tocas «Pagar boleto». Si no terminas a tiempo se liberan y tienes que escogerlos de nuevo.' },
-  { p: 'Mi boleto dice «Pago por verificar»', r: 'La línea está revisando tu Pago Móvil o Zelle. Cuando lo confirme, el boleto cambia a «Pagado».' },
+  { p: 'Mi boleto dice «Pago por verificar»', r: 'Butaca está confirmando tu pago (o tu recarga) contra su banco. Tu puesto ya está apartado; cuando lo confirme, el boleto cambia a «Pagado». Con la captura del pago es más rápido.' },
+  { p: '¿A quién le pago mi pasaje?', r: 'Siempre a Butaca En Línea. Con cuenta pagas con tu wallet; si no te alcanza, recargas ahí mismo al comprar. Sin cuenta pagas por Pago Móvil, transferencia o Zelle a las cuentas de Butaca que aparecen al pagar. Nunca le transfieras a una persona.' },
   { p: '¿El boleto funciona sin señal?', r: 'Sí. Ábrelo una vez con conexión y queda guardado en tu teléfono: el QR se ve aunque no tengas señal al abordar.' },
   { p: 'Hice una recarga y no aparece en mi saldo', r: 'Se acredita cuando la plataforma verifica el pago; mientras tanto se ve como «Por confirmar». Si aparece «Rechazada», revisa que el monto y la referencia coincidan con tu Pago Móvil.' },
   { p: '¿Puedo pagar la buseta sin saldo?', r: 'No: el pasaje urbano se descuenta de tu wallet. Recarga antes de subir.' },
