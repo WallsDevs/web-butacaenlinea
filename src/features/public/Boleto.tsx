@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { getBoletoPorCodigo } from '../../lib/api/endpoints';
 import { ApiError } from '../../lib/api/client';
 import { useAuth } from '../../stores/auth';
+import { useInstalacion } from '../../lib/instalacion';
 import { hora, fechaCorta } from '../../lib/time';
 import { TicketCard } from '../../components/ticket/TicketCard';
 import { StatusChip } from '../../components/ui/StatusChip';
@@ -21,6 +23,8 @@ export default function Boleto() {
   const grupo = (location.state as { grupo?: { qrId: string; asientoId: string }[] } | null)?.grupo;
 
   const usuarioId = useAuth((s) => s.usuario?.id ?? null);
+  const instalacion = useInstalacion();
+  const [pistaInstalar, setPistaInstalar] = useState(false);
   const { data: boleto, isLoading, error, refetch, isFetching } = useQuery({
     // Con el usuario en la clave: al cerrar sesión no queda a la vista el boleto de la cuenta
     queryKey: ['boleto', codigo, usuarioId],
@@ -87,8 +91,15 @@ export default function Boleto() {
             ? { tono: 'ok' as const, label: 'Abordado' }
             : { tono: 'ok' as const, label: 'Pagado' };
 
+  const anulado = boleto.estado === 'anulado';
+  // Volver: a la página anterior si se llegó navegando; si el enlace se abrió directo, a sus boletos
+  const volver = () => ((window.history.state as { idx?: number } | null)?.idx ? navigate(-1) : navigate(usuarioId ? '/cuenta/boletos' : '/'));
+
   return (
     <div style={{ maxWidth: 430, margin: '0 auto', padding: '24px 16px 56px' }}>
+      <button type="button" className={`${ui.btnGhost} no-print`} onClick={volver} style={{ marginBottom: 8, paddingLeft: 0 }}>
+        ← Volver
+      </button>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
         <span style={{ fontWeight: 700, fontSize: 20 }}>Tu boleto</span>
         <span style={{ marginLeft: 'auto' }}>
@@ -98,7 +109,20 @@ export default function Boleto() {
         </span>
       </div>
 
-      {!boleto.qr && (
+      {anulado && (
+        <div role="status" style={{ marginBottom: 12, padding: '12px 14px', borderRadius: 'var(--r-14)', background: 'var(--bad-bg)', color: 'var(--bad-text)', fontSize: 13, lineHeight: 1.45 }}>
+          <strong>Este boleto fue anulado y ya no sirve para viajar.</strong>{' '}
+          {boleto.estadoPago === 'reembolsado'
+            ? 'El dinero ya se te devolvió (si pagaste con tu wallet, está en tu saldo).'
+            : boleto.estadoPago === 'reembolso_pendiente'
+              ? 'Butaca te devolverá el dinero por el mismo medio con que pagaste.'
+              : boleto.estadoPago === 'rechazado'
+                ? 'El pago no se confirmó, así que no hay nada que devolver.'
+                : ''}
+        </div>
+      )}
+
+      {!boleto.qr && !anulado && (
         <div className="no-print" role="status" style={{ marginBottom: 12, padding: '12px 14px', borderRadius: 'var(--r-14)', background: 'var(--warn-bg, #FEF3C7)', color: 'var(--warn-text, #92400E)', fontSize: 13, lineHeight: 1.45 }}>
           Tu boleto es válido, pero el código QR no se pudo generar ahora.{' '}
           <button type="button" onClick={() => refetch()} style={{ background: 'none', border: 0, padding: 0, color: 'inherit', fontWeight: 700, textDecoration: 'underline', cursor: 'pointer' }}>
@@ -126,6 +150,7 @@ export default function Boleto() {
           pasajeroNombre: boleto.pasajeroNombre,
           pasajeroDoc: boleto.pasajeroDocumento,
           totalUsd: boleto.totalUsd,
+          anulado,
         }}
       />
 
@@ -145,13 +170,26 @@ export default function Boleto() {
       )}
 
       <div className="no-print" style={{ display: 'flex', gap: 10, marginTop: 14 }}>
-        <button className={`${ui.btnPrimary}`} style={{ flex: 1, padding: 13, borderRadius: 13, fontSize: 14 }}>
-          Añadir a la pantalla de inicio
-        </button>
+        {!instalacion.instalada && (
+          <button
+            className={`${ui.btnPrimary}`}
+            style={{ flex: 1, padding: 13, borderRadius: 13, fontSize: 14 }}
+            onClick={() => (instalacion.puede ? void instalacion.instalar() : setPistaInstalar(true))}
+          >
+            Añadir a la pantalla de inicio
+          </button>
+        )}
         <button className={ui.btnSecondary} onClick={() => window.print()}>
           PDF
         </button>
       </div>
+      {pistaInstalar && (
+        <p className="no-print" style={{ fontSize: 13, color: 'var(--text-soft)', marginTop: 8, lineHeight: 1.5 }}>
+          {instalacion.plataforma === 'ios'
+            ? 'En el iPhone: toca Compartir (el cuadro con la flecha) y luego «Agregar a pantalla de inicio».'
+            : 'Abre el menú del navegador (⋮) y toca «Instalar app» o «Agregar a pantalla de inicio».'}
+        </p>
+      )}
 
       <div
         className="no-print"

@@ -13,7 +13,9 @@ const bs = (n: number) => `Bs ${n.toLocaleString('es-VE', { minimumFractionDigit
 const NOMBRE_MOV: Record<string, string> = { reparto: 'Venta cobrada con wallet', retiro: 'Retiro', ajuste: 'Ajuste', comision: 'Comisión', recarga: 'Abono', reembolso: 'Devolución al pasajero' };
 /** El pasaje urbano lleva unidad; el boleto de viaje, su folio en la referencia. */
 const nombreMov = (m: { tipo: string; unidad?: string | null; nota?: string | null }) =>
-  m.tipo === 'pasaje' ? (m.unidad ? 'Pasaje urbano' : m.nota?.startsWith('Depósito de taquilla') ? 'Depósito de taquilla' : 'Boleto de viaje') : (NOMBRE_MOV[m.tipo] ?? m.tipo);
+  m.tipo === 'pasaje'
+    ? m.unidad ? 'Pasaje urbano' : m.nota?.startsWith('Depósito de taquilla') ? 'Depósito de taquilla' : 'Boleto de viaje'
+    : m.tipo === 'ajuste' && m.nota?.startsWith('Comisión devuelta') ? 'Comisión devuelta por Butaca' : (NOMBRE_MOV[m.tipo] ?? m.tipo);
 const FILTROS = [
   { id: 'todo', label: 'Todo' },
   { id: 'urbano', label: 'Urbano' },

@@ -192,7 +192,7 @@ export type MetodoPago =
   | 'zelle'
   | 'wallet';
 
-export type EstadoPago = 'verificado' | 'por_verificar' | 'rechazado';
+export type EstadoPago = 'verificado' | 'por_verificar' | 'rechazado' | 'reembolso_pendiente' | 'reembolsado';
 
 export interface BoletoEmitido {
   documentId: string;

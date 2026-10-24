@@ -46,6 +46,9 @@ const CuentaViajar = lazy(() => import('../features/cuenta/CuentaViajar'));
 const Ayuda = lazy(() => import('../features/public/Ayuda'));
 const RecuperarBoletos = lazy(() => import('../features/public/RecuperarBoletos'));
 const Pasajes = lazy(() => import('../features/public/Pasajes'));
+const PasajesLinea = lazy(() => import('../features/public/PasajesLinea'));
+const PreciosHoy = lazy(() => import('../features/public/PreciosHoy'));
+const PasajesTemporada = lazy(() => import('../features/public/PasajesTemporada'));
 const MetodosPago = lazy(() => import('../features/cuenta/MetodosPago'));
 const MiWallet = lazy(() => import('../features/cuenta/MiWallet'));
 const Pos = lazy(() => import('../features/pos/Pos'));
@@ -128,6 +131,9 @@ export const router = createBrowserRouter([
       { path: '/ayuda', element: <Ayuda /> },
       // Páginas de pasajes para buscadores: todas, por ciudad y por ruta
       { path: '/pasajes', element: <Pasajes /> },
+      { path: '/pasajes/precios', element: <PreciosHoy /> },
+      { path: '/lineas/:slug', element: <PasajesLinea /> },
+      { path: '/temporada/:slug', element: <PasajesTemporada /> },
       { path: '/pasajes/:ciudad', element: <Pasajes /> },
       { path: '/pasajes/:origen/:destino', element: <Pasajes /> },
       // QR fijo de la taquilla: el pasajero paga la venta en curso con su wallet

@@ -33,6 +33,7 @@
 .tabla td span { color: var(--text-faint); }
 .tabla .hora { font-weight: 700; }
 .tabla a { font-weight: 700; }
+.reintentar { background: none; border: 0; padding: 0; font: inherit; font-weight: 700; color: var(--blue-700); text-decoration: underline; cursor: pointer; }
 .todas { font-size: 15px; font-weight: 700; }
 .soloMovil { display: none; }
 @media (max-width: 720px) {
@@ -52,4 +53,7 @@
   .tabla .cPrecio { grid-area: precio; font-weight: 700; text-align: right; }
   .tabla .cComprar { grid-area: comprar; text-align: right; align-self: center; }
   .soloMovil { display: inline; }
+  /* Precios y salidas de una línea: la ruta va primero en la tarjeta */
+  .tablaRutaPrimero tr { grid-template-areas: 'linea precio' 'fecha comprar' 'hora llega'; }
+  .tablaRutaPrimero .cLinea { font-weight: 700; color: var(--text); font-size: 15px; }
 }

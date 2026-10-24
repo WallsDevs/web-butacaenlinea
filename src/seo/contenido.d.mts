@@ -10,8 +10,8 @@ export function textosCiudad(ciudad: string, estado: string | null | undefined, 
 export const ZONA: string;
 export function horaVe(iso: string): string;
 export function fechaVe(iso: string): string;
-export interface SalidaPublica { documentId?: string | null; fechaHoraSalida: string; fechaHoraLlegada?: string | null; preciosUsd?: Record<string, number> | null; linea?: { nombre?: string | null } | null }
-export interface FilaSalida { id: string | null | undefined; salida: string; llegada: string | null; fecha: string; hora: string; horaLlegada: string | null; linea: string | null; clases: string[]; desdeUsd: number | null; desdeBs: number | null }
+export interface SalidaPublica { documentId?: string | null; fechaHoraSalida: string; fechaHoraLlegada?: string | null; preciosUsd?: Record<string, number> | null; linea?: { nombre?: string | null; slug?: string | null } | null }
+export interface FilaSalida { id: string | null | undefined; salida: string; llegada: string | null; fecha: string; hora: string; horaLlegada: string | null; linea: string | null; lineaSlug: string | null; clases: string[]; desdeUsd: number | null; desdeBs: number | null }
 export function filasSalidas(salidas: SalidaPublica[] | null | undefined, tasaBcv: number | null): FilaSalida[];
 export interface ResumenPar { desdeUsd: number | null; desdeBs: number | null; salidasSemana: number; primera: string | null; ultima: string | null; lineaBarata: { nombre: string; desdeUsd: number } | null; lineas: string[] }
 export function resumenPar(filas: FilaSalida[], opciones?: { precioDesde?: number | null; tasaBcv?: number | null }): ResumenPar;
@@ -19,3 +19,11 @@ export function textosPar(origen: string, destino: string, info?: { precioDesde?
 export function textosIndice(): Textos;
 export interface ViajeLd extends FilaSalida { origen: string; destino: string; terminalSalida?: string | null; terminalLlegada?: string | null }
 export function datosEstructurados(ruta: string, migas: { nombre: string; ruta: string }[], preguntas?: Pregunta[], viajes?: ViajeLd[]): object[];
+export function rutaLinea(slugLinea: string): string;
+export const RUTA_PRECIOS: string;
+export function textosLinea(nombre: string, info?: { rutas?: { destino: string; precio: number | null }[]; salidasSemana?: number; terminalBase?: string | null }): Textos & { respuesta: string | null; preguntas: Pregunta[] };
+export function textosPrecios(fecha: string, cantidad: number): Textos & { preguntas: Pregunta[] };
+export interface Temporada { slug: string; nombre: string; titulo: string; desde: string; hasta: string; anio: number }
+export const TEMPORADAS: Temporada[];
+export function rutaTemporada(slugTemporada: string): string;
+export function textosTemporada(t: Temporada, info?: { salidas?: number; rutas?: { precio: number | null }[] }): Textos & { respuesta: string; preguntas: Pregunta[] };

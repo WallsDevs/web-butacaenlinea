@@ -11,6 +11,8 @@ import {
   verificarRecarga,
   getDatosPago,
   fijarOtrasCuentas,
+  correrChequeoLedger,
+  type ChequeoLedger,
 } from '../../lib/api/endpoints';
 import { API_URL, ApiError } from '../../lib/api/client';
 import { fechaCorta, hora } from '../../lib/time';
@@ -105,6 +107,7 @@ export default function AdminWallet() {
           La custodia esperada es la suma de todos los saldos internos del ledger. Si tu saldo
           bancario real no coincide, algo entró o salió sin registrarse.
         </div>
+        <ChequeoLedgerFila chequeo={conciliacion?.ultimoChequeo ?? null} />
       </div>
 
       {/* Cola de recargas */}
@@ -399,6 +402,37 @@ function OtrasCuentasCard() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/** El último chequeo nocturno del ledger y el botón para correrlo ahora. */
+function ChequeoLedgerFila({ chequeo }: { chequeo: ChequeoLedger | null }) {
+  const queryClient = useQueryClient();
+  const correr = useMutation({
+    mutationFn: correrChequeoLedger,
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['admin-conciliacion'] }),
+  });
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)', fontSize: 13 }}>
+      {chequeo ? (
+        chequeo.ok ? (
+          <StatusChip tono="ok" size="sm">El ledger cuadra</StatusChip>
+        ) : (
+          <StatusChip tono="bad" size="sm">El ledger NO cuadra</StatusChip>
+        )
+      ) : (
+        <StatusChip tono="neutral" size="sm">Sin chequeo todavía</StatusChip>
+      )}
+      <span style={{ color: 'var(--text-soft)' }}>
+        {chequeo
+          ? `Último chequeo ${fechaCorta(chequeo.fecha)} ${hora(chequeo.fecha)} · ${chequeo.cuentas} cuentas` +
+            (chequeo.ok ? '' : ` · suma ${bs(chequeo.sumaTotalBs)} · ${chequeo.huerfanos} movimientos sin origen o destino · ${chequeo.descuadres.length} cuentas con movimientos alterados`)
+          : 'Corre solo cada madrugada.'}
+      </span>
+      <button type="button" className={ui.btnSecondary} style={{ marginLeft: 'auto', fontSize: 13 }} disabled={correr.isPending} onClick={() => correr.mutate()}>
+        {correr.isPending ? 'Revisando…' : 'Revisar ahora'}
+      </button>
     </div>
   );
 }

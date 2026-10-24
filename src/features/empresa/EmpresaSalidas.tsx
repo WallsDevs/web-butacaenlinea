@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useModulos } from '../../lib/useModulos';
 import { AvisoIntegracion } from '../../components/ui/AvisoIntegracion';
-import { cancelarSalida, getChoferes, getRutas, getSalidas, getUnidades, programarSalida } from '../../lib/api/endpoints';
+import { cancelarSalida, cancelarSiguientes, getChoferes, getRutas, getSalidas, getUnidades, programarSalida } from '../../lib/api/endpoints';
 import type { SalidaDto } from '../../lib/api/types';
 import { fechaLarga, hora, hoyISO, rangoDia } from '../../lib/time';
 import { isoDia } from '../../lib/series';
@@ -82,6 +82,7 @@ export default function EmpresaSalidas({ abrirProgramar = 0 }: { abrirProgramar?
   const { data: unidades } = useQuery({ queryKey: ['unidades', slug], queryFn: () => getUnidades(slug) });
   const { data: choferes } = useQuery({ queryKey: ['choferes'], queryFn: getChoferes });
   const refrescar = () => queryClient.invalidateQueries({ queryKey: ['empresa-salidas'] });
+  const [cancelandoSerie, setCancelandoSerie] = useState<SalidaDto | null>(null);
 
   const cancelar = useMutation({
     mutationFn: ({ id, force }: { id: string; force?: boolean }) => cancelarSalida(id, force),
@@ -101,6 +102,20 @@ export default function EmpresaSalidas({ abrirProgramar = 0 }: { abrirProgramar?
         }
       } else setAviso('No se pudo cancelar la salida.');
     },
+  });
+
+  // Cancelar esta y las siguientes de la serie: las que tienen boletos se dejan para cancelarlas una por una
+  const cancelarSerie = useMutation({
+    mutationFn: (id: string) => cancelarSiguientes(id),
+    onSuccess: (r) => {
+      setAviso(
+        `${r.canceladas.length} salida${r.canceladas.length === 1 ? '' : 's'} cancelada${r.canceladas.length === 1 ? '' : 's'}.` +
+          (r.fallidas.length ? ` ${r.fallidas.length} no: ${r.fallidas.some((f) => f.motivo === 'tiene_boletos') ? 'tienen boletos vendidos; cancélalas una por una para decidir qué pasa con esos pasajeros' : 'ya partieron o estaban canceladas'}.` : '')
+      );
+      setCancelandoSerie(null);
+      refrescar();
+    },
+    onError: () => setAviso('No se pudieron cancelar las salidas.'),
   });
 
   // Regreso vacío: si el bus quedó en otra ciudad, la línea lo registra sin pasajeros desde la agenda
@@ -263,7 +278,13 @@ export default function EmpresaSalidas({ abrirProgramar = 0 }: { abrirProgramar?
                       {activa && !integracionActiva && (
                         <>
                           <button type="button" className={styles.enlace} onClick={() => setAsignando([s])}>Bus y conductor</button>
-                          <button type="button" className={styles.enlacePeligro} onClick={() => confirm(`¿Cancelar la salida de las ${hora(s.fechaHoraSalida)} a ${s.ruta?.destino}?`) && cancelar.mutate({ id: s.documentId })}>Cancelar</button>
+                          <button
+                            type="button"
+                            className={styles.enlacePeligro}
+                            onClick={() => (s.serieId ? setCancelandoSerie(s) : confirm(`¿Cancelar la salida de las ${hora(s.fechaHoraSalida)} a ${s.ruta?.destino}?`) && cancelar.mutate({ id: s.documentId }))}
+                          >
+                            Cancelar
+                          </button>
                         </>
                       )}
                       {s.estado === 'finalizada' && vuelta && s.unidad && (
@@ -305,6 +326,32 @@ export default function EmpresaSalidas({ abrirProgramar = 0 }: { abrirProgramar?
           }}
         />
       )}
+      {cancelandoSerie && (
+        <div className={styles.velo} onClick={() => setCancelandoSerie(null)}>
+          <div className={`${styles.modal} ${styles.modalChico}`} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Cancelar salida de una serie">
+            <div className={styles.modalCabecera}>
+              <div>
+                <div className={styles.modalTitulo}>Cancelar salida</div>
+                <div className={styles.nota}>{cancelandoSerie.ruta?.origen} → {cancelandoSerie.ruta?.destino} · {hora(cancelandoSerie.fechaHoraSalida)} · es parte de una serie</div>
+              </div>
+              <button type="button" className={styles.cerrar} onClick={() => setCancelandoSerie(null)} aria-label="Cerrar">✕</button>
+            </div>
+            <div className={styles.modalCuerpo}>
+              <div className={styles.nota}>Las que tengan boletos vendidos no se cancelan en grupo: se hacen una por una para decidir qué pasa con esos pasajeros.</div>
+            </div>
+            <div className={styles.modalPie}>
+              <div className={styles.resumen} />
+              <button type="button" className={ui.btnSecondary} onClick={() => { const id = cancelandoSerie.documentId; setCancelandoSerie(null); cancelar.mutate({ id }); }}>
+                Solo esta
+              </button>
+              <button type="button" className={ui.btnPrimary} style={{ background: 'var(--bad-border)' }} disabled={cancelarSerie.isPending} onClick={() => cancelarSerie.mutate(cancelandoSerie.documentId)}>
+                {cancelarSerie.isPending ? 'Cancelando…' : 'Esta y las siguientes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {asignando && (
         <ModalAsignacion
           salidas={asignando}

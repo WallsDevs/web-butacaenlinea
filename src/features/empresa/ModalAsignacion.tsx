@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useMutation, useQuery } from '@tanstack/react-query';
-import { getBusesParaSalida, reasignarSalida, reasignarVarias } from '../../lib/api/endpoints';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { cambiarHoraSalida, getBusesParaSalida, getBusesParaVarias, getSiguientesSerie, reasignarSalida, reasignarVarias } from '../../lib/api/endpoints';
 import type { SalidaDto, UnidadDto } from '../../lib/api/types';
 import { fechaCorta, hora } from '../../lib/time';
 import { explicarSalida, mensajeDeError } from './salidasErrores';
@@ -10,6 +10,8 @@ import styles from './EmpresaSalidas.module.css';
 
 /** «Sin cambiar» (solo con varias): ese campo no se toca. */
 const IGUAL = '__igual__';
+/** La hora de una salida en Venezuela, «HH:MM» (para el campo de hora). */
+const horaVe = (iso: string) => new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/Caracas' });
 
 /**
  * Bus y conductor de una o varias salidas. Con una (p. ej. la quinta de la
@@ -31,11 +33,22 @@ export function ModalAsignacion({
   onCerrar: () => void;
   onListo: (asignadas: number) => void;
 }) {
+  const queryClient = useQueryClient();
   const una = salidas.length === 1 ? salidas[0] : null;
   const [unidadId, setUnidadId] = useState(una ? (una.unidad?.documentId ?? '') : IGUAL);
   const [choferId, setChoferId] = useState(una ? (una.chofer?.documentId ?? '') : IGUAL);
   const [error, setError] = useState<string | null>(null);
   const [fallidas, setFallidas] = useState<{ documentId: string; motivo: string; detalles: Record<string, unknown> }[] | null>(null);
+  // Salida de una serie: aplicar solo a esta o a esta y las siguientes
+  const [alcance, setAlcance] = useState<'esta' | 'siguientes'>('esta');
+  const [horaNueva, setHoraNueva] = useState(una ? horaVe(una.fechaHoraSalida) : '');
+  const [avisoHora, setAvisoHora] = useState<string | null>(null);
+  const { data: siguientes } = useQuery({
+    queryKey: ['siguientes-serie', una?.documentId],
+    queryFn: () => getSiguientesSerie(una!.documentId),
+    enabled: Boolean(una?.serieId),
+  });
+  const masDeUna = (siguientes?.documentIds.length ?? 0) > 1;
   // Lo que más vendió manda: el bus tiene que alcanzar para esa
   const vendidos = Math.max(0, ...salidas.map((s) => s.vendidos ?? 0));
   const elegida = unidades.find((u) => u.documentId === unidadId);
@@ -54,6 +67,7 @@ export function ModalAsignacion({
 
   const guardar = useMutation({
     mutationFn: async () => {
+      if (una && alcance === 'siguientes' && siguientes && masDeUna) return reasignarVarias(siguientes.documentIds, cambios);
       if (una) {
         await reasignarSalida(una.documentId, cambios);
         return { asignadas: [una.documentId], fallidas: [] };
@@ -72,6 +86,26 @@ export function ModalAsignacion({
     queryKey: ['buses-salida', una?.documentId],
     queryFn: () => getBusesParaSalida(una!.documentId),
     enabled: Boolean(una),
+  });
+  // Con varias: cada bus dice dónde estará a la hora de la primera y en cuántas de las marcadas puede ir
+  const { data: opcionesVarias, isLoading: cargandoVarias } = useQuery({
+    queryKey: ['buses-varias', salidas.map((s) => s.documentId).join(',')],
+    queryFn: () => getBusesParaVarias(salidas.map((s) => s.documentId)),
+    enabled: !una,
+  });
+  const cambiarHora = useMutation({
+    mutationFn: () => cambiarHoraSalida(una!.documentId, horaNueva, alcance === 'siguientes' && masDeUna ? 'siguientes' : 'esta'),
+    onSuccess: (r) => {
+      setAvisoHora(
+        r.fallidas.length
+          ? `Cambiaron ${r.cambiadas.length}. No se pudieron ${r.fallidas.length}: ${r.fallidas.map((f) => explicarSalida(f.motivo, f.detalles)).join(' · ')}`
+          : `Listo: ${r.cambiadas.length === 1 ? 'la salida sale' : `las ${r.cambiadas.length} salidas salen`} a las ${horaNueva}.`
+      );
+      // Todas cambiaron: se cierra; si alguna no, el modal queda abierto con el motivo (y la agenda ya refrescada)
+      if (!r.fallidas.length) onListo(r.cambiadas.length);
+      else void queryClient.invalidateQueries({ queryKey: ['empresa-salidas'] });
+    },
+    onError: (e) => setAvisoHora(mensajeDeError(e)),
   });
   const porId = new Map(salidas.map((s) => [s.documentId, s]));
   const titulo = una
@@ -155,29 +189,51 @@ export function ModalAsignacion({
                 </div>
               </div>
             ) : (
-              <label className={ui.field}>
-              <span className={ui.fieldLabel}>Bus</span>
-              <select className={ui.fieldInput} value={unidadId} onChange={(e) => { setUnidadId(e.target.value); setError(null); }}>
-                <option value={IGUAL}>Sin cambiar</option>
-                <option value="" disabled={vendidos > 0}>Por asignar{vendidos > 0 ? ' (ya hay puestos vendidos)' : ''}</option>
-                {unidades
-                  .filter((u) => u.estado !== 'fuera_de_servicio')
-                  .map((u) => {
-                    const p = puestosDe(u);
-                    return (
-                      <option key={u.documentId} value={u.documentId} disabled={p < vendidos}>
-                        {u.numero} · {p} puestos{u.marcaModelo ? ` · ${u.marcaModelo}` : ''}
-                        {p < vendidos ? ` · no alcanza (${vendidos} vendidos)` : ''}
-                      </option>
-                    );
-                  })}
-              </select>
-            </label>
+              <div className={ui.field}>
+                <span className={ui.fieldLabel}>Bus · la primera sale de {opcionesVarias?.origen ?? '…'}</span>
+                <div className={styles.buses} role="radiogroup" aria-label="Bus">
+                  <button type="button" role="radio" aria-checked={unidadId === IGUAL} className={`${styles.bus} ${unidadId === IGUAL ? styles.busElegido : ''}`} onClick={() => setUnidadId(IGUAL)}>
+                    <span className={styles.busNumero}>Sin cambiar</span>
+                    <span className={styles.busDonde}>Cada salida conserva su bus</span>
+                  </button>
+                  <button type="button" role="radio" aria-checked={unidadId === ''} disabled={vendidos > 0} className={`${styles.bus} ${unidadId === '' ? styles.busElegido : ''}`} onClick={() => setUnidadId('')}>
+                    <span className={styles.busNumero}>Por asignar</span>
+                    <span className={styles.busDonde}>{vendidos > 0 ? 'No: ya hay puestos vendidos' : 'Sin bus las salidas no se venden'}</span>
+                  </button>
+                  {cargandoVarias && <div className={styles.nota}>Revisando dónde está cada bus…</div>}
+                  {(opcionesVarias?.buses ?? []).map((b) => (
+                    <button
+                      key={b.documentId}
+                      type="button"
+                      role="radio"
+                      aria-checked={unidadId === b.documentId}
+                      disabled={b.pueden === 0}
+                      className={`${styles.bus} ${unidadId === b.documentId ? styles.busElegido : ''} ${b.pueden === 0 ? styles.busNo : ''}`}
+                      onClick={() => { setUnidadId(b.documentId); setError(null); }}
+                    >
+                      <span className={styles.busNumero}>
+                        {b.numero} <small>{b.puestos} puestos{b.marcaModelo ? ` · ${b.marcaModelo}` : ''}</small>
+                      </span>
+                      <span className={`${styles.busDonde} ${b.pueden === b.total && b.ubicacion === opcionesVarias?.origen ? styles.busAqui : ''}`}>
+                        {b.ubicacion ? `En ${b.ubicacion}${b.desde ? ` desde ${fechaCorta(b.desde)} ${hora(b.desde)}` : ''}` : 'Sin ubicación registrada'} · puede en {b.pueden} de {b.total}
+                      </span>
+                      {b.pueden < b.total && b.motivo && <span className={styles.busMotivo}>{explicarSalida(b.motivo, b.detalles)}</span>}
+                    </button>
+                  ))}
+                </div>
+              </div>
             )}
             {noAlcanza && <div className={styles.aviso}>El bus {elegida!.numero} tiene {puestos} puestos y ya hay {vendidos} vendidos. Escoge un bus de {vendidos} puestos o más.</div>}
             {elegida && !noAlcanza && vendidos > 0 && <div className={styles.nota}>Alcanza: {puestos} puestos para {vendidos} vendidos. Los pasajeros conservan su puesto.</div>}
             {!una && elegida && <div className={styles.nota}>Se asigna en orden de fecha: si el bus no puede hacer alguna (está en otra ciudad u ocupado), te digo cuál y las demás quedan.</div>}
             {unidadId === '' && !vendidos && <div className={styles.nota}>Sin bus la salida no se vende hasta que le pongas uno.</div>}
+
+            {una && masDeUna && (
+              <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 14 }}>
+                <input type="checkbox" checked={alcance === 'siguientes'} onChange={(e) => setAlcance(e.target.checked ? 'siguientes' : 'esta')} />
+                Aplicar también a las siguientes de la serie ({siguientes!.documentIds.length - 1} más)
+              </label>
+            )}
 
             <label className={ui.field}>
               <span className={ui.fieldLabel}>Conductor</span>
@@ -191,6 +247,20 @@ export function ModalAsignacion({
             </label>
             <div className={styles.nota}>Se puede dejar sin conductor y asignarlo hasta el momento de salir.</div>
             {error && <div className={styles.aviso}>{error}</div>}
+
+            {una && (
+              <div className={ui.field} style={{ borderTop: '1px solid var(--border)', paddingTop: 12 }}>
+                <span className={ui.fieldLabel}>Hora de salida{masDeUna && alcance === 'siguientes' ? ' (esta y las siguientes)' : ''}</span>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <input className={ui.fieldInput} type="time" value={horaNueva} onChange={(e) => { setHoraNueva(e.target.value); setAvisoHora(null); }} style={{ maxWidth: 140 }} />
+                  <button type="button" className={ui.btnSecondary} disabled={!horaNueva || horaNueva === horaVe(una.fechaHoraSalida) || cambiarHora.isPending} onClick={() => cambiarHora.mutate()}>
+                    {cambiarHora.isPending ? 'Cambiando…' : 'Cambiar hora'}
+                  </button>
+                </div>
+                <div className={styles.nota}>Cada salida conserva su día. Las que ya tienen puestos vendidos no se cambian: avisa antes a los pasajeros.</div>
+                {avisoHora && <div className={styles.aviso}>{avisoHora}</div>}
+              </div>
+            )}
           </div>
         )}
 
@@ -207,7 +277,7 @@ export function ModalAsignacion({
                 disabled={!Object.keys(cambios).length || noAlcanza || quitaBusConVentas || guardar.isPending}
                 onClick={() => { setError(null); guardar.mutate(); }}
               >
-                {guardar.isPending ? 'Guardando…' : una ? 'Guardar cambios' : `Asignar a ${salidas.length}`}
+                {guardar.isPending ? 'Guardando…' : una ? (alcance === 'siguientes' && masDeUna ? `Guardar en ${siguientes!.documentIds.length}` : 'Guardar cambios') : `Asignar a ${salidas.length}`}
               </button>
             </>
           )}
