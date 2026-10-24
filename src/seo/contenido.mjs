@@ -40,6 +40,68 @@ const horas = (min) => {
   return h ? `${h} h${m ? ` ${m} min` : ''}` : `${m} min`;
 };
 const dolares = (n) => `$${Number(n).toLocaleString('es-VE', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+/** Cierra la frase sin doble punto: «7:00 a. m.» ya termina en punto. */
+const cerrar = (t) => (t.endsWith('.') ? t : `${t}.`);
+const bolivares = (n) => `Bs ${Math.round(Number(n)).toLocaleString('es-VE')}`;
+
+/** Las horas se dicen en hora de Venezuela, aunque la página se arme en un servidor de otro país. */
+export const ZONA = 'America/Caracas';
+export const horaVe = (iso) => new Date(iso).toLocaleTimeString('es-VE', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: ZONA });
+export const fechaVe = (iso) => new Date(iso).toLocaleDateString('es-VE', { weekday: 'short', day: 'numeric', month: 'short', timeZone: ZONA });
+const minutosDelDia = (iso) => {
+  const [h, m] = new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: ZONA }).split(':').map(Number);
+  return h * 60 + m;
+};
+const precioMinimo = (s) => {
+  const v = Object.values(s.preciosUsd ?? {}).map(Number).filter((n) => n > 0);
+  return v.length ? Math.min(...v) : null;
+};
+
+/**
+ * Las próximas salidas de un par, como filas de la tabla de horarios. Recibe
+ * salidas del API público (fechaHoraSalida, fechaHoraLlegada, preciosUsd, linea).
+ */
+export function filasSalidas(salidas, tasaBcv) {
+  return [...(salidas ?? [])]
+    .filter((s) => s?.fechaHoraSalida)
+    .sort((a, b) => a.fechaHoraSalida.localeCompare(b.fechaHoraSalida))
+    .map((s) => {
+      const desde = precioMinimo(s);
+      return {
+        id: s.documentId,
+        salida: s.fechaHoraSalida,
+        llegada: s.fechaHoraLlegada ?? null,
+        fecha: fechaVe(s.fechaHoraSalida),
+        hora: horaVe(s.fechaHoraSalida),
+        horaLlegada: s.fechaHoraLlegada ? horaVe(s.fechaHoraLlegada) : null,
+        linea: s.linea?.nombre ?? null,
+        clases: Object.keys(s.preciosUsd ?? {}),
+        desdeUsd: desde,
+        desdeBs: desde != null && tasaBcv ? Math.round(desde * tasaBcv) : null,
+      };
+    });
+}
+
+/** Lo que solo esta ruta tiene: frecuencia, primera y última salida del día, la línea más económica. */
+export function resumenPar(filas, { precioDesde = null, tasaBcv = null } = {}) {
+  const en7dias = Date.now() + 7 * 24 * 3600_000;
+  const semana = filas.filter((f) => new Date(f.salida).getTime() <= en7dias);
+  const porMinuto = [...filas].sort((a, b) => minutosDelDia(a.salida) - minutosDelDia(b.salida));
+  const porLinea = new Map();
+  for (const f of filas) if (f.linea && f.desdeUsd != null) porLinea.set(f.linea, Math.min(porLinea.get(f.linea) ?? Infinity, f.desdeUsd));
+  const barata = [...porLinea.entries()].sort((a, b) => a[1] - b[1])[0] ?? null;
+  const desdeUsd = [precioDesde, ...filas.map((f) => f.desdeUsd)].filter((n) => n != null && n > 0).reduce((m, n) => Math.min(m, n), Infinity);
+  const usd = Number.isFinite(desdeUsd) ? desdeUsd : null;
+  return {
+    desdeUsd: usd,
+    desdeBs: usd != null && tasaBcv ? Math.round(usd * tasaBcv) : null,
+    salidasSemana: semana.length,
+    primera: porMinuto[0]?.hora ?? null,
+    ultima: porMinuto.length > 1 ? porMinuto[porMinuto.length - 1].hora : null,
+    lineaBarata: porLinea.size > 1 && barata ? { nombre: barata[0], desdeUsd: barata[1] } : null,
+    lineas: [...new Set(filas.map((f) => f.linea).filter(Boolean))],
+  };
+}
 
 /** Lo común a cualquier compra: va en las preguntas de todas las páginas. */
 const PREGUNTAS_COMPRA = [
@@ -66,26 +128,42 @@ export function textosCiudad(ciudad, estado, { desde = [], hacia = [] } = {}) {
   };
 }
 
-/** Página de una ruta (A → B): precio desde, duración, líneas. */
-export function textosPar(origen, destino, { precioDesde, duracionMin, distanciaKm, lineas = [] } = {}) {
+/**
+ * Página de una ruta (A → B). Con `resumen` (de resumenPar) responde arriba lo
+ * que se busca: cuánto cuesta, a qué hora sale, cuánto dura y con quién.
+ */
+export function textosPar(origen, destino, { precioDesde, duracionMin, distanciaKm, lineas = [], resumen = null, terminalSalida = null, terminalLlegada = null } = {}) {
   const dur = horas(duracionMin);
-  const precio = precioDesde ? dolares(precioDesde) : null;
-  const conLineas = lineas.length ? ` Viajan ${lineas.slice(0, 3).join(', ')}${lineas.length > 3 ? ' y más líneas' : ''}.` : '';
+  const usd = resumen?.desdeUsd ?? precioDesde ?? null;
+  const precio = usd ? dolares(usd) : null;
+  const precioBs = resumen?.desdeBs ? bolivares(resumen.desdeBs) : null;
+  const todas = [...new Set([...(resumen?.lineas ?? []), ...lineas])];
+  const conLineas = todas.length ? ` Viajan ${todas.slice(0, 3).join(', ')}${todas.length > 3 ? ' y más líneas' : ''}.` : '';
+  const frecuencia = resumen?.salidasSemana ? `${resumen.salidasSemana} ${resumen.salidasSemana === 1 ? 'salida' : 'salidas'} en los próximos 7 días` : null;
+  const horario = resumen?.primera ? (resumen.ultima && resumen.ultima !== resumen.primera ? `entre las ${resumen.primera} y las ${resumen.ultima}` : `a las ${resumen.primera}`) : null;
+  const respuesta = [precio && `Desde ${precio}${precioBs ? ` (${precioBs})` : ''}`, frecuencia, dur && `unas ${dur} de viaje`].filter(Boolean).join(' · ');
   return {
-    titulo: `Pasajes en bus de ${origen} a ${destino}: horarios y precios | ${MARCA}`,
-    descripcion: `Pasajes de autobús de ${origen} a ${destino}${precio ? ` desde ${precio}` : ''}.${dur ? ` Unas ${dur} de viaje.` : ''}${conLineas} Compra en línea, escoge tu puesto y aborda con tu boleto QR.`,
+    titulo: `Pasajes en bus de ${origen} a ${destino}: precio y horarios | ${MARCA}`,
+    descripcion: `Pasajes de autobús de ${origen} a ${destino}${precio ? ` desde ${precio}` : ''}.${horario ? ` ${cerrar(`Salidas ${horario}`)}` : ''}${dur ? ` Unas ${dur} de viaje.` : ''}${conLineas} Compra en línea, escoge tu puesto y aborda con tu boleto QR.`,
     h1: `Pasajes en bus de ${origen} a ${destino}`,
-    intro: `Compra tu pasaje de bus de ${origen} a ${destino} en línea. Compara las salidas de todas las líneas, escoge tu puesto en el mapa del bus y paga desde el teléfono, sin hacer cola en el terminal.`,
+    respuesta: respuesta || null,
+    intro: `Compra tu pasaje de bus de ${origen} a ${destino} en línea.${horario ? ` ${cerrar(`Hay salidas ${horario}${terminalSalida ? ` desde ${terminalSalida}` : ''}`)}` : ''}${resumen?.lineaBarata ? ` La opción más económica hoy es ${resumen.lineaBarata.nombre}, desde ${dolares(resumen.lineaBarata.desdeUsd)}.` : ''} Compara las salidas de todas las líneas, escoge tu puesto en el mapa del bus y paga desde el teléfono, sin hacer cola en el terminal.`,
     datos: [
-      precio && { k: 'Precio desde', v: precio },
+      precio && { k: 'Precio desde', v: precioBs ? `${precio} · ${precioBs}` : precio },
+      frecuencia && { k: 'Próximos 7 días', v: frecuencia.replace(' en los próximos 7 días', '') },
+      resumen?.primera && { k: 'Primera salida', v: resumen.primera },
+      resumen?.ultima && resumen.ultima !== resumen.primera && { k: 'Última salida', v: resumen.ultima },
       dur && { k: 'Duración', v: `unas ${dur}` },
       distanciaKm && { k: 'Distancia', v: `${distanciaKm} km` },
-      lineas.length && { k: 'Líneas', v: lineas.join(', ') },
+      terminalSalida && { k: 'Sale desde', v: terminalSalida },
+      todas.length && { k: 'Líneas', v: todas.join(', ') },
     ].filter(Boolean),
     preguntas: [
-      { p: `¿Cuánto cuesta el pasaje de ${origen} a ${destino}?`, r: precio ? `El pasaje de ${origen} a ${destino} cuesta desde ${precio}. El precio de cada salida depende de la línea y del tipo de puesto (normal, semicama o VIP).` : `El precio depende de la línea y del tipo de puesto. Lo ves en cada salida antes de pagar.` },
+      { p: `¿Cuánto cuesta el pasaje de ${origen} a ${destino}?`, r: precio ? `El pasaje de ${origen} a ${destino} cuesta desde ${precio}${precioBs ? ` (${precioBs} a la tasa BCV de hoy)` : ''}. El precio de cada salida depende de la línea y del tipo de puesto (normal, semicama o VIP).` : `El precio depende de la línea y del tipo de puesto. Lo ves en cada salida antes de pagar.` },
+      { p: `¿A qué hora sale el autobús de ${origen} a ${destino}?`, r: horario ? `Las próximas salidas son ${horario}${frecuencia ? `, con ${frecuencia}` : ''}. Los horarios exactos de cada día están en la tabla de salidas.` : `Las líneas publican sus salidas con anticipación; apenas haya una la verás aquí con su hora.` },
       { p: `¿Cuánto dura el viaje de ${origen} a ${destino}?`, r: dur ? `El viaje dura unas ${dur}${distanciaKm ? `, son ${distanciaKm} km` : ''}. La hora de llegada de cada salida aparece al abrirla.` : 'La hora de llegada de cada salida aparece al abrirla.' },
-      { p: `¿Qué líneas viajan de ${origen} a ${destino}?`, r: lineas.length ? `${lineas.join(', ')}.` : 'Las líneas afiliadas publican sus salidas con anticipación; las verás aquí apenas estén.' },
+      ...(terminalSalida ? [{ p: `¿Desde dónde sale el autobús de ${origen} a ${destino}?`, r: `Sale desde ${terminalSalida}${terminalLlegada ? ` y llega a ${terminalLlegada}` : ''}. Llega 30 minutos antes con tu boleto en el teléfono.` }] : []),
+      { p: `¿Qué líneas viajan de ${origen} a ${destino}?`, r: todas.length ? `${todas.join(', ')}.` : 'Las líneas afiliadas publican sus salidas con anticipación; las verás aquí apenas estén.' },
       ...PREGUNTAS_COMPRA,
     ],
   };
@@ -100,7 +178,8 @@ export const textosIndice = () => ({
 });
 
 /** Datos estructurados: migas de pan y preguntas frecuentes (Google las muestra en los resultados). */
-export function datosEstructurados(ruta, migas, preguntas) {
+export function datosEstructurados(ruta, migas, preguntas, viajes = []) {
+  const url = `${DOMINIO}${ruta}`;
   return [
     {
       '@context': 'https://schema.org',
@@ -114,5 +193,17 @@ export function datosEstructurados(ruta, migas, preguntas) {
           mainEntity: preguntas.map((q) => ({ '@type': 'Question', name: q.p, acceptedAnswer: { '@type': 'Answer', text: q.r } })),
         }]
       : []),
+    // Cada salida próxima como viaje de bus con su precio (la oferta enlaza a esta página, donde se compra)
+    ...viajes.slice(0, 10).map((v) => ({
+      '@context': 'https://schema.org',
+      '@type': 'BusTrip',
+      name: `${v.origen} a ${v.destino}`,
+      departureTime: v.salida,
+      ...(v.llegada ? { arrivalTime: v.llegada } : {}),
+      departureBusStop: { '@type': 'BusStation', name: v.terminalSalida ?? v.origen },
+      arrivalBusStop: { '@type': 'BusStation', name: v.terminalLlegada ?? v.destino },
+      ...(v.linea ? { provider: { '@type': 'Organization', name: v.linea } } : {}),
+      ...(v.desdeUsd != null ? { offers: { '@type': 'Offer', price: v.desdeUsd, priceCurrency: 'USD', url, availability: 'https://schema.org/InStock' } } : {}),
+    })),
   ];
 }

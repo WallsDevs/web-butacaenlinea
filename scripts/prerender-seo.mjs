@@ -17,7 +17,7 @@
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { DOMINIO, datosEstructurados, rutaCiudad, rutaPar, textosCiudad, textosIndice, textosPar } from '../src/seo/contenido.mjs';
+import { DOMINIO, datosEstructurados, filasSalidas, resumenPar, rutaCiudad, rutaPar, textosCiudad, textosIndice, textosPar } from '../src/seo/contenido.mjs';
 
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = join(raiz, 'dist');
@@ -42,7 +42,7 @@ const respaldo = JSON.parse(await readFile(join(raiz, 'src/seo/ciudades.json'), 
 const ciudadesApi = await pedir('/api/ciudades');
 const ciudades = (Array.isArray(ciudadesApi) && ciudadesApi.length ? ciudadesApi : respaldo).map((c) => ({ nombre: c.nombre, estado: c.estado ?? null }));
 const rutas = (await pedir('/api/rutas?populate[tarifas]=true&pagination[pageSize]=100')) ?? [];
-const proximas = (await pedir(`/api/salidas?populate[ruta]=true&populate[linea]=true&sort=fechaHoraSalida&pagination[pageSize]=100&filters[fechaHoraSalida][$gte]=${encodeURIComponent(new Date().toISOString())}`)) ?? [];
+const tasaBcv = Number((await pedir('/api/tasas/vigentes'))?.bcv) || null;
 
 // Un registro por par origen → destino, con el precio más bajo
 const pares = new Map();
@@ -52,17 +52,50 @@ for (const r of Array.isArray(rutas) ? rutas : []) {
   const precios = (r.tarifas ?? []).map((t) => Number(t.precioUsd)).filter((n) => n > 0);
   const min = precios.length ? Math.min(...precios) : null;
   const a = pares.get(k);
-  if (!a) pares.set(k, { origen: r.origen, destino: r.destino, precio: min, duracionMin: r.duracionMin || null, distanciaKm: r.distanciaKm || null });
-  else if (min != null && (a.precio == null || min < a.precio)) a.precio = min;
+  const lugar = (l) => (l && typeof l === 'object' ? l.nombre ?? null : null);
+  if (!a) pares.set(k, { origen: r.origen, destino: r.destino, precio: min, duracionMin: r.duracionMin || null, distanciaKm: r.distanciaKm || null, terminalSalida: lugar(r.origenLugar), terminalLlegada: lugar(r.destinoLugar), cambio: r.updatedAt ?? null });
+  else {
+    if (min != null && (a.precio == null || min < a.precio)) a.precio = min;
+    if (r.updatedAt && (!a.cambio || r.updatedAt > a.cambio)) a.cambio = r.updatedAt;
+  }
 }
-const lineasDe = (o, d) => [...new Set((Array.isArray(proximas) ? proximas : []).filter((s) => s.ruta?.origen === o && s.ruta?.destino === d).map((s) => s.linea?.nombre).filter(Boolean))];
+
+// Las próximas salidas de cada par (14 días): son la tabla de horarios y los datos que solo esa ruta tiene
+const ahora = new Date();
+const hasta = new Date(ahora.getTime() + 14 * 24 * 3600_000);
+const salidasDe = new Map();
+const listaPares = [...pares.values()];
+for (let i = 0; i < listaPares.length; i += 6) {
+  await Promise.all(
+    listaPares.slice(i, i + 6).map(async (p) => {
+      const q = new URLSearchParams({
+        'populate[ruta]': 'true',
+        'populate[linea]': 'true',
+        sort: 'fechaHoraSalida',
+        'pagination[pageSize]': '30',
+        'filters[ruta][origen][$eq]': p.origen,
+        'filters[ruta][destino][$eq]': p.destino,
+        'filters[fechaHoraSalida][$gte]': ahora.toISOString(),
+        'filters[fechaHoraSalida][$lte]': hasta.toISOString(),
+        // Lo mismo que la web: solo lo que todavía se puede comprar (no canceladas ni ya en ruta)
+        'filters[estado][$in][0]': 'programada',
+        'filters[estado][$in][1]': 'abordando',
+      });
+      const lista = (await pedir(`/api/salidas?${q}`)) ?? [];
+      salidasDe.set(`${p.origen}→${p.destino}`, Array.isArray(lista) ? lista : []);
+      // La página cambia cuando cambia la ruta o alguna de sus salidas
+      for (const s of salidasDe.get(`${p.origen}→${p.destino}`)) if (s.updatedAt && (!p.cambio || s.updatedAt > p.cambio)) p.cambio = s.updatedAt;
+    })
+  );
+}
+const filasDe = (p) => filasSalidas(salidasDe.get(`${p.origen}→${p.destino}`) ?? [], tasaBcv);
 
 const plantilla = await readFile(join(DIST, 'index.html'), 'utf8');
 
 /** La página: la plantilla de la web con su cabecera y su contenido visible. */
-function pagina(ruta, t, cuerpo, migas) {
+function pagina(ruta, t, cuerpo, migas, { noindex = false, viajes = [] } = {}) {
   const url = `${DOMINIO}${ruta}`;
-  const datos = datosEstructurados(ruta, migas, t.preguntas);
+  const datos = datosEstructurados(ruta, migas, t.preguntas, viajes);
   let html = plantilla
     .replace(/<title>[\s\S]*?<\/title>/, `<title>${esc(t.titulo)}</title>`)
     .replace(/<meta\s+name="description"[\s\S]*?\/>/, `<meta name="description" content="${esc(t.descripcion)}" />`)
@@ -70,12 +103,13 @@ function pagina(ruta, t, cuerpo, migas) {
     .replace(/<meta property="og:title"[^>]*>/, `<meta property="og:title" content="${esc(t.titulo)}" />`)
     .replace(/<meta\s+property="og:description"[\s\S]*?\/>/, `<meta property="og:description" content="${esc(t.descripcion)}" />`)
     .replace(/<meta property="og:url"[^>]*>/, `<meta property="og:url" content="${url}" />`)
-    .replace('</head>', `<script type="application/ld+json" data-seo-pagina="1">${JSON.stringify(datos).replace(/</g, '\\u003c')}</script>\n</head>`);
+    .replace('</head>', `${noindex ? '<meta name="robots" content="noindex, follow" />\n' : ''}<script type="application/ld+json" data-seo-pagina="1">${JSON.stringify(datos).replace(/</g, '\\u003c')}</script>\n</head>`);
   const migasHtml = migas.map((m, i) => (i === migas.length - 1 ? `<span>${esc(m.nombre)}</span>` : `<a href="${m.ruta}">${esc(m.nombre)}</a>`)).join(' › ');
   const preguntas = (t.preguntas ?? []).map((q) => `<h3>${esc(q.p)}</h3><p>${esc(q.r)}</p>`).join('');
   const contenido = `<main style="max-width:1080px;margin:0 auto;padding:24px;font-family:system-ui,sans-serif;color:#0F172A">
 <nav style="font-size:13px">${migasHtml}</nav>
 <h1>${esc(t.h1)}</h1>
+${t.respuesta ? `<p><strong>${esc(t.respuesta)}</strong></p>` : ''}
 <p>${esc(t.intro)}</p>
 ${(t.datos ?? []).length ? `<ul>${t.datos.map((d) => `<li><strong>${esc(d.k)}:</strong> ${esc(d.v)}</li>`).join('')}</ul>` : ''}
 <p><a href="${ruta}">Buscar salidas y comprar pasajes</a></p>
@@ -87,6 +121,13 @@ ${preguntas ? `<section><h2>Preguntas frecuentes</h2>${preguntas}</section>` : '
   return html;
 }
 
+const tablaSalidas = (titulo, filas) =>
+  filas.length
+    ? `<section><h2>${esc(titulo)}</h2><table><thead><tr><th>Día</th><th>Sale</th><th>Llega</th><th>Línea</th><th>Desde</th></tr></thead><tbody>${filas
+        .slice(0, 20)
+        .map((f) => `<tr><td>${esc(f.fecha)}</td><td>${esc(f.hora)}</td><td>${esc(f.horaLlegada ?? '—')}</td><td>${esc(f.linea ?? '')}</td><td>${f.desdeUsd != null ? `$${f.desdeUsd}${f.desdeBs ? ` · Bs ${f.desdeBs.toLocaleString('es-VE')}` : ''}` : '—'}</td></tr>`)
+        .join('')}</tbody></table></section>`
+    : '';
 const lista = (titulo, items) => (items.length ? `<section><h2>${esc(titulo)}</h2><ul>${items.map(([href, texto]) => `<li><a href="${href}">${esc(texto)}</a></li>`).join('')}</ul></section>` : '');
 // Como carpeta (/pasajes/merida/index.html) y como archivo (/pasajes/merida.html): con `cleanUrls`
 // de Vercel la dirección sin barra ni .html entrega esta página, no la de la web vacía
@@ -97,7 +138,9 @@ const escribir = async (ruta, html) => {
   await writeFile(`${dir}.html`, html);
 };
 
-const urls = ['/', '/salidas', '/ayuda', '/pasajes'];
+// Mapa del sitio: solo lo que tiene oferta, con la fecha real del último cambio (sin fecha si no se sabe)
+const urls = [{ u: '/' }, { u: '/salidas' }, { u: '/ayuda' }];
+const masNueva = (fechas) => fechas.filter(Boolean).sort().pop() ?? null;
 const migasBase = [{ nombre: 'Inicio', ruta: '/' }, { nombre: 'Pasajes', ruta: '/pasajes' }];
 
 // Índice por estado
@@ -105,6 +148,7 @@ const porEstado = new Map();
 for (const c of ciudades) porEstado.set(c.estado ?? 'Otras', [...(porEstado.get(c.estado ?? 'Otras') ?? []), c]);
 const indice = [...porEstado.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([e, cs]) => lista(e, cs.map((c) => [rutaCiudad(c.nombre), `Pasajes en ${c.nombre}`]))).join('');
 await escribir('/pasajes', pagina('/pasajes', textosIndice(), indice, migasBase));
+urls.push({ u: '/pasajes', cambio: masNueva(listaPares.map((p) => p.cambio)) });
 
 // Una página por ciudad
 for (const c of ciudades) {
@@ -116,29 +160,35 @@ for (const c of ciudades) {
     lista(`Viajes desde ${c.nombre}`, desde.map((p) => [rutaPar(p.origen, p.destino), `Pasajes de ${p.origen} a ${p.destino}${p.precio != null ? ` desde $${p.precio}` : ''}`])) +
     lista(`Viajes hacia ${c.nombre}`, hacia.map((p) => [rutaPar(p.origen, p.destino), `Pasajes de ${p.origen} a ${p.destino}`])) +
     lista(`Otras ciudades de ${c.estado ?? ''}`, ciudades.filter((x) => x.estado === c.estado && x.nombre !== c.nombre).map((x) => [rutaCiudad(x.nombre), `Pasajes en ${x.nombre}`]));
-  await escribir(ruta, pagina(ruta, t, cuerpo, [...migasBase, { nombre: c.nombre, ruta }]));
-  urls.push(ruta);
+  // Sin ninguna ruta que la toque, la página existe para la gente pero no se indexa: 59 páginas
+  // casi iguales sin oferta son relleno para Google y bajan al sitio entero
+  const conOferta = desde.length > 0 || hacia.length > 0;
+  await escribir(ruta, pagina(ruta, t, cuerpo, [...migasBase, { nombre: c.nombre, ruta }], { noindex: !conOferta }));
+  if (conOferta) urls.push({ u: ruta, cambio: masNueva([...desde, ...hacia].map((p) => p.cambio)) });
 }
 
 // Una página por ruta publicada
 for (const p of pares.values()) {
   const ruta = rutaPar(p.origen, p.destino);
-  const t = textosPar(p.origen, p.destino, { precioDesde: p.precio, duracionMin: p.duracionMin, distanciaKm: p.distanciaKm, lineas: lineasDe(p.origen, p.destino) });
+  const filas = filasDe(p);
+  const resumen = resumenPar(filas, { precioDesde: p.precio, tasaBcv });
+  const t = textosPar(p.origen, p.destino, { precioDesde: p.precio, duracionMin: p.duracionMin, distanciaKm: p.distanciaKm, resumen, terminalSalida: p.terminalSalida, terminalLlegada: p.terminalLlegada });
   const cuerpo =
+    tablaSalidas(`Horarios de ${p.origen} a ${p.destino}`, filas) +
     lista('Viaje de vuelta', [[rutaPar(p.destino, p.origen), `Pasajes de ${p.destino} a ${p.origen}`]]) +
     lista(`Más viajes desde ${p.origen}`, [...pares.values()].filter((x) => x.origen === p.origen && x.destino !== p.destino).map((x) => [rutaPar(x.origen, x.destino), `Pasajes de ${x.origen} a ${x.destino}`]));
-  await escribir(ruta, pagina(ruta, t, cuerpo, [...migasBase, { nombre: p.origen, ruta: rutaCiudad(p.origen) }, { nombre: `${p.origen} a ${p.destino}`, ruta }]));
-  urls.push(ruta);
+  const viajes = filas.map((f) => ({ ...f, origen: p.origen, destino: p.destino, terminalSalida: p.terminalSalida, terminalLlegada: p.terminalLlegada }));
+  await escribir(ruta, pagina(ruta, t, cuerpo, [...migasBase, { nombre: p.origen, ruta: rutaCiudad(p.origen) }, { nombre: `${p.origen} a ${p.destino}`, ruta }], { viajes }));
+  urls.push({ u: ruta, cambio: p.cambio });
 }
 
-// Mapa del sitio
-const hoy = new Date().toISOString().slice(0, 10);
-const rutasDePar = new Set([...pares.values()].map((p) => rutaPar(p.origen, p.destino)));
+const rutasDePar = new Set(listaPares.map((p) => rutaPar(p.origen, p.destino)));
 const prioridad = (u) => (u === '/' ? '1.0' : u === '/pasajes' ? '0.9' : rutasDePar.has(u) ? '0.8' : u.startsWith('/pasajes/') ? '0.7' : '0.5');
 const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${urls.map((u) => `  <url><loc>${DOMINIO}${u}</loc><lastmod>${hoy}</lastmod><changefreq>${u === '/' || u.startsWith('/pasajes') ? 'daily' : 'weekly'}</changefreq><priority>${prioridad(u)}</priority></url>`).join('\n')}
+${urls.map(({ u, cambio }) => `  <url><loc>${DOMINIO}${u}</loc>${cambio ? `<lastmod>${cambio.slice(0, 10)}</lastmod>` : ''}<priority>${prioridad(u)}</priority></url>`).join('\n')}
 </urlset>
 `;
 await writeFile(join(DIST, 'sitemap.xml'), sitemap);
-console.log(`SEO: ${ciudades.length} ciudades, ${pares.size} rutas, ${urls.length} páginas en el sitemap (datos: ${ciudadesApi ? 'API' : 'catálogo incluido'})`);
+const conSalidas = listaPares.filter((p) => filasDe(p).length).length;
+console.log(`SEO: ${ciudades.length} ciudades, ${pares.size} rutas (${conSalidas} con salidas próximas), ${urls.length} páginas en el sitemap (datos: ${ciudadesApi ? 'API' : 'catálogo incluido'}${tasaBcv ? `, BCV ${tasaBcv}` : ''})`);

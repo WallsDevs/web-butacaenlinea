@@ -1,11 +1,11 @@
 import { useEffect, useMemo } from 'react';
 import { Link, Navigate, useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { getCiudades, getRutas, getSalidas } from '../../lib/api/endpoints';
+import { getCiudades, getRutas, getSalidas, getTasas } from '../../lib/api/endpoints';
 import { useSeo } from '../../lib/seo';
 import { BuscadorPasajes } from './BuscadorPasajes';
 import { useBooking } from './useBooking';
-import { datosEstructurados, rutaCiudad, rutaPar, separarPar, slug, textosCiudad, textosIndice, textosPar } from '../../seo/contenido.mjs';
+import { type SalidaPublica, type ViajeLd, ZONA, datosEstructurados, filasSalidas, resumenPar, rutaCiudad, rutaPar, separarPar, slug, textosCiudad, textosIndice, textosPar } from '../../seo/contenido.mjs';
 import CIUDADES_RESPALDO from '../../seo/ciudades.json';
 import styles from './pasajes.module.css';
 
@@ -23,8 +23,8 @@ export default function Pasajes() {
   const { ciudad: pSegmento, origen: pViejoOrigen, destino: pViejoDestino } = useParams();
   const { setCriterios } = useBooking();
   const { data: ciudadesApi } = useQuery({ queryKey: ['ciudades'], queryFn: getCiudades, staleTime: 600_000 });
-  const { data: rutas } = useQuery({ queryKey: ['rutas-publicas'], queryFn: () => getRutas() });
-  const { data: proximas } = useQuery({ queryKey: ['salidas-proximas', 'todas'], queryFn: () => getSalidas({ desde: new Date().toISOString(), limite: 100 }) });
+  const { data: rutas, isSuccess: rutasListas } = useQuery({ queryKey: ['rutas-publicas'], queryFn: () => getRutas() });
+  const { data: tasas } = useQuery({ queryKey: ['tasas'], queryFn: getTasas, staleTime: 600_000 });
 
   const ciudades: Ciudad[] = (ciudadesApi?.length ? ciudadesApi : (CIUDADES_RESPALDO as Ciudad[])).map((c) => ({ nombre: c.nombre, estado: c.estado }));
   const porSlug = useMemo(() => new Map(ciudades.map((c) => [slug(c.nombre), c])), [ciudades]);
@@ -36,40 +36,54 @@ export default function Pasajes() {
   const origen = pOrigen ? porSlug.get(pOrigen) : undefined;
   const destino = pDestino ? porSlug.get(pDestino) : undefined;
 
+  // Horarios de la ruta: las mismas salidas (14 días, solo comprables) que van en el HTML para Google
+  const { data: salidasPar } = useQuery({
+    queryKey: ['salidas-par', origen?.nombre, destino?.nombre],
+    queryFn: () => getSalidas({ origen: origen!.nombre, destino: destino!.nombre, desde: new Date().toISOString(), hasta: new Date(Date.now() + 14 * 24 * 3600_000).toISOString(), limite: 30 }),
+    enabled: Boolean(origen && destino),
+  });
+  const tasaBcv = Number(tasas?.bcv) || null;
+  const filas = useMemo(() => filasSalidas((salidasPar ?? []) as unknown as SalidaPublica[], tasaBcv), [salidasPar, tasaBcv]);
+
   // Una ruta de la línea por par (la ida y su vuelta enlazada son pares distintos)
   const pares = useMemo(() => {
-    const m = new Map<string, { origen: string; destino: string; precio: number | null; duracionMin: number | null; distanciaKm: number | null }>();
+    const m = new Map<string, { origen: string; destino: string; precio: number | null; duracionMin: number | null; distanciaKm: number | null; terminalSalida: string | null; terminalLlegada: string | null }>();
     for (const r of rutas ?? []) {
       if (!r.origen || !r.destino) continue;
       const k = `${r.origen}→${r.destino}`;
       const precio = (r.tarifas ?? []).map((t) => Number(t.precioUsd)).filter((n) => n > 0);
       const min = precio.length ? Math.min(...precio) : null;
       const actual = m.get(k);
-      if (!actual) m.set(k, { origen: r.origen, destino: r.destino, precio: min, duracionMin: r.duracionMin || null, distanciaKm: r.distanciaKm || null });
+      const lugar = (l: unknown) => (l && typeof l === 'object' ? ((l as { nombre?: string }).nombre ?? null) : null);
+      if (!actual) m.set(k, { origen: r.origen, destino: r.destino, precio: min, duracionMin: r.duracionMin || null, distanciaKm: r.distanciaKm || null, terminalSalida: lugar((r as { origenLugar?: unknown }).origenLugar), terminalLlegada: lugar((r as { destinoLugar?: unknown }).destinoLugar) });
       else if (min != null && (actual.precio == null || min < actual.precio)) actual.precio = min;
     }
     return [...m.values()];
   }, [rutas]);
-  const lineasDe = (o: string, d: string) => [...new Set((proximas ?? []).filter((s) => s.ruta?.origen === o && s.ruta?.destino === d).map((s) => s.linea?.nombre).filter(Boolean) as string[])];
 
-  // El buscador de la página, ya puesto en la ciudad o la ruta
+  // El buscador de la página, ya puesto en la ciudad o la ruta (y en el día de la primera salida:
+  // si hoy no hay, decir «no hay salidas» al lado de la tabla de horarios confunde)
+  const primeraFecha = filas[0] ? new Date(filas[0].salida).toLocaleDateString('en-CA', { timeZone: ZONA }) : null;
   useEffect(() => {
-    if (origen && destino) setCriterios({ origen: origen.nombre, destino: destino.nombre });
+    if (origen && destino) setCriterios({ origen: origen.nombre, destino: destino.nombre, ...(primeraFecha ? { fecha: primeraFecha } : {}) });
     else if (ciudad) {
       const sale = pares.find((p) => p.origen === ciudad.nombre);
       setCriterios(sale ? { origen: ciudad.nombre, destino: sale.destino } : { destino: ciudad.nombre });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ciudad?.nombre, origen?.nombre, destino?.nombre, pares.length]);
+  }, [ciudad?.nombre, origen?.nombre, destino?.nombre, pares.length, primeraFecha]);
 
   // ── Textos de la página ──
   let ruta = '/pasajes';
-  let t: { titulo: string; descripcion: string; h1: string; intro: string; preguntas?: { p: string; r: string }[]; datos?: { k: string; v: string }[] };
+  let t: { titulo: string; descripcion: string; h1: string; intro: string; respuesta?: string | null; preguntas?: { p: string; r: string }[]; datos?: { k: string; v: string }[] };
+  let viajes: ViajeLd[] = [];
   let migas: { nombre: string; ruta: string }[] = [{ nombre: 'Inicio', ruta: '/' }, { nombre: 'Pasajes', ruta: '/pasajes' }];
   if (origen && destino) {
     const par = pares.find((p) => p.origen === origen.nombre && p.destino === destino.nombre);
     ruta = rutaPar(origen.nombre, destino.nombre);
-    t = textosPar(origen.nombre, destino.nombre, { precioDesde: par?.precio, duracionMin: par?.duracionMin, distanciaKm: par?.distanciaKm, lineas: lineasDe(origen.nombre, destino.nombre) });
+    const resumen = resumenPar(filas, { precioDesde: par?.precio ?? null, tasaBcv });
+    t = textosPar(origen.nombre, destino.nombre, { precioDesde: par?.precio, duracionMin: par?.duracionMin, distanciaKm: par?.distanciaKm, resumen, terminalSalida: par?.terminalSalida ?? null, terminalLlegada: par?.terminalLlegada ?? null });
+    viajes = filas.map((f) => ({ ...f, origen: origen.nombre, destino: destino.nombre, terminalSalida: par?.terminalSalida ?? null, terminalLlegada: par?.terminalLlegada ?? null }));
     migas = [...migas, { nombre: origen.nombre, ruta: rutaCiudad(origen.nombre) }, { nombre: `${origen.nombre} a ${destino.nombre}`, ruta }];
   } else if (ciudad) {
     ruta = rutaCiudad(ciudad.nombre);
@@ -79,7 +93,9 @@ export default function Pasajes() {
     t = textosIndice();
   }
   const noExiste = Boolean(!pViejoOrigen && ((pCiudad && !ciudad) || (pOrigen && (!origen || !destino))));
-  useSeo(noExiste ? 'Ciudad no encontrada | Butaca En Línea' : t.titulo, t.descripcion, { ruta, noindex: noExiste, datos: noExiste ? undefined : datosEstructurados(ruta, migas, t.preguntas) });
+  // Ciudad sin ninguna ruta: se ve, pero no se indexa (igual que en el HTML para Google). Solo con las rutas ya cargadas.
+  const sinOferta = Boolean(ciudad && rutasListas && !pares.some((p) => p.origen === ciudad.nombre || p.destino === ciudad.nombre));
+  useSeo(noExiste ? 'Ciudad no encontrada | Butaca En Línea' : t.titulo, t.descripcion, { ruta, noindex: noExiste || sinOferta, datos: noExiste ? undefined : datosEstructurados(ruta, migas, t.preguntas, viajes) });
 
   const porEstado = useMemo(() => {
     const m = new Map<string, Ciudad[]>();
@@ -114,6 +130,7 @@ export default function Pasajes() {
         ))}
       </nav>
       <h1 className={styles.h1}>{t.h1}</h1>
+      {t.respuesta && <p className={styles.respuesta}>{t.respuesta}</p>}
       <p className={styles.intro}>{t.intro}</p>
       {t.datos && t.datos.length > 0 && (
         <dl className={styles.datos}>
@@ -126,6 +143,30 @@ export default function Pasajes() {
         </dl>
       )}
 
+      {origen && destino && filas.length > 0 && (
+        <section className={styles.seccion}>
+          <h2>Horarios de {origen.nombre} a {destino.nombre}</h2>
+          <div className={styles.tablaEnvoltura}>
+            <table className={styles.tabla}>
+              <thead>
+                <tr><th>Día</th><th>Sale</th><th>Llega</th><th>Línea</th><th>Desde</th><th aria-label="Comprar" /></tr>
+              </thead>
+              <tbody>
+                {filas.slice(0, 20).map((f) => (
+                  <tr key={f.id}>
+                    <td className={styles.cFecha}>{f.fecha}</td>
+                    <td className={`${styles.hora} ${styles.cHora}`}>{f.hora}</td>
+                    <td className={styles.cLlega}>{f.horaLlegada ? <><span className={styles.soloMovil}>llega </span>{f.horaLlegada}</> : '—'}</td>
+                    <td className={styles.cLinea}>{f.linea ?? ''}</td>
+                    <td className={styles.cPrecio}>{f.desdeUsd != null ? <>${f.desdeUsd}{f.desdeBs ? <span> · Bs {f.desdeBs.toLocaleString('es-VE')}</span> : null}</> : '—'}</td>
+                    <td className={styles.cComprar}><Link to={`/salidas/${f.id}/asientos`}>Comprar</Link></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
       {(ciudad || (origen && destino)) && (
         <section className={styles.buscar} aria-label="Buscar salidas">
           <BuscadorPasajes enPanel />
