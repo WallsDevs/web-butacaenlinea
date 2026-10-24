@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { adjuntarComprobante, emitirBoletos, getMapaAsientos, getMetodosPago, getWallet } from '../../lib/api/endpoints';
-import { ApiError } from '../../lib/api/client';
+import { ApiError, esSinConexion } from '../../lib/api/client';
 import { hora, fechaCorta } from '../../lib/time';
 import { Field } from '../../components/ui/Field';
 import { TicketCard } from '../../components/ticket/TicketCard';
@@ -18,7 +18,7 @@ import styles from './public.module.css';
  * muestra su código, para poder rastrearlo (antes todo decía «revisa los datos»).
  */
 function motivoEmision(e: unknown): string {
-  if (!(e instanceof ApiError)) return 'Sin conexión con el servidor. Revisa tu internet e intenta de nuevo; tus puestos siguen apartados mientras corre el tiempo.';
+  if (esSinConexion(e) || !(e instanceof ApiError)) return 'Sin conexión con el servidor. Revisa tu internet e intenta de nuevo; tus puestos siguen apartados mientras corre el tiempo.';
   switch (e.code) {
     case 'linea_sin_venta':
       return 'Esta línea no está vendiendo en línea en este momento. Compra en la taquilla del terminal o escoge otra salida.';
@@ -107,7 +107,7 @@ export default function Checkout() {
   const emitir = useMutation({
     // Sin respuesta (señal cortada) se reintenta solo: el servidor reconoce la misma reserva y
     // devuelve los boletos ya emitidos, sin cobrar dos veces
-    retry: (n, e) => !(e instanceof ApiError) && n < 2,
+    retry: (n, e) => esSinConexion(e) && n < 2,
     mutationFn: () => {
       const metodo =
         metodoPago === 'wallet'

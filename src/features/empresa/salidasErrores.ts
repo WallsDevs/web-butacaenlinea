@@ -1,4 +1,4 @@
-import { ApiError } from '../../lib/api/client';
+import { ApiError, esSinConexion } from '../../lib/api/client';
 import { fechaCorta, hora } from '../../lib/time';
 
 type Detalles = {
@@ -56,7 +56,7 @@ export function explicarSalida(codigo: string, d: Detalles = {}): string {
 
 /** El mensaje de un error de la API; en una serie dice además qué salida falló. */
 export function mensajeDeError(e: unknown): string {
-  if (!(e instanceof ApiError)) return 'Sin conexión con el servidor.';
+  if (esSinConexion(e) || !(e instanceof ApiError)) return 'Sin conexión con el servidor.';
   const d = (e.details ?? {}) as Detalles;
   if (e.code === 'serie_invalida' && d.motivo) {
     return `La salida del ${cuando(d.fechaHoraSalida).replace(/^el /, '')} no se puede: ${explicarSalida(d.motivo, d.detalles)} No se programó ninguna; corrige esa y vuelve a intentar.`;
