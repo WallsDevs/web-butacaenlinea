@@ -751,7 +751,8 @@ export interface DepositoTaquilla {
   comisionBs: number;
   netoBs: number;
   boletos: number;
-  estado: 'pendiente' | 'reportado' | 'verificado' | 'rechazado';
+  /** `anulado`: sus boletos se anularon antes de reportarlo; no hay nada que depositar. */
+  estado: 'pendiente' | 'reportado' | 'verificado' | 'rechazado' | 'anulado';
   referencia: string | null;
   banco: string | null;
   comprobanteUrl: string | null;

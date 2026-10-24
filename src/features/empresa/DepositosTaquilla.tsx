@@ -13,6 +13,7 @@ const ESTADO: Record<DepositoTaquilla['estado'], { tono: 'ok' | 'warn' | 'bad' |
   reportado: { tono: 'neutral', texto: 'En revisión por Butaca' },
   verificado: { tono: 'ok', texto: 'Acreditado' },
   rechazado: { tono: 'bad', texto: 'Rechazado: revisa y vuelve a reportar' },
+  anulado: { tono: 'neutral', texto: 'Sin nada que depositar (boletos anulados)' },
 };
 
 /**
