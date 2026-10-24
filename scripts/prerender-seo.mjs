@@ -17,7 +17,7 @@
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { DOMINIO, RUTA_PRECIOS, datosEstructurados, filasSalidas, resumenPar, rutaCiudad, rutaLinea, rutaPar, textosCiudad, textosIndice, textosLinea, textosPar, textosPrecios } from '../src/seo/contenido.mjs';
+import { DOMINIO, RUTA_PRECIOS, TEMPORADAS, datosEstructurados, filasSalidas, resumenPar, rutaCiudad, rutaLinea, rutaPar, rutaTemporada, textosCiudad, textosIndice, textosLinea, textosPar, textosPrecios, textosTemporada } from '../src/seo/contenido.mjs';
 
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = join(raiz, 'dist');
@@ -147,7 +147,8 @@ const migasBase = [{ nombre: 'Inicio', ruta: '/' }, { nombre: 'Pasajes', ruta: '
 const porEstado = new Map();
 for (const c of ciudades) porEstado.set(c.estado ?? 'Otras', [...(porEstado.get(c.estado ?? 'Otras') ?? []), c]);
 const indice = [...porEstado.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([e, cs]) => lista(e, cs.map((c) => [rutaCiudad(c.nombre), `Pasajes en ${c.nombre}`]))).join('');
-await escribir('/pasajes', pagina('/pasajes', textosIndice(), lista('Precios de hoy', [[RUTA_PRECIOS, 'Precios de pasajes de autobús hoy, en dólares y bolívares']]) + indice, migasBase));
+const temporadasVivas = TEMPORADAS.filter((t) => new Date(`${t.hasta}T23:59:59-04:00`).getTime() >= Date.now());
+await escribir('/pasajes', pagina('/pasajes', textosIndice(), lista('Precios y temporadas', [[RUTA_PRECIOS, 'Precios de pasajes de autobús hoy, en dólares y bolívares'], ...temporadasVivas.map((t) => [rutaTemporada(t.slug), `Pasajes para ${t.nombre} ${t.anio}`])]) + indice, migasBase));
 urls.push({ u: '/pasajes', cambio: masNueva(listaPares.map((p) => p.cambio)) });
 
 // Una página por ciudad
@@ -233,8 +234,32 @@ if (listaPares.length) {
   urls.push({ u: RUTA_PRECIOS, cambio: new Date().toISOString() });
 }
 
+// Temporadas vigentes (hasta que terminan): las salidas publicadas en esas fechas y las rutas con precio
+for (const temp of TEMPORADAS) {
+  const fin = new Date(`${temp.hasta}T23:59:59-04:00`);
+  if (fin.getTime() < ahora.getTime() || !listaPares.length) continue;
+  const salidasT =
+    (await pedir(
+      `/api/salidas?populate[ruta]=true&populate[linea]=true&sort=fechaHoraSalida&pagination[pageSize]=100&filters[fechaHoraSalida][$gte]=${encodeURIComponent(new Date(`${temp.desde}T00:00:00-04:00`).toISOString())}&filters[fechaHoraSalida][$lte]=${encodeURIComponent(fin.toISOString())}&filters[estado][$in][0]=programada&filters[estado][$in][1]=abordando`
+    )) ?? [];
+  const listaT = Array.isArray(salidasT) ? salidasT : [];
+  const filasT = filasSalidas(listaT, tasaBcv).map((f, i) => ({ ...f, ruta: listaT[i]?.ruta ?? null }));
+  const t = textosTemporada(temp, { salidas: filasT.length, rutas: listaPares });
+  const ruta = rutaTemporada(temp.slug);
+  const tablaT = filasT.length
+    ? `<section><h2>Salidas publicadas</h2><table><thead><tr><th>Ruta</th><th>Día</th><th>Sale</th><th>Línea</th><th>Desde</th></tr></thead><tbody>${filasT
+        .slice(0, 60)
+        .map((f) => `<tr><td>${f.ruta ? `<a href="${rutaPar(f.ruta.origen, f.ruta.destino)}">${esc(f.ruta.origen)} a ${esc(f.ruta.destino)}</a>` : ''}</td><td>${esc(f.fecha)}</td><td>${esc(f.hora)}</td><td>${esc(f.linea ?? '')}</td><td>${f.desdeUsd != null ? `$${f.desdeUsd}` : '—'}</td></tr>`)
+        .join('')}</tbody></table></section>`
+    : '';
+  const cuerpo = tablaT + lista('Rutas y precio desde', [...listaPares].sort((a, b) => (a.precio ?? 999) - (b.precio ?? 999)).map((p) => [rutaPar(p.origen, p.destino), `${p.origen} a ${p.destino}${p.precio != null ? ` · desde $${p.precio}` : ''}`]));
+  const viajes = filasT.filter((f) => f.ruta).map((f) => ({ ...f, origen: f.ruta.origen, destino: f.ruta.destino }));
+  await escribir(ruta, pagina(ruta, t, cuerpo, [{ nombre: 'Inicio', ruta: '/' }, { nombre: 'Pasajes', ruta: '/pasajes' }, { nombre: `${temp.titulo} ${temp.anio}`, ruta }], { viajes }));
+  urls.push({ u: ruta, cambio: masNueva([...listaT.map((x) => x.updatedAt), ...listaPares.map((p) => p.cambio)]) });
+}
+
 const rutasDePar = new Set(listaPares.map((p) => rutaPar(p.origen, p.destino)));
-const prioridad = (u) => (u === '/' ? '1.0' : u === '/pasajes' || u === RUTA_PRECIOS ? '0.9' : rutasDePar.has(u) ? '0.8' : u.startsWith('/pasajes/') || u.startsWith('/lineas/') ? '0.7' : '0.5');
+const prioridad = (u) => (u === '/' ? '1.0' : u === '/pasajes' || u === RUTA_PRECIOS || u.startsWith('/temporada/') ? '0.9' : rutasDePar.has(u) ? '0.8' : u.startsWith('/pasajes/') || u.startsWith('/lineas/') ? '0.7' : '0.5');
 const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${urls.map(({ u, cambio }) => `  <url><loc>${DOMINIO}${u}</loc>${cambio ? `<lastmod>${cambio.slice(0, 10)}</lastmod>` : ''}<priority>${prioridad(u)}</priority></url>`).join('\n')}

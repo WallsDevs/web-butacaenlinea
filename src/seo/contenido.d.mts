@@ -23,3 +23,7 @@ export function rutaLinea(slugLinea: string): string;
 export const RUTA_PRECIOS: string;
 export function textosLinea(nombre: string, info?: { rutas?: { destino: string; precio: number | null }[]; salidasSemana?: number; terminalBase?: string | null }): Textos & { respuesta: string | null; preguntas: Pregunta[] };
 export function textosPrecios(fecha: string, cantidad: number): Textos & { preguntas: Pregunta[] };
+export interface Temporada { slug: string; nombre: string; titulo: string; desde: string; hasta: string; anio: number }
+export const TEMPORADAS: Temporada[];
+export function rutaTemporada(slugTemporada: string): string;
+export function textosTemporada(t: Temporada, info?: { salidas?: number; rutas?: { precio: number | null }[] }): Textos & { respuesta: string; preguntas: Pregunta[] };

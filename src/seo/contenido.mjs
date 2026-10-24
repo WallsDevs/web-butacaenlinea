@@ -207,6 +207,35 @@ export function textosPrecios(fecha, cantidad) {
   };
 }
 
+/**
+ * Temporadas: una página propia que se publica semanas antes, para que Google
+ * la conozca cuando la gente empiece a buscar. Se agregan aquí año tras año.
+ */
+export const TEMPORADAS = [
+  { slug: 'diciembre-2026', nombre: 'diciembre', titulo: 'Navidad y fin de año', desde: '2026-12-15', hasta: '2027-01-10', anio: 2026 },
+];
+export const rutaTemporada = (slugTemporada) => `/temporada/${slugTemporada}`;
+
+/** Página de temporada: las salidas publicadas en esas fechas y las rutas con su precio desde. */
+export function textosTemporada(t, { salidas = 0, rutas = [] } = {}) {
+  const desde = rutas.map((r) => r.precio).filter((n) => n > 0);
+  const precio = desde.length ? dolares(Math.min(...desde)) : null;
+  const fechas = `del ${new Date(`${t.desde}T12:00:00-04:00`).toLocaleDateString('es-VE', { day: 'numeric', month: 'long' })} al ${new Date(`${t.hasta}T12:00:00-04:00`).toLocaleDateString('es-VE', { day: 'numeric', month: 'long' })}`;
+  return {
+    titulo: `Pasajes de autobús para ${t.nombre} ${t.anio}: salidas y precios | ${MARCA}`,
+    descripcion: `Pasajes en bus para viajar en ${t.titulo.toLowerCase()} ${t.anio} en Venezuela${precio ? ` desde ${precio}` : ''}: ${salidas ? `${salidas} salidas publicadas ${fechas}` : `salidas ${fechas}`}. Aparta tu puesto en línea antes de que se agoten.`,
+    h1: `Pasajes de autobús para ${t.nombre} ${t.anio}`,
+    respuesta: [precio && `Desde ${precio}`, salidas ? `${salidas} ${salidas === 1 ? 'salida publicada' : 'salidas publicadas'}` : 'Salidas publicándose', fechas].filter(Boolean).join(' · '),
+    intro: `En ${t.titulo.toLowerCase()} los puestos de bus se agotan semanas antes. En ${MARCA} ves las salidas de todas las líneas ${fechas}, escoges tu puesto en el mapa del bus y pagas desde el teléfono, sin hacer cola en el terminal.`,
+    preguntas: [
+      { p: `¿Cuándo compro mis pasajes para ${t.nombre}?`, r: `Lo antes posible: las salidas cercanas al 24 y al 31 son las primeras en llenarse. Apenas una línea publica sus salidas de ${t.nombre}, aparecen aquí y en el buscador.` },
+      { p: `¿Suben los pasajes en ${t.nombre}?`, r: 'Cada línea fija sus precios en dólares; en temporada alta algunas los ajustan. El precio de tu salida queda fijo al comprar, aunque después cambie.' },
+      { p: '¿Qué pasa si se cancela mi salida?', r: `Si la línea cancela, el dinero se te devuelve: a tu wallet de ${MARCA} al instante si compraste con cuenta, o por el mismo medio si compraste sin cuenta.` },
+      ...PREGUNTAS_COMPRA,
+    ],
+  };
+}
+
 /** Índice de todas las ciudades, por estado. */
 export const textosIndice = () => ({
   titulo: `Pasajes de autobús en Venezuela por ciudad | ${MARCA}`,

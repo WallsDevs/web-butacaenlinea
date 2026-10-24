@@ -5,7 +5,7 @@ import { getCiudades, getRutas, getSalidas, getTasas } from '../../lib/api/endpo
 import { useSeo } from '../../lib/seo';
 import { BuscadorPasajes } from './BuscadorPasajes';
 import { useBooking } from './useBooking';
-import { type SalidaPublica, type ViajeLd, RUTA_PRECIOS, ZONA, datosEstructurados, filasSalidas, resumenPar, rutaCiudad, rutaLinea, rutaPar, separarPar, slug, textosCiudad, textosIndice, textosPar } from '../../seo/contenido.mjs';
+import { type SalidaPublica, type ViajeLd, RUTA_PRECIOS, TEMPORADAS, ZONA, datosEstructurados, filasSalidas, resumenPar, rutaCiudad, rutaLinea, rutaPar, rutaTemporada, separarPar, slug, textosCiudad, textosIndice, textosPar } from '../../seo/contenido.mjs';
 import CIUDADES_RESPALDO from '../../seo/ciudades.json';
 import styles from './pasajes.module.css';
 
@@ -228,9 +228,12 @@ export default function Pasajes() {
 
       {!centro && (
         <section className={styles.seccion}>
-          <h2>Precios de hoy</h2>
+          <h2>Precios y temporadas</h2>
           <ul className={styles.enlaces}>
             <li><Link to={RUTA_PRECIOS}>Precios de pasajes de autobús hoy, en dólares y bolívares</Link></li>
+            {TEMPORADAS.filter((t) => new Date(`${t.hasta}T23:59:59-04:00`).getTime() >= Date.now()).map((t) => (
+              <li key={t.slug}><Link to={rutaTemporada(t.slug)}>Pasajes para {t.nombre} {t.anio}</Link></li>
+            ))}
           </ul>
         </section>
       )}
