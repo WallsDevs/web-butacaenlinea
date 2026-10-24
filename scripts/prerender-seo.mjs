@@ -17,7 +17,7 @@
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { DOMINIO, datosEstructurados, filasSalidas, resumenPar, rutaCiudad, rutaPar, textosCiudad, textosIndice, textosPar } from '../src/seo/contenido.mjs';
+import { DOMINIO, RUTA_PRECIOS, datosEstructurados, filasSalidas, resumenPar, rutaCiudad, rutaLinea, rutaPar, textosCiudad, textosIndice, textosLinea, textosPar, textosPrecios } from '../src/seo/contenido.mjs';
 
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = join(raiz, 'dist');
@@ -147,7 +147,7 @@ const migasBase = [{ nombre: 'Inicio', ruta: '/' }, { nombre: 'Pasajes', ruta: '
 const porEstado = new Map();
 for (const c of ciudades) porEstado.set(c.estado ?? 'Otras', [...(porEstado.get(c.estado ?? 'Otras') ?? []), c]);
 const indice = [...porEstado.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([e, cs]) => lista(e, cs.map((c) => [rutaCiudad(c.nombre), `Pasajes en ${c.nombre}`]))).join('');
-await escribir('/pasajes', pagina('/pasajes', textosIndice(), indice, migasBase));
+await escribir('/pasajes', pagina('/pasajes', textosIndice(), lista('Precios de hoy', [[RUTA_PRECIOS, 'Precios de pasajes de autobús hoy, en dólares y bolívares']]) + indice, migasBase));
 urls.push({ u: '/pasajes', cambio: masNueva(listaPares.map((p) => p.cambio)) });
 
 // Una página por ciudad
@@ -173,8 +173,10 @@ for (const p of pares.values()) {
   const filas = filasDe(p);
   const resumen = resumenPar(filas, { precioDesde: p.precio, tasaBcv });
   const t = textosPar(p.origen, p.destino, { precioDesde: p.precio, duracionMin: p.duracionMin, distanciaKm: p.distanciaKm, resumen, terminalSalida: p.terminalSalida, terminalLlegada: p.terminalLlegada });
+  const lineasRuta = [...new Map(filas.filter((f) => f.lineaSlug).map((f) => [f.lineaSlug, f.linea])).entries()];
   const cuerpo =
     tablaSalidas(`Horarios de ${p.origen} a ${p.destino}`, filas) +
+    lista('Líneas que viajan esta ruta', lineasRuta.map(([sl, nombre]) => [rutaLinea(sl), `Pasajes de ${nombre}`])) +
     lista('Viaje de vuelta', [[rutaPar(p.destino, p.origen), `Pasajes de ${p.destino} a ${p.origen}`]]) +
     lista(`Más viajes desde ${p.origen}`, [...pares.values()].filter((x) => x.origen === p.origen && x.destino !== p.destino).map((x) => [rutaPar(x.origen, x.destino), `Pasajes de ${x.origen} a ${x.destino}`]));
   const viajes = filas.map((f) => ({ ...f, origen: p.origen, destino: p.destino, terminalSalida: p.terminalSalida, terminalLlegada: p.terminalLlegada }));
@@ -182,8 +184,57 @@ for (const p of pares.values()) {
   urls.push({ u: ruta, cambio: p.cambio });
 }
 
+// Una página por línea que vende: sus rutas (con precio desde) y sus próximas salidas
+const lineas = ((await pedir('/api/lineas')) ?? []).filter((l) => l?.slug && l?.activa !== false);
+let paginasLinea = 0;
+for (const l of lineas) {
+  const rutasL = (await pedir(`/api/rutas?populate[tarifas]=true&pagination[pageSize]=100&filters[linea][slug][$eq]=${encodeURIComponent(l.slug)}`)) ?? [];
+  if (!Array.isArray(rutasL) || !rutasL.length) continue;
+  const salidasL =
+    (await pedir(
+      `/api/salidas?populate[ruta]=true&populate[linea]=true&sort=fechaHoraSalida&pagination[pageSize]=30&filters[linea][slug][$eq]=${encodeURIComponent(l.slug)}&filters[fechaHoraSalida][$gte]=${encodeURIComponent(ahora.toISOString())}&filters[fechaHoraSalida][$lte]=${encodeURIComponent(hasta.toISOString())}&filters[estado][$in][0]=programada&filters[estado][$in][1]=abordando`
+    )) ?? [];
+  const filasL = filasSalidas(Array.isArray(salidasL) ? salidasL : [], tasaBcv).map((f, i) => ({ ...f, ruta: salidasL[i]?.ruta ?? null }));
+  const paresL = new Map();
+  for (const r of rutasL) {
+    if (!r.origen || !r.destino) continue;
+    const precios = (r.tarifas ?? []).map((t) => Number(t.precioUsd)).filter((n) => n > 0);
+    const k = `${r.origen}→${r.destino}`;
+    const min = precios.length ? Math.min(...precios) : null;
+    const a = paresL.get(k);
+    if (!a || (min != null && (a.precio == null || min < a.precio))) paresL.set(k, { origen: r.origen, destino: r.destino, precio: min });
+  }
+  const rutasLista = [...paresL.values()];
+  const semana = filasL.filter((f) => new Date(f.salida).getTime() <= ahora.getTime() + 7 * 24 * 3600_000).length;
+  const t = textosLinea(l.nombre, { rutas: rutasLista, salidasSemana: semana, terminalBase: l.terminalBase ?? null });
+  const ruta = rutaLinea(l.slug);
+  const tablaL = filasL.length
+    ? `<section><h2>Próximas salidas de ${esc(l.nombre)}</h2><table><thead><tr><th>Ruta</th><th>Día</th><th>Sale</th><th>Desde</th></tr></thead><tbody>${filasL
+        .slice(0, 20)
+        .map((f) => `<tr><td>${f.ruta ? `<a href="${rutaPar(f.ruta.origen, f.ruta.destino)}">${esc(f.ruta.origen)} a ${esc(f.ruta.destino)}</a>` : ''}</td><td>${esc(f.fecha)}</td><td>${esc(f.hora)}</td><td>${f.desdeUsd != null ? `$${f.desdeUsd}` : '—'}</td></tr>`)
+        .join('')}</tbody></table></section>`
+    : '';
+  const cuerpo = lista(`Rutas de ${l.nombre}`, rutasLista.map((r) => [rutaPar(r.origen, r.destino), `${r.origen} a ${r.destino}${r.precio != null ? ` · desde $${r.precio}` : ''}`])) + tablaL;
+  const viajes = filasL.filter((f) => f.ruta).map((f) => ({ ...f, origen: f.ruta.origen, destino: f.ruta.destino }));
+  await escribir(ruta, pagina(ruta, t, cuerpo, [{ nombre: 'Inicio', ruta: '/' }, { nombre: 'Líneas', ruta: '/pasajes' }, { nombre: l.nombre, ruta }], { viajes }));
+  urls.push({ u: ruta, cambio: masNueva([l.updatedAt, ...rutasL.map((r) => r.updatedAt), ...(Array.isArray(salidasL) ? salidasL : []).map((x) => x.updatedAt)]) });
+  paginasLinea++;
+}
+
+// Precios de hoy: todas las rutas con su precio desde, en dólares y en bolívares
+if (listaPares.length) {
+  const fechaHoy = new Date().toLocaleDateString('es-VE', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'America/Caracas' });
+  const t = textosPrecios(fechaHoy, listaPares.length);
+  const filasP = [...listaPares].sort((a, b) => `${a.origen}${a.destino}`.localeCompare(`${b.origen}${b.destino}`));
+  const tablaP = `<section><h2>Precio desde, por ruta</h2><table><thead><tr><th>Ruta</th><th>Desde ($)</th><th>Desde (Bs)</th><th>Duración</th></tr></thead><tbody>${filasP
+    .map((p) => `<tr><td><a href="${rutaPar(p.origen, p.destino)}">${esc(p.origen)} a ${esc(p.destino)}</a></td><td>${p.precio != null ? `$${p.precio}` : '—'}</td><td>${p.precio != null && tasaBcv ? `Bs ${Math.round(p.precio * tasaBcv).toLocaleString('es-VE')}` : '—'}</td><td>${p.duracionMin ? `${Math.floor(p.duracionMin / 60)} h ${p.duracionMin % 60 ? `${p.duracionMin % 60} min` : ''}` : '—'}</td></tr>`)
+    .join('')}</tbody></table></section>`;
+  await escribir(RUTA_PRECIOS, pagina(RUTA_PRECIOS, t, tablaP, [...migasBase, { nombre: 'Precios de hoy', ruta: RUTA_PRECIOS }]));
+  urls.push({ u: RUTA_PRECIOS, cambio: new Date().toISOString() });
+}
+
 const rutasDePar = new Set(listaPares.map((p) => rutaPar(p.origen, p.destino)));
-const prioridad = (u) => (u === '/' ? '1.0' : u === '/pasajes' ? '0.9' : rutasDePar.has(u) ? '0.8' : u.startsWith('/pasajes/') ? '0.7' : '0.5');
+const prioridad = (u) => (u === '/' ? '1.0' : u === '/pasajes' || u === RUTA_PRECIOS ? '0.9' : rutasDePar.has(u) ? '0.8' : u.startsWith('/pasajes/') || u.startsWith('/lineas/') ? '0.7' : '0.5');
 const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${urls.map(({ u, cambio }) => `  <url><loc>${DOMINIO}${u}</loc>${cambio ? `<lastmod>${cambio.slice(0, 10)}</lastmod>` : ''}<priority>${prioridad(u)}</priority></url>`).join('\n')}
@@ -191,4 +242,4 @@ ${urls.map(({ u, cambio }) => `  <url><loc>${DOMINIO}${u}</loc>${cambio ? `<last
 `;
 await writeFile(join(DIST, 'sitemap.xml'), sitemap);
 const conSalidas = listaPares.filter((p) => filasDe(p).length).length;
-console.log(`SEO: ${ciudades.length} ciudades, ${pares.size} rutas (${conSalidas} con salidas próximas), ${urls.length} páginas en el sitemap (datos: ${ciudadesApi ? 'API' : 'catálogo incluido'}${tasaBcv ? `, BCV ${tasaBcv}` : ''})`);
+console.log(`SEO: ${ciudades.length} ciudades, ${pares.size} rutas (${conSalidas} con salidas próximas), ${paginasLinea} líneas, ${urls.length} páginas en el sitemap (datos: ${ciudadesApi ? 'API' : 'catálogo incluido'}${tasaBcv ? `, BCV ${tasaBcv}` : ''})`);

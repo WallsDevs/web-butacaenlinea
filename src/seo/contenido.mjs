@@ -75,6 +75,7 @@ export function filasSalidas(salidas, tasaBcv) {
         hora: horaVe(s.fechaHoraSalida),
         horaLlegada: s.fechaHoraLlegada ? horaVe(s.fechaHoraLlegada) : null,
         linea: s.linea?.nombre ?? null,
+        lineaSlug: s.linea?.slug ?? null,
         clases: Object.keys(s.preciosUsd ?? {}),
         desdeUsd: desde,
         desdeBs: desde != null && tasaBcv ? Math.round(desde * tasaBcv) : null,
@@ -164,6 +165,43 @@ export function textosPar(origen, destino, { precioDesde, duracionMin, distancia
       { p: `¿Cuánto dura el viaje de ${origen} a ${destino}?`, r: dur ? `El viaje dura unas ${dur}${distanciaKm ? `, son ${distanciaKm} km` : ''}. La hora de llegada de cada salida aparece al abrirla.` : 'La hora de llegada de cada salida aparece al abrirla.' },
       ...(terminalSalida ? [{ p: `¿Desde dónde sale el autobús de ${origen} a ${destino}?`, r: `Sale desde ${terminalSalida}${terminalLlegada ? ` y llega a ${terminalLlegada}` : ''}. Llega 30 minutos antes con tu boleto en el teléfono.` }] : []),
       { p: `¿Qué líneas viajan de ${origen} a ${destino}?`, r: todas.length ? `${todas.join(', ')}.` : 'Las líneas afiliadas publican sus salidas con anticipación; las verás aquí apenas estén.' },
+      ...PREGUNTAS_COMPRA,
+    ],
+  };
+}
+
+export const rutaLinea = (slugLinea) => `/lineas/${slugLinea}`;
+export const RUTA_PRECIOS = '/pasajes/precios';
+
+/** Página de una línea: sus rutas con precio desde, sus próximas salidas y cómo comprar. */
+export function textosLinea(nombre, { rutas = [], salidasSemana = 0, terminalBase = null } = {}) {
+  const destinos = [...new Set(rutas.map((r) => r.destino))];
+  const desde = rutas.map((r) => r.precio).filter((n) => n > 0);
+  const precio = desde.length ? dolares(Math.min(...desde)) : null;
+  return {
+    titulo: `Pasajes de ${nombre}: rutas, horarios y precios | ${MARCA}`,
+    descripcion: `Compra en línea tus pasajes de ${nombre}${precio ? ` desde ${precio}` : ''}.${destinos.length ? ` Viaja a ${destinos.slice(0, 5).join(', ')}${destinos.length > 5 ? ' y más' : ''}.` : ''} Escoge tu puesto y recibe tu boleto con QR.`,
+    h1: `Pasajes de ${nombre}`,
+    respuesta: [precio && `Desde ${precio}`, rutas.length && `${rutas.length} ${rutas.length === 1 ? 'ruta' : 'rutas'}`, salidasSemana && `${salidasSemana} ${salidasSemana === 1 ? 'salida' : 'salidas'} en los próximos 7 días`].filter(Boolean).join(' · ') || null,
+    intro: `${nombre}${terminalBase ? `, con base en ${terminalBase},` : ''} vende sus pasajes en ${MARCA}: ves sus salidas, escoges tu puesto en el mapa del bus y pagas desde el teléfono, sin hacer cola en el terminal.`,
+    preguntas: [
+      { p: `¿A dónde viaja ${nombre}?`, r: destinos.length ? `${nombre} tiene salidas hacia ${destinos.join(', ')}.` : `${nombre} publica sus rutas y salidas en ${MARCA}; las verás aquí apenas estén.` },
+      { p: `¿Cómo compro un pasaje de ${nombre}?`, r: `Escoge la ruta, la salida y tu puesto, y paga con tu wallet de ${MARCA}, Pago Móvil, transferencia o Zelle. El boleto llega al momento con su código QR.` },
+      ...PREGUNTAS_COMPRA,
+    ],
+  };
+}
+
+/** Precios de hoy: todas las rutas con su precio desde, en dólares y en bolívares. */
+export function textosPrecios(fecha, cantidad) {
+  return {
+    titulo: `Precios de pasajes de autobús en Venezuela hoy | ${MARCA}`,
+    descripcion: `Cuánto cuesta viajar en autobús en Venezuela hoy: precios de ${cantidad} rutas en dólares y en bolívares a la tasa BCV, actualizados ${fecha}. Compra en línea y escoge tu puesto.`,
+    h1: 'Precios de pasajes de autobús hoy',
+    intro: `Lo que cuesta cada ruta hoy en las líneas que venden en ${MARCA}, en dólares y en bolívares a la tasa del BCV. El precio exacto de cada salida (según la línea y el tipo de puesto) lo ves antes de pagar. Actualizado ${fecha}.`,
+    preguntas: [
+      { p: '¿Los precios están en dólares o en bolívares?', r: 'Las líneas fijan el precio en dólares; lo pagas en bolívares a la tasa del BCV del día, o en dólares por Zelle.' },
+      { p: '¿El precio puede cambiar?', r: 'Sí: la línea puede ajustarlo y el monto en bolívares cambia con la tasa. El precio de tu salida queda fijo al comprar.' },
       ...PREGUNTAS_COMPRA,
     ],
   };

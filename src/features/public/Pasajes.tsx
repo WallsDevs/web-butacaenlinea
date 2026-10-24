@@ -5,7 +5,7 @@ import { getCiudades, getRutas, getSalidas, getTasas } from '../../lib/api/endpo
 import { useSeo } from '../../lib/seo';
 import { BuscadorPasajes } from './BuscadorPasajes';
 import { useBooking } from './useBooking';
-import { type SalidaPublica, type ViajeLd, ZONA, datosEstructurados, filasSalidas, resumenPar, rutaCiudad, rutaPar, separarPar, slug, textosCiudad, textosIndice, textosPar } from '../../seo/contenido.mjs';
+import { type SalidaPublica, type ViajeLd, RUTA_PRECIOS, ZONA, datosEstructurados, filasSalidas, resumenPar, rutaCiudad, rutaLinea, rutaPar, separarPar, slug, textosCiudad, textosIndice, textosPar } from '../../seo/contenido.mjs';
 import CIUDADES_RESPALDO from '../../seo/ciudades.json';
 import styles from './pasajes.module.css';
 
@@ -173,6 +173,16 @@ export default function Pasajes() {
         </section>
       )}
 
+      {origen && destino && filas.some((f) => f.lineaSlug) && (
+        <section className={styles.seccion}>
+          <h2>Líneas que viajan esta ruta</h2>
+          <ul className={styles.enlaces}>
+            {[...new Map(filas.filter((f) => f.lineaSlug).map((f) => [f.lineaSlug!, f.linea])).entries()].map(([sl, nombre]) => (
+              <li key={sl}><Link to={rutaLinea(sl)}>Pasajes de {nombre}</Link></li>
+            ))}
+          </ul>
+        </section>
+      )}
       {origen && destino && (
         <section className={styles.seccion}>
           <h2>Viaje de vuelta</h2>
@@ -216,6 +226,14 @@ export default function Pasajes() {
         </section>
       )}
 
+      {!centro && (
+        <section className={styles.seccion}>
+          <h2>Precios de hoy</h2>
+          <ul className={styles.enlaces}>
+            <li><Link to={RUTA_PRECIOS}>Precios de pasajes de autobús hoy, en dólares y bolívares</Link></li>
+          </ul>
+        </section>
+      )}
       {!centro && (
         <section className={styles.seccion}>
           <h2>Ciudades por estado</h2>
