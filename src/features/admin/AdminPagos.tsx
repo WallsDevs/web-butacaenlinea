@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { getComprasPorVerificar, getReembolsosPlataforma, marcarReembolsoPlataforma, verificarCompra } from '../../lib/api/endpoints';
+import { getComprasPorVerificar, getDepositosAdmin, getReembolsosPlataforma, marcarReembolsoPlataforma, verificarCompra, verificarDeposito } from '../../lib/api/endpoints';
 import { ApiError, urlMedia } from '../../lib/api/client';
 import { fechaCorta, hora } from '../../lib/time';
 import { StatusChip } from '../../components/ui/StatusChip';
@@ -34,6 +34,13 @@ export default function AdminPagos() {
     },
     onError: (e) => setError(e instanceof ApiError && e.code === 'no_pendiente' ? 'Esa compra ya la resolvió otra persona.' : 'No se pudo guardar. Intenta de nuevo.'),
   });
+  const { data: depositos } = useQuery({ queryKey: ['admin-depositos'], queryFn: getDepositosAdmin, refetchInterval: 60_000 });
+  const verificarDep = useMutation({
+    mutationFn: ({ id, aprobar }: { id: string; aprobar: boolean }) => verificarDeposito(id, aprobar, notas[id] || undefined),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['admin-depositos'] }),
+  });
+  const reportados = (depositos ?? []).filter((d) => d.estado === 'reportado');
+  const debidos = (depositos ?? []).filter((d) => d.estado !== 'reportado');
   const reembolsar = useMutation({
     mutationFn: (id: string) => marcarReembolsoPlataforma(id, refs[id] || undefined),
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['admin-reembolsos'] }),
@@ -105,6 +112,56 @@ export default function AdminPagos() {
           </div>
         ))}
         {!isLoading && !compras?.length && <div style={{ color: 'var(--text-soft)', fontSize: 14 }}>No hay pagos por verificar.</div>}
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, margin: '28px 0 10px' }}>
+        <h3 style={{ fontSize: 19, fontWeight: 700 }}>Depósitos de taquilla</h3>
+        <StatusChip tono={reportados.length ? 'warn' : 'ok'}>{reportados.length} por verificar</StatusChip>
+        {debidos.length > 0 && <StatusChip tono="neutral">{debidos.length} sin reportar</StatusChip>}
+      </div>
+      <p style={{ fontSize: 13, color: 'var(--text-soft)', margin: '0 0 10px', maxWidth: 760 }}>
+        Lo que las líneas cobraron en caja y depositan a Butaca. Al confirmarlo, el neto entra a la wallet de la línea y la comisión queda para Butaca.
+      </p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {[...reportados, ...debidos].map((d) => (
+          <div key={d.documentId} className={ui.card} style={{ padding: 16, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', opacity: d.estado === 'reportado' ? 1 : 0.75 }}>
+            <div style={{ minWidth: 200 }}>
+              <div style={{ fontWeight: 700 }}>{d.linea}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-soft)' }}>
+                {d.turno.taquilla} · {d.turno.cajero} · {d.turno.cerradoEn ? `${fechaCorta(d.turno.cerradoEn)} ${hora(d.turno.cerradoEn)}` : ''}
+              </div>
+            </div>
+            <div style={{ minWidth: 150 }}>
+              <div style={{ fontWeight: 700, fontSize: 16 }}>{monto(d.monto, d.moneda)}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-faint)' }}>{d.boletos} boletos · neto {bs(d.netoBs)}</div>
+            </div>
+            <div style={{ minWidth: 140 }}>
+              <div style={{ fontSize: 12, color: 'var(--text-faint)' }}>{d.banco ?? 'Referencia'}</div>
+              <div style={{ fontWeight: 700, letterSpacing: '0.06em' }}>{d.referencia ?? '—'}</div>
+              {d.comprobanteUrl && (
+                <a href={urlMedia(d.comprobanteUrl) ?? undefined} target="_blank" rel="noreferrer" style={{ fontSize: 12, fontWeight: 700 }}>
+                  Ver captura ↗
+                </a>
+              )}
+            </div>
+            {d.estado === 'reportado' ? (
+              <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
+                <input className={ui.fieldInput} style={{ width: 160, fontSize: 13 }} placeholder="Nota (opcional)" value={notas[d.documentId] ?? ''} onChange={(e) => setNotas({ ...notas, [d.documentId]: e.target.value })} />
+                <button className={ui.btnSecondary} disabled={verificarDep.isPending} onClick={() => verificarDep.mutate({ id: d.documentId, aprobar: false })}>
+                  Rechazar
+                </button>
+                <button className={ui.btnPrimary} disabled={verificarDep.isPending} onClick={() => verificarDep.mutate({ id: d.documentId, aprobar: true })}>
+                  Confirmar depósito
+                </button>
+              </div>
+            ) : (
+              <span style={{ marginLeft: 'auto' }}>
+                <StatusChip tono={d.estado === 'rechazado' ? 'bad' : 'neutral'} size="sm">{d.estado === 'rechazado' ? 'Rechazado, esperando nuevo reporte' : 'La línea aún no lo reporta'}</StatusChip>
+              </span>
+            )}
+          </div>
+        ))}
+        {!depositos?.length && <div style={{ color: 'var(--text-soft)', fontSize: 14 }}>No hay depósitos pendientes.</div>}
       </div>
 
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, margin: '28px 0 10px' }}>

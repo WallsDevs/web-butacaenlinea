@@ -50,6 +50,13 @@ export default function CierreTurno() {
     },
   });
 
+  // Lo cobrado en caja que la línea deposita a Butaca, por moneda (lo de wallet ya está en Butaca)
+  const aDepositar = [...(cerrado?.porMetodo ?? [])
+    .filter((m) => m.metodoPago !== 'wallet')
+    .reduce((acc, m) => acc.set(m.moneda, (acc.get(m.moneda) ?? 0) + m.monto), new Map<string, number>())
+    .entries()];
+  const fmtMoneda = (v: number, m: string) => (m === 'USD' ? `$${v.toLocaleString('es-VE', { minimumFractionDigits: 2 })}` : m === 'COP' ? `COP ${v.toLocaleString('es-VE')}` : `Bs ${v.toLocaleString('es-VE', { minimumFractionDigits: 2 })}`);
+
   if (isLoading) return <Cargando mensaje="Buscando el turno…" />;
   if (!turno && !cerrado) {
     return (
@@ -152,6 +159,13 @@ export default function CierreTurno() {
             </span>
           )}
         </div>
+        {cerrado && aDepositar.length > 0 && (
+          <div style={{ padding: '14px 20px', borderTop: '1px solid var(--border)', background: 'var(--warn-bg)', color: 'var(--warn-text)', fontSize: 14, lineHeight: 1.5 }}>
+            <strong>Se deposita a Butaca: {aDepositar.map(([m, v]) => fmtMoneda(v, m)).join(' · ')}.</strong> Es lo cobrado en caja (lo pagado
+            con wallet ya está en Butaca). Tu empresa lo reporta en Wallet → Depósitos a Butaca; cuando Butaca lo confirma, el neto entra a la
+            wallet de la línea.
+          </div>
+        )}
       </div>
     </div>
   );

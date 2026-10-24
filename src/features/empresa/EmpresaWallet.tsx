@@ -5,14 +5,15 @@ import { fechaCorta, hora } from '../../lib/time';
 import { StatusChip } from '../../components/ui/StatusChip';
 import { EncabezadoPantalla } from '../../components/ui/EncabezadoPantalla';
 import { CuentasRetiro, WalletEmpresa } from './WalletEmpresa';
+import { DepositosTaquilla } from './DepositosTaquilla';
 import ui from '../../components/ui/ui.module.css';
 import styles from '../flota/flota.module.css';
 
 const bs = (n: number) => `Bs ${n.toLocaleString('es-VE', { minimumFractionDigits: 2 })}`;
 const NOMBRE_MOV: Record<string, string> = { reparto: 'Venta cobrada con wallet', retiro: 'Retiro', ajuste: 'Ajuste', comision: 'Comisión', recarga: 'Abono', reembolso: 'Devolución al pasajero' };
 /** El pasaje urbano lleva unidad; el boleto de viaje, su folio en la referencia. */
-const nombreMov = (m: { tipo: string; unidad?: string | null }) =>
-  m.tipo === 'pasaje' ? (m.unidad ? 'Pasaje urbano' : 'Boleto de viaje') : (NOMBRE_MOV[m.tipo] ?? m.tipo);
+const nombreMov = (m: { tipo: string; unidad?: string | null; nota?: string | null }) =>
+  m.tipo === 'pasaje' ? (m.unidad ? 'Pasaje urbano' : m.nota?.startsWith('Depósito de taquilla') ? 'Depósito de taquilla' : 'Boleto de viaje') : (NOMBRE_MOV[m.tipo] ?? m.tipo);
 const FILTROS = [
   { id: 'todo', label: 'Todo' },
   { id: 'urbano', label: 'Urbano' },
@@ -49,7 +50,7 @@ export default function EmpresaWallet() {
       <EncabezadoPantalla
         titulo="Wallet"
         chip={retirosPendientes.length > 0 && <StatusChip tono="warn">{retirosPendientes.length} {retirosPendientes.length === 1 ? 'retiro en proceso' : 'retiros en proceso'}</StatusChip>}
-        descripcion="Lo que la línea cobra por wallet (pasajes urbanos por QR y boletos de viaje pagados con saldo), ya con la comisión descontada, las devoluciones a pasajeros y los retiros a tu banco."
+        descripcion="Toda la plata pasa por Butaca: aquí entra lo que vendes (pasajes urbanos, boletos de viaje y depósitos de taquilla), ya con la comisión descontada. Desde aquí pides el retiro a tu banco."
       />
       <div className={styles.dosColumnas}>
         <div className={ui.card} style={{ overflow: 'hidden' }}>
@@ -84,7 +85,8 @@ export default function EmpresaWallet() {
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--text-faint)' }}>
                   {fechaCorta(m.fecha)} {hora(m.fecha)}
-                  {m.referencia ? ` · ${m.tipo === 'pasaje' || m.tipo === 'reembolso' ? 'boleto' : 'ref'} ${m.referencia}` : ''}
+                  {/* La nota ya nombra el boleto («Boleto WEB-…»): la referencia no se repite */}
+                  {m.referencia && !m.nota?.includes(m.referencia) ? ` · ${m.tipo === 'pasaje' || m.tipo === 'reembolso' ? 'boleto' : 'ref'} ${m.referencia}` : ''}
                   {m.nota ? ` · ${m.nota}` : ''}
                 </div>
               </div>
@@ -108,6 +110,7 @@ export default function EmpresaWallet() {
           <CuentasRetiro />
         </div>
       </div>
+      <DepositosTaquilla />
     </div>
   );
 }
