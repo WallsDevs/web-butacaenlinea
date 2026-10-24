@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Isotipo, LogoLockup } from '../components/brand/LogoMark';
 import { IconoNav } from './iconos';
 import { useAuth } from '../stores/auth';
-import { getBoletosPorVerificar, getRecargasPendientes } from '../lib/api/endpoints';
+import { getComprasPorVerificar, getRecargasPendientes } from '../lib/api/endpoints';
 import { activoLateral, type SeccionLateral } from './navegacion';
 import styles from './BarraLateral.module.css';
 
@@ -21,11 +21,12 @@ const NOMBRE_ROL: Record<string, string> = {
 };
 
 /** Pendientes que merecen un número al lado del ítem: pagos por verificar, recargas por verificar. */
-function useInsignias(rol: string | undefined, conBoleteria: boolean): Record<string, number> {
-  const { data: pagos } = useQuery({ queryKey: ['boletos-por-verificar'], queryFn: getBoletosPorVerificar, refetchInterval: 60_000, enabled: rol === 'empresa' && conBoleteria });
+function useInsignias(rol: string | undefined): Record<string, number> {
+  // Los pagos los verifica Butaca: la insignia de pagos es de la plataforma, no de la línea
+  const { data: compras } = useQuery({ queryKey: ['admin-compras'], queryFn: getComprasPorVerificar, refetchInterval: 60_000, enabled: rol === 'superadmin' });
   const { data: recargas } = useQuery({ queryKey: ['admin-recargas'], queryFn: getRecargasPendientes, refetchInterval: 60_000, enabled: rol === 'superadmin' });
   const insignias: Record<string, number> = {};
-  if (pagos?.length) insignias['/empresa/pagos'] = pagos.length;
+  if (compras?.length) insignias['/admin/pagos'] = compras.length;
   if (recargas?.length) insignias['/admin/wallet'] = recargas.length;
   return insignias;
 }
@@ -46,11 +47,11 @@ const iniciales = (nombre: string) =>
  * iconos (y se abre sola al pasar el ratón) para dejarle sitio a mapas y
  * tablas. En celular no existe: ahí manda la barra inferior.
  */
-export function BarraLateral({ secciones, titulo, home, pathname, conBoleteria }: { secciones: SeccionLateral[]; titulo: string; home: string; pathname: string; conBoleteria: boolean }) {
+export function BarraLateral({ secciones, titulo, home, pathname }: { secciones: SeccionLateral[]; titulo: string; home: string; pathname: string }) {
   const navigate = useNavigate();
   const usuario = useAuth((s) => s.usuario);
   const rol = usuario?.role?.type;
-  const insignias = useInsignias(rol, conBoleteria);
+  const insignias = useInsignias(rol);
   const [plegada, setPlegada] = useState(() => {
     try {
       return localStorage.getItem(CLAVE_PLEGADA) === '1';

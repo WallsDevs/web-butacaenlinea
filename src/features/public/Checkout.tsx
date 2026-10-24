@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { adjuntarComprobante, emitirBoletos, getMapaAsientos, getMetodosPago, getWallet } from '../../lib/api/endpoints';
+import { adjuntarComprobante, emitirBoletos, getDatosPago, getMapaAsientos, getWallet, type DatosPagoPlataforma } from '../../lib/api/endpoints';
 import { ApiError, esSinConexion } from '../../lib/api/client';
 import { hora, fechaCorta } from '../../lib/time';
 import { Field } from '../../components/ui/Field';
@@ -35,6 +35,10 @@ function motivoEmision(e: unknown): string {
       return 'Para pagar con tu wallet tienes que ingresar a tu cuenta.';
     case 'payload_invalido':
       return 'Falta algún dato del pago. Revisa el método y la referencia.';
+    case 'referencia_requerida':
+      return 'Escribe la referencia de tu pago a Butaca.';
+    case 'referencia_duplicada':
+      return 'Esa referencia ya se usó en otro pago. Revisa el número de operación.';
     case 'demasiadas_solicitudes':
     case 'demasiados_intentos':
       return 'Demasiados intentos seguidos. Espera un minuto e intenta de nuevo.';
@@ -43,12 +47,51 @@ function motivoEmision(e: unknown): string {
   }
 }
 
-const METODOS: { id: MetodoPago; moneda: 'BS' | 'USD' | 'COP'; label: string; sub: string }[] = [
-  { id: 'pago_movil', moneda: 'BS', label: 'Pago Móvil', sub: 'Bs · C2P' },
-  { id: 'zelle', moneda: 'USD', label: 'Zelle / divisas', sub: 'USD' },
-  { id: 'transferencia', moneda: 'BS', label: 'Transferencia', sub: 'Banco nacional' },
-  { id: 'tarjeta_cop', moneda: 'COP', label: 'Tarjeta COP', sub: 'Pesos' },
+/** Sin cuenta se paga directo a las cuentas de Butaca. Con cuenta, todo va por la wallet. */
+const METODOS: { id: MetodoPago; moneda: 'BS' | 'USD'; label: string; sub: string }[] = [
+  { id: 'pago_movil', moneda: 'BS', label: 'Pago Móvil', sub: 'Bolívares' },
+  { id: 'transferencia', moneda: 'BS', label: 'Transferencia', sub: 'Bolívares' },
+  { id: 'zelle', moneda: 'USD', label: 'Zelle', sub: 'Dólares' },
 ];
+
+const fmtBs = (n: number) => `Bs ${n.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const copiar = (t: string) => void navigator.clipboard?.writeText(t).catch(() => {});
+
+/** Los datos de la cuenta de Butaca a la que paga, con el monto exacto y botones de copiar. */
+function CuentaButaca({ metodo, datos, monto }: { metodo: MetodoPago; datos: DatosPagoPlataforma | undefined; monto: string }) {
+  const filas: [string, string][] =
+    metodo === 'pago_movil' && datos?.pagoMovil
+      ? [['Banco', datos.pagoMovil.banco], ['Teléfono', datos.pagoMovil.telefono], ['Cédula o RIF', datos.pagoMovil.documento], ...(datos.pagoMovil.titular ? ([['Titular', datos.pagoMovil.titular]] as [string, string][]) : [])]
+      : metodo === 'transferencia' && datos?.transferencia
+        ? [['Banco', datos.transferencia.banco], ['Cuenta', datos.transferencia.cuenta], ['Titular', datos.transferencia.titular], ...(datos.transferencia.documento ? ([['Cédula o RIF', datos.transferencia.documento]] as [string, string][]) : [])]
+        : metodo === 'zelle' && datos?.zelle
+          ? [['Correo Zelle', datos.zelle.correo], ...(datos.zelle.titular ? ([['Titular', datos.zelle.titular]] as [string, string][]) : [])]
+          : [];
+  if (!filas.length) {
+    return (
+      <p style={{ fontSize: 13, color: 'var(--warn-text)', background: 'var(--warn-bg)', borderRadius: 12, padding: '10px 14px', marginTop: 14 }}>
+        Butaca todavía no publicó estos datos de pago. Escoge otro método o escríbenos por WhatsApp.
+      </p>
+    );
+  }
+  return (
+    <div style={{ marginTop: 14, borderRadius: 14, border: '1px solid var(--tint-200)', background: 'var(--tint-50)', padding: '12px 14px' }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--blue-700)', marginBottom: 6 }}>Paga a Butaca En Línea</div>
+      {filas.map(([k, v]) => (
+        <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, padding: '3px 0' }}>
+          <span style={{ color: 'var(--text-faint)', minWidth: 96 }}>{k}</span>
+          <strong style={{ flex: 1, wordBreak: 'break-all' }}>{v}</strong>
+          <button type="button" className={ui.btnGhost} style={{ fontSize: 12, padding: '2px 8px' }} onClick={() => copiar(v)}>Copiar</button>
+        </div>
+      ))}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, padding: '6px 0 0', borderTop: '1px solid var(--tint-200)', marginTop: 6 }}>
+        <span style={{ color: 'var(--text-faint)', minWidth: 96 }}>Monto</span>
+        <strong style={{ flex: 1, fontSize: 16 }}>{monto}</strong>
+        <button type="button" className={ui.btnGhost} style={{ fontSize: 12, padding: '2px 8px' }} onClick={() => copiar(monto.replace(/[^0-9,.]/g, ''))}>Copiar</button>
+      </div>
+    </div>
+  );
+}
 
 export default function Checkout() {
   const navigate = useNavigate();
@@ -66,24 +109,24 @@ export default function Checkout() {
   const [expirada, setExpirada] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [referencia, setReferencia] = useState('');
-  // La captura de la transferencia (Pago Móvil o Zelle): la línea la ve al verificar
+  // La captura del pago a Butaca (recarga o pago directo): Butaca la ve al verificar
   const [captura, setCaptura] = useState<File | null>(null);
+  // Con wallet sin saldo: por dónde recarga el faltante (en bolívares)
+  const [medioRecarga, setMedioRecarga] = useState<'pago_movil' | 'transferencia'>('pago_movil');
 
-  // Cliente con sesión: prefill del primer pasajero y método guardado
+  // Con cuenta todo se paga con la wallet; sin cuenta, directo a Butaca
   const usuario = useAuth((s) => s.usuario);
   const esCliente = usuario?.role?.type === 'cliente';
-  const { data: metodosGuardados } = useQuery({
-    queryKey: ['metodos-pago'],
-    queryFn: getMetodosPago,
-    enabled: esCliente,
-  });
-  const { data: wallet } = useQuery({
+  const { data: wallet, refetch: refrescarWallet } = useQuery({
     queryKey: ['wallet'],
     queryFn: getWallet,
     enabled: esCliente,
   });
+  const { data: datosPago } = useQuery({ queryKey: ['datos-pago'], queryFn: getDatosPago, staleTime: 600_000 });
   const prefillHecho = useRef(false);
   useEffect(() => {
+    if (esCliente && metodoPago !== 'wallet') setMetodoPago('wallet');
+    if (!esCliente && (metodoPago === 'wallet' || !METODOS.some((m) => m.id === metodoPago))) setMetodoPago('pago_movil');
     if (!esCliente || prefillHecho.current || !pasajeros.length) return;
     prefillHecho.current = true;
     if (!pasajeros[0].nombre && usuario?.nombreCorto) {
@@ -93,10 +136,8 @@ export default function Checkout() {
         telefono: usuario.telefono ?? '',
       });
     }
-    const predeterminado = metodosGuardados?.find((m) => m.predeterminado) ?? metodosGuardados?.[0];
-    if (predeterminado) setMetodoPago(predeterminado.tipo);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [esCliente, metodosGuardados, pasajeros.length]);
+  }, [esCliente, pasajeros.length]);
 
   const { data: mapa } = useQuery({
     queryKey: ['mapa', salidaId],
@@ -104,15 +145,22 @@ export default function Checkout() {
     enabled: Boolean(salidaId),
   });
 
+  const totalUsdCompra = (() => {
+    const pr = mapa?.preciosUsd ?? {};
+    const rc = mapa?.recargosUsd ?? { tasaTerminal: 0, seguro: 0 };
+    return pasajeros.reduce((acc, p) => acc + Number(pr[p.claseServicio] ?? 0), 0) + pasajeros.length * (rc.tasaTerminal + rc.seguro);
+  })();
+  const totalBsCompra = Math.round(totalUsdCompra * (mapa?.tasas?.bcv ?? 0) * 100) / 100;
+  const saldoBs = wallet?.saldoBs ?? 0;
+  const walletAlcanza = totalBsCompra > 0 && saldoBs >= totalBsCompra;
+  const faltanteBs = Math.ceil(Math.max(totalBsCompra - Math.max(saldoBs, 0), 0) * 100) / 100;
+
   const emitir = useMutation({
     // Sin respuesta (señal cortada) se reintenta solo: el servidor reconoce la misma reserva y
     // devuelve los boletos ya emitidos, sin cobrar dos veces
     retry: (n, e) => esSinConexion(e) && n < 2,
     mutationFn: () => {
-      const metodo =
-        metodoPago === 'wallet'
-          ? { id: 'wallet' as MetodoPago, moneda: 'BS' as const }
-          : METODOS.find((m) => m.id === metodoPago)!;
+      const metodo = esCliente ? { id: 'wallet' as MetodoPago, moneda: 'BS' as const } : (METODOS.find((m) => m.id === metodoPago) ?? METODOS[0]);
       return emitirBoletos({
         reservaToken: reservaToken!,
         pasajeros: pasajeros.map((p) => ({
@@ -125,13 +173,15 @@ export default function Checkout() {
         pago: {
           metodoPago: metodo.id,
           monedaPago: metodo.moneda,
-          referencia: metodo.id === 'wallet' ? undefined : referencia,
+          referencia: metodo.id === 'wallet' ? undefined : referencia.trim(),
         },
+        // Con wallet y saldo corto: el faltante se recarga a Butaca en esta misma compra
+        ...(esCliente && !walletAlcanza ? { recarga: { referencia: referencia.trim(), banco: medioRecarga === 'pago_movil' ? 'Pago Móvil' : 'Transferencia' } } : {}),
       });
     },
     onSuccess: async (r) => {
-      // La captura se adjunta a toda la compra; si falla, el boleto ya está emitido igual
-      if (captura && metodoPago !== 'wallet') {
+      // La captura se adjunta a toda la compra (Butaca la ve al verificar); si falla, el boleto ya está emitido igual
+      if (captura && (!esCliente || !walletAlcanza)) {
         await adjuntarComprobante(r.boletos.map((b) => b.qrId), captura).catch(() => undefined);
       }
       reiniciar();
@@ -142,10 +192,9 @@ export default function Checkout() {
     onError: (e) => {
       if (e instanceof ApiError && e.code === 'reserva_expirada') setExpirada(true);
       else if (e instanceof ApiError && e.code === 'saldo_insuficiente') {
-        const d = e.details as { saldoBs?: number; requeridoBs?: number };
-        setError(
-          `Saldo insuficiente: tienes Bs ${(d.saldoBs ?? 0).toLocaleString('es-VE')} y el total es Bs ${(d.requeridoBs ?? 0).toLocaleString('es-VE')}. Recarga tu wallet o usa otro método.`
-        );
+        // El saldo cambió mientras compraba: se refresca y aparece la recarga del faltante
+        void refrescarWallet();
+        setError('Tu saldo cambió y ya no alcanza. Recarga el faltante a Butaca para apartar tus puestos.');
       } else setError(motivoEmision(e));
     },
   });
@@ -163,9 +212,9 @@ export default function Checkout() {
   const recargos = mapa?.recargosUsd ?? { tasaTerminal: 0, seguro: 0 };
   const subtotal = pasajeros.reduce((acc, p) => acc + Number(precios[p.claseServicio] ?? 0), 0);
   const total = subtotal + pasajeros.length * (recargos.tasaTerminal + recargos.seguro);
-  const totalBs = Math.round(total * (mapa?.tasas?.bcv ?? 0) * 100) / 100;
-  const saldoBs = wallet?.saldoBs ?? 0;
-  const walletAlcanza = saldoBs >= totalBs && totalBs > 0;
+  const totalBs = totalBsCompra;
+  const pideReferencia = !esCliente || !walletAlcanza;
+  const metodoActual = METODOS.find((m) => m.id === metodoPago) ?? METODOS[0];
   const datosCompletos = pasajeros.every((p) => p.nombre.trim().length > 2 && p.documento.trim().length > 4);
 
   const pisoLabel = [...new Set(pasajeros.map((p) => p.piso))].join(' · ');
@@ -240,43 +289,49 @@ export default function Checkout() {
           </div>
         ))}
 
-        <h3 style={{ margin: '28px 0 12px', fontSize: 20, fontWeight: 700 }}>Forma de pago</h3>
-        <div className={styles.metodosPago}>
-          {esCliente && (
-            <button
-              className={`${styles.metodoPago} ${metodoPago === 'wallet' ? styles.metodoPagoActivo : ''}`}
-              disabled={!walletAlcanza}
-              style={!walletAlcanza ? { opacity: 0.55 } : undefined}
-              onClick={() => setMetodoPago('wallet')}
-            >
-              <span className={styles.metodoLabel}>Wallet Butaca ⚡</span>
-              <span className={styles.metodoSub}>
-                {walletAlcanza
-                  ? `Saldo Bs ${saldoBs.toLocaleString('es-VE')} · pago instantáneo`
-                  : `Saldo Bs ${saldoBs.toLocaleString('es-VE')} · insuficiente`}
-              </span>
-            </button>
-          )}
-          {METODOS.map((m) => (
-            <button
-              key={m.id}
-              className={`${styles.metodoPago} ${metodoPago === m.id ? styles.metodoPagoActivo : ''}`}
-              onClick={() => setMetodoPago(m.id)}
-            >
-              <span className={styles.metodoLabel}>{m.label}</span>
-              <span className={styles.metodoSub}>{m.sub}</span>
-            </button>
-          ))}
-        </div>
-
-        {metodoPago === 'wallet' ? (
-          <p style={{ fontSize: 13, color: 'var(--blue-700)', background: 'var(--tint-50)', borderRadius: 12, padding: '10px 14px', marginTop: 16, maxWidth: 460 }}>
-            Se descuentan Bs {totalBs.toLocaleString('es-VE', { minimumFractionDigits: 2 })} de tu
-            wallet y el boleto sale <strong>pagado al instante</strong> — sin referencias ni espera
-            de verificación.
-          </p>
+        <h3 style={{ margin: '28px 0 12px', fontSize: 20, fontWeight: 700 }}>Pago</h3>
+        {esCliente ? (
+          walletAlcanza ? (
+            <p style={{ fontSize: 14, color: 'var(--blue-700)', background: 'var(--tint-50)', borderRadius: 12, padding: '12px 14px', maxWidth: 480, margin: 0 }}>
+              Se descuentan <strong>{fmtBs(totalBs)}</strong> de tu wallet (saldo {fmtBs(saldoBs)}) y el boleto sale{' '}
+              <strong>pagado al instante</strong>.
+            </p>
+          ) : (
+            <div style={{ maxWidth: 480 }}>
+              <p style={{ fontSize: 14, margin: '0 0 4px' }}>
+                Tu saldo es {fmtBs(saldoBs)} y el total {fmtBs(totalBs)}. Recarga <strong>{fmtBs(faltanteBs)}</strong> a Butaca y tus puestos
+                quedan apartados: el boleto se paga solo de tu wallet cuando Butaca confirme la recarga.
+              </p>
+              <div className={styles.metodosPago} style={{ marginTop: 10 }}>
+                {(['pago_movil', 'transferencia'] as const).map((m) => (
+                  <button key={m} type="button" className={`${styles.metodoPago} ${medioRecarga === m ? styles.metodoPagoActivo : ''}`} onClick={() => setMedioRecarga(m)}>
+                    <span className={styles.metodoLabel}>{m === 'pago_movil' ? 'Pago Móvil' : 'Transferencia'}</span>
+                    <span className={styles.metodoSub}>Bolívares</span>
+                  </button>
+                ))}
+              </div>
+              <CuentaButaca metodo={medioRecarga} datos={datosPago} monto={fmtBs(faltanteBs)} />
+            </div>
+          )
         ) : (
-          <div style={{ marginTop: 16, maxWidth: 420 }}>
+          <div style={{ maxWidth: 480 }}>
+            <div className={styles.metodosPago}>
+              {METODOS.map((m) => (
+                <button key={m.id} type="button" className={`${styles.metodoPago} ${metodoPago === m.id ? styles.metodoPagoActivo : ''}`} onClick={() => setMetodoPago(m.id)}>
+                  <span className={styles.metodoLabel}>{m.label}</span>
+                  <span className={styles.metodoSub}>{m.sub}</span>
+                </button>
+              ))}
+            </div>
+            <CuentaButaca metodo={metodoActual.id} datos={datosPago} monto={metodoActual.moneda === 'USD' ? `$${total.toLocaleString('es-VE', { minimumFractionDigits: 2 })}` : fmtBs(totalBs)} />
+            <p style={{ fontSize: 13, color: 'var(--text-soft)', marginTop: 10 }}>
+              Con una <a href="/registro">cuenta</a> pagas con tu wallet al instante y tus boletos quedan guardados.
+            </p>
+          </div>
+        )}
+
+        {pideReferencia && (
+          <div style={{ marginTop: 14, maxWidth: 420 }}>
             <Field
               label="Referencia del pago (nro. de operación o confirmación)"
               value={referencia}
@@ -284,7 +339,7 @@ export default function Checkout() {
               placeholder="Ej. 00482913"
             />
             <label className={ui.field} style={{ marginTop: 12 }}>
-              <span className={ui.fieldLabel}>Captura de la transferencia (recomendado)</span>
+              <span className={ui.fieldLabel}>Captura del pago (recomendado)</span>
               <input
                 className={ui.fieldInput}
                 type="file"
@@ -295,8 +350,8 @@ export default function Checkout() {
               {captura && <span style={{ fontSize: 12, color: 'var(--ok-text)', marginTop: 4 }}>Adjunta: {captura.name}</span>}
             </label>
             <p style={{ fontSize: 12, color: 'var(--text-faint)', marginTop: 8, lineHeight: 1.5 }}>
-              Tu boleto se emite de inmediato y la línea verifica el pago contra su banco antes de la
-              salida. Con la captura lo verifican más rápido.
+              Tu boleto se emite de inmediato con el puesto apartado y queda «por verificar» hasta que Butaca confirme el pago
+              contra su banco. Con la captura lo confirmamos más rápido.
             </p>
           </div>
         )}
@@ -327,10 +382,10 @@ export default function Checkout() {
               <button
                 className={`${ui.btnPrimary} ${ui.btnPrimaryLg}`}
                 style={{ marginTop: 12 }}
-                disabled={!datosCompletos || (metodoPago !== 'wallet' && !referencia.trim()) || expirada || emitir.isPending}
+                disabled={!datosCompletos || (pideReferencia && !referencia.trim()) || expirada || emitir.isPending || !totalBs}
                 onClick={() => emitir.mutate()}
               >
-                {emitir.isPending ? 'Emitiendo…' : 'Confirmar y emitir'}
+                {emitir.isPending ? 'Emitiendo…' : esCliente && walletAlcanza ? `Pagar ${fmtBs(totalBs)} con mi wallet` : esCliente ? 'Recargar y apartar mis puestos' : 'Ya pagué · emitir mis boletos'}
               </button>
               <button className={ui.btnSecondary} style={{ width: '100%', marginTop: 8 }}>
                 Enviar por WhatsApp · descargar PDF

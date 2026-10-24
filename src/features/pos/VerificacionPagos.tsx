@@ -1,7 +1,6 @@
 import { urlMedia } from '../../lib/api/client';
-import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { getBoletosPorVerificar, getReembolsos, marcarReembolsado, verificarPago } from '../../lib/api/endpoints';
+import { getBoletosPorVerificar, getReembolsos, marcarReembolsado } from '../../lib/api/endpoints';
 import { useAuth } from '../../stores/auth';
 import { hora, fechaCorta } from '../../lib/time';
 import { StatusChip } from '../../components/ui/StatusChip';
@@ -26,24 +25,18 @@ const fmt = (monto: number, moneda: string) =>
       : `Bs ${monto.toLocaleString('es-VE', { minimumFractionDigits: 2 })}`;
 
 /**
- * Pago manual: la venta web emite el boleto con la referencia bancaria y la
- * LÍNEA la confirma aquí contra su banco. Cada confirmación o rechazo queda
- * auditado (usuario, hora, referencia) — la plataforma supervisa el proceso.
+ * Pagos de la línea. Toda la plata de lo vendido en línea entra a Butaca, que
+ * verifica los pagos contra su banco: aquí la línea solo ve qué boletos están
+ * en revisión. Al confirmarse, el neto le llega a su wallet. Lo que sí hace la
+ * línea: devolver en su caja lo cobrado en taquilla de una salida cancelada.
  */
 export default function VerificacionPagos() {
   const queryClient = useQueryClient();
-  const [nota, setNota] = useState<Record<string, string>>({});
 
   const { data: pendientes, isLoading } = useQuery({
     queryKey: ['por-verificar'],
     queryFn: getBoletosPorVerificar,
-    refetchInterval: 15000,
-  });
-
-  const verificar = useMutation({
-    mutationFn: ({ id, aprobar }: { id: string; aprobar: boolean }) =>
-      verificarPago(id, aprobar, nota[id]),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['por-verificar'] }),
+    refetchInterval: 30000,
   });
 
   const esEmpresa = useAuth((s) => s.usuario)?.role?.type === 'empresa';
@@ -61,8 +54,8 @@ export default function VerificacionPagos() {
     <div className={marco.contenido} style={{ maxWidth: 1100 }}>
       <EncabezadoPantalla
         titulo="Pagos"
-        chip={!isLoading && <StatusChip tono={pendientes?.length ? 'warn' : 'ok'}>{pendientes?.length ?? 0} por verificar</StatusChip>}
-        descripcion="Ventas web con referencia bancaria. Confirma cada pago contra el banco de la línea antes de que el boleto valga; todo queda con usuario y hora para la auditoría."
+        chip={!isLoading && <StatusChip tono={pendientes?.length ? 'warn' : 'ok'}>{pendientes?.length ?? 0} en revisión</StatusChip>}
+        descripcion="Toda venta en línea se paga a Butaca, que confirma el pago contra su banco. Cuando lo confirma, el boleto queda pagado y el neto entra a tu wallet. Aquí ves lo que está en revisión."
       />
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -92,37 +85,15 @@ export default function VerificacionPagos() {
                   </a>
                 )}
               </div>
-              <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
-                <input
-                  className={styles.apartadoInput}
-                  style={{ width: 170 }}
-                  placeholder="Nota (opcional)"
-                  value={nota[b.documentId] ?? ''}
-                  onChange={(e) => setNota((n) => ({ ...n, [b.documentId]: e.target.value }))}
-                />
-                <button
-                  className={ui.btnSecondary}
-                  style={{ color: 'var(--bad-text)', borderColor: '#f3c1c1' }}
-                  disabled={verificar.isPending}
-                  onClick={() => verificar.mutate({ id: b.documentId, aprobar: false })}
-                >
-                  Rechazar
-                </button>
-                <button
-                  className={ui.btnPrimary}
-                  style={{ padding: '12px 20px', fontSize: 14 }}
-                  disabled={verificar.isPending}
-                  onClick={() => verificar.mutate({ id: b.documentId, aprobar: true })}
-                >
-                  Confirmar pago
-                </button>
+              <div style={{ marginLeft: 'auto' }}>
+                <StatusChip tono="warn">En revisión por Butaca</StatusChip>
               </div>
             </div>
           </div>
         ))}
         {!isLoading && !pendientes?.length && (
           <div className={ui.card} style={{ padding: 32, textAlign: 'center', color: 'var(--text-soft)' }}>
-            No hay pagos pendientes de verificación.
+            No hay pagos en revisión.
           </div>
         )}
       </div>
