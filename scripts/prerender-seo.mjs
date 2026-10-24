@@ -1,6 +1,6 @@
 /**
  * Arma, al publicar, las páginas de pasajes como HTML listo para buscadores:
- * /pasajes, /pasajes/<ciudad> y /pasajes/<origen>/<destino> (por cada ruta
+ * /pasajes, /pasajes/<ciudad> y /pasajes/<origen>-a-<destino> (por cada ruta
  * publicada). Cada una lleva su título, descripción, canónica, vista previa,
  * datos estructurados y el contenido visible (H1, texto, enlaces, preguntas),
  * así Google la entiende sin ejecutar JavaScript. Al abrirla, la web la
@@ -133,7 +133,8 @@ for (const p of pares.values()) {
 
 // Mapa del sitio
 const hoy = new Date().toISOString().slice(0, 10);
-const prioridad = (u) => (u === '/' ? '1.0' : u === '/pasajes' ? '0.9' : u.split('/').length === 4 ? '0.8' : u.startsWith('/pasajes/') ? '0.7' : '0.5');
+const rutasDePar = new Set([...pares.values()].map((p) => rutaPar(p.origen, p.destino)));
+const prioridad = (u) => (u === '/' ? '1.0' : u === '/pasajes' ? '0.9' : rutasDePar.has(u) ? '0.8' : u.startsWith('/pasajes/') ? '0.7' : '0.5');
 const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${urls.map((u) => `  <url><loc>${DOMINIO}${u}</loc><lastmod>${hoy}</lastmod><changefreq>${u === '/' || u.startsWith('/pasajes') ? 'daily' : 'weekly'}</changefreq><priority>${prioridad(u)}</priority></url>`).join('\n')}

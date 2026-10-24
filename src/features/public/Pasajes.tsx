@@ -1,11 +1,11 @@
 import { useEffect, useMemo } from 'react';
-import { Link, useParams } from 'react-router';
+import { Link, Navigate, useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { getCiudades, getRutas, getSalidas } from '../../lib/api/endpoints';
 import { useSeo } from '../../lib/seo';
 import { BuscadorPasajes } from './BuscadorPasajes';
 import { useBooking } from './useBooking';
-import { datosEstructurados, rutaCiudad, rutaPar, slug, textosCiudad, textosIndice, textosPar } from '../../seo/contenido.mjs';
+import { datosEstructurados, rutaCiudad, rutaPar, separarPar, slug, textosCiudad, textosIndice, textosPar } from '../../seo/contenido.mjs';
 import CIUDADES_RESPALDO from '../../seo/ciudades.json';
 import styles from './pasajes.module.css';
 
@@ -13,13 +13,14 @@ type Ciudad = { nombre: string; estado: string | null };
 
 /**
  * Páginas para buscadores (y para la gente): /pasajes (todas las ciudades por
- * estado), /pasajes/:ciudad y /pasajes/:origen/:destino. Cada una tiene su
+ * estado), /pasajes/:ciudad y /pasajes/:origen-a-:destino. Cada una tiene su
  * título, su texto, sus preguntas frecuentes y el buscador ya puesto en esa
  * ciudad o ruta, para comprar ahí mismo. Al publicar salen además ya armadas
  * en el HTML (scripts/prerender-seo.mjs) con los mismos textos.
  */
 export default function Pasajes() {
-  const { ciudad: pCiudad, origen: pOrigen, destino: pDestino } = useParams();
+  // /pasajes/:ciudad lleva una ciudad o un par «origen-a-destino»; /pasajes/:origen/:destino es la dirección vieja
+  const { ciudad: pSegmento, origen: pViejoOrigen, destino: pViejoDestino } = useParams();
   const { setCriterios } = useBooking();
   const { data: ciudadesApi } = useQuery({ queryKey: ['ciudades'], queryFn: getCiudades, staleTime: 600_000 });
   const { data: rutas } = useQuery({ queryKey: ['rutas-publicas'], queryFn: () => getRutas() });
@@ -27,6 +28,10 @@ export default function Pasajes() {
 
   const ciudades: Ciudad[] = (ciudadesApi?.length ? ciudadesApi : (CIUDADES_RESPALDO as Ciudad[])).map((c) => ({ nombre: c.nombre, estado: c.estado }));
   const porSlug = useMemo(() => new Map(ciudades.map((c) => [slug(c.nombre), c])), [ciudades]);
+  const par = pSegmento && !porSlug.has(pSegmento) ? separarPar(pSegmento, new Set(porSlug.keys())) : null;
+  const pCiudad = par ? undefined : pSegmento;
+  const pOrigen = par?.[0];
+  const pDestino = par?.[1];
   const ciudad = pCiudad ? porSlug.get(pCiudad) : undefined;
   const origen = pOrigen ? porSlug.get(pOrigen) : undefined;
   const destino = pDestino ? porSlug.get(pDestino) : undefined;
@@ -73,7 +78,7 @@ export default function Pasajes() {
   } else {
     t = textosIndice();
   }
-  const noExiste = Boolean((pCiudad && !ciudad) || (pOrigen && (!origen || !destino)));
+  const noExiste = Boolean(!pViejoOrigen && ((pCiudad && !ciudad) || (pOrigen && (!origen || !destino))));
   useSeo(noExiste ? 'Ciudad no encontrada | Butaca En Línea' : t.titulo, t.descripcion, { ruta, noindex: noExiste, datos: noExiste ? undefined : datosEstructurados(ruta, migas, t.preguntas) });
 
   const porEstado = useMemo(() => {
@@ -85,6 +90,9 @@ export default function Pasajes() {
   const vecinas = centro ? ciudades.filter((c) => c.estado === centro.estado && c.nombre !== centro.nombre) : [];
   const desde = centro ? pares.filter((p) => p.origen === centro.nombre && p.destino !== destino?.nombre) : [];
   const hacia = ciudad ? pares.filter((p) => p.destino === ciudad.nombre) : [];
+
+  // Dirección vieja (/pasajes/maracaibo/caracas): a la nueva, sin quedar en el historial
+  if (pViejoOrigen && pViejoDestino) return <Navigate to={`/pasajes/${pViejoOrigen}-a-${pViejoDestino}`} replace />;
 
   if (noExiste) {
     return (

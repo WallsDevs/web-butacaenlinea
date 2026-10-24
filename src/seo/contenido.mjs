@@ -17,7 +17,21 @@ export const slug = (t) =>
     .replace(/^-|-$/g, '');
 
 export const rutaCiudad = (c) => `/pasajes/${slug(c)}`;
-export const rutaPar = (o, d) => `/pasajes/${slug(o)}/${slug(d)}`;
+/** «/pasajes/maracaibo-a-caracas»: las palabras que la gente escribe en Google, en la dirección. */
+export const rutaPar = (o, d) => `/pasajes/${slug(o)}-a-${slug(d)}`;
+
+/**
+ * Lee «maracaibo-a-caracas» como [origen, destino] probando cada «-a-» contra
+ * las ciudades conocidas: así no se confunde aunque una ciudad lo lleve en el nombre.
+ */
+export function separarPar(texto, slugs) {
+  for (let i = texto.indexOf('-a-'); i > 0; i = texto.indexOf('-a-', i + 1)) {
+    const o = texto.slice(0, i);
+    const d = texto.slice(i + 3);
+    if (slugs.has(o) && slugs.has(d) && o !== d) return [o, d];
+  }
+  return null;
+}
 
 const horas = (min) => {
   if (!min) return null;
@@ -58,9 +72,9 @@ export function textosPar(origen, destino, { precioDesde, duracionMin, distancia
   const precio = precioDesde ? dolares(precioDesde) : null;
   const conLineas = lineas.length ? ` Viajan ${lineas.slice(0, 3).join(', ')}${lineas.length > 3 ? ' y más líneas' : ''}.` : '';
   return {
-    titulo: `Pasajes de ${origen} a ${destino}: horarios y precios | ${MARCA}`,
+    titulo: `Pasajes en bus de ${origen} a ${destino}: horarios y precios | ${MARCA}`,
     descripcion: `Pasajes de autobús de ${origen} a ${destino}${precio ? ` desde ${precio}` : ''}.${dur ? ` Unas ${dur} de viaje.` : ''}${conLineas} Compra en línea, escoge tu puesto y aborda con tu boleto QR.`,
-    h1: `Pasajes de ${origen} a ${destino}`,
+    h1: `Pasajes en bus de ${origen} a ${destino}`,
     intro: `Compra tu pasaje de bus de ${origen} a ${destino} en línea. Compara las salidas de todas las líneas, escoge tu puesto en el mapa del bus y paga desde el teléfono, sin hacer cola en el terminal.`,
     datos: [
       precio && { k: 'Precio desde', v: precio },
