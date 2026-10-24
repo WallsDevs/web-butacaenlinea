@@ -91,7 +91,9 @@ export const adjuntarComprobante = (qrIds: string[], archivo: File) => {
 
 /** Recuperar boletos sin cuenta: cédula + teléfono o folio que se pusieron al comprar. */
 export interface BoletoRecuperado {
-  qrId: string;
+  /** null si se compró con una cuenta: se ve ingresando a ella */
+  qrId: string | null;
+  deCuenta?: boolean;
   folio: string;
   asientoId: string;
   estado: string;
@@ -162,7 +164,7 @@ export const anularBoleto = (
   boletoId: string,
   motivo: string,
   supervisor?: { identifier: string; password: string }
-) => api<{ folio: string; estado: string }>(`/api/boletos/${boletoId}/anular`, {
+) => api<{ folio: string; estado: string; estadoPago?: string; devueltoBs?: number }>(`/api/boletos/${boletoId}/anular`, {
   method: 'POST',
   body: { motivo, supervisor },
 });
@@ -718,10 +720,15 @@ export interface ParadaTramo {
   orden: number;
   nombre: string;
 }
-export const pagarPasajeUrbano = (unidadId: string, tramo?: { desdeOrden: number; hastaOrden: number }) =>
-  api<{ pagado: boolean; tarifaBs: number; ruta: string; unidad: string; linea: string; desde: ParadaTramo | null; hasta: ParadaTramo | null; hora: string; saldoBs: number }>(
+/**
+ * `clave`: una por INTENTO de pago, la misma en cada reintento de ese intento.
+ * Si la respuesta se pierde (sin señal) y se reintenta, el servidor devuelve
+ * el mismo pago (`repetido`) en vez de cobrar otra vez.
+ */
+export const pagarPasajeUrbano = (unidadId: string, clave: string, tramo?: { desdeOrden: number; hastaOrden: number }) =>
+  api<{ pagado: boolean; repetido?: boolean; tarifaBs: number; ruta: string; unidad: string; linea: string; desde: ParadaTramo | null; hasta: ParadaTramo | null; hora: string; saldoBs: number }>(
     '/api/urbano/pagar',
-    { method: 'POST', body: { unidadId, ...(tramo ?? {}) } }
+    { method: 'POST', body: { unidadId, idempotencyKey: clave, ...(tramo ?? {}) } }
   );
 export interface CobrosUrbanos {
   unidad: string;

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { borrarCiudad, crearCiudad, editarCiudad, getCiudades, type Ciudad } from '../../lib/api/endpoints';
-import { ApiError } from '../../lib/api/client';
+import { ApiError, esSinConexion } from '../../lib/api/client';
 import { EncabezadoPantalla } from '../../components/ui/EncabezadoPantalla';
 import { Field } from '../../components/ui/Field';
 import ui from '../../components/ui/ui.module.css';
@@ -24,7 +24,7 @@ export default function AdminCiudades() {
 
   const motivo = (e: unknown) => {
     const d = (e instanceof ApiError ? e.details : {}) as { existente?: string; rutas?: number };
-    if (!(e instanceof ApiError)) return 'Sin conexión con el servidor.';
+    if (esSinConexion(e) || !(e instanceof ApiError)) return 'Sin conexión con el servidor.';
     if (e.code === 'ciudad_repetida') return `Ya existe como «${d.existente}».`;
     if (e.code === 'ciudad_en_uso') return `La usan ${d.rutas} ruta(s): renómbrala en vez de borrarla.`;
     return `No se pudo (${e.status} · ${e.code}).`;

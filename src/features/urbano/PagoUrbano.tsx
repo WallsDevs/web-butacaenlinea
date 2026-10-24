@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getUnidadUrbana, getWallet, pagarPasajeUrbano } from '../../lib/api/endpoints';
-import { ApiError } from '../../lib/api/client';
+import { ApiError, esSinConexion } from '../../lib/api/client';
 import { hora } from '../../lib/time';
 import { useAuth } from '../../stores/auth';
 import { useSeo } from '../../lib/seo';
@@ -27,7 +27,19 @@ export default function PagoUrbano() {
   const usuario = useAuth((s) => s.usuario);
   const [error, setError] = useState<string | null>(null);
 
-  const { data: info, isLoading, isError } = useQuery({
+  // Pagar exige internet (decisión de negocio): sin conexión no se ofrece y se dice por qué
+  const [enLinea, setEnLinea] = useState(() => navigator.onLine);
+  useEffect(() => {
+    const cambiar = () => setEnLinea(navigator.onLine);
+    window.addEventListener('online', cambiar);
+    window.addEventListener('offline', cambiar);
+    return () => {
+      window.removeEventListener('online', cambiar);
+      window.removeEventListener('offline', cambiar);
+    };
+  }, []);
+
+  const { data: info, isLoading, isError, error: errorInfo, refetch: reintentarInfo } = useQuery({
     queryKey: ['unidad-urbana', unidadId],
     queryFn: () => getUnidadUrbana(unidadId!),
     enabled: Boolean(unidadId),
@@ -57,9 +69,20 @@ export default function PagoUrbano() {
   const precioBs = ruta ? (tramoListo ? precioTramo(ruta.tramos, ruta.tarifaBs, ruta.paradas.map((p) => p.orden), desde!, hasta!, Boolean(ruta.circuito)) : porTramos ? 0 : ruta.tarifaBs) : 0;
   const nombreParada = (orden: number | null) => ruta?.paradas.find((p) => p.orden === orden)?.nombre ?? '';
 
+  // Una clave por intento de pago: se conserva en los reintentos (corte de señal, doble toque) y se
+  // renueva al cobrar o al cambiar el tramo, porque eso ya es OTRO pasaje.
+  const clave = useRef(crypto.randomUUID());
+  useEffect(() => {
+    clave.current = crypto.randomUUID();
+  }, [desde, hasta]);
   const pagar = useMutation({
-    mutationFn: () => pagarPasajeUrbano(unidadId!, tramoListo ? { desdeOrden: desde!, hastaOrden: hasta! } : undefined),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['wallet'] }),
+    mutationFn: () => pagarPasajeUrbano(unidadId!, clave.current, tramoListo ? { desdeOrden: desde!, hastaOrden: hasta! } : undefined),
+    // Sin respuesta del servidor se reintenta solo: con la misma clave no hay cobro doble
+    retry: (n, e) => esSinConexion(e) && n < 2,
+    onSuccess: () => {
+      clave.current = crypto.randomUUID();
+      void queryClient.invalidateQueries({ queryKey: ['wallet'] });
+    },
     onError: (e) => {
       if (e instanceof ApiError && e.code === 'saldo_insuficiente') {
         const d = e.details as { saldoBs?: number; requeridoBs?: number };
@@ -70,6 +93,8 @@ export default function PagoUrbano() {
       } else if (e instanceof ApiError && e.code === 'buseta_fuera_de_servicio') {
         setError('Esta buseta acaba de salir de servicio. Pregúntale al colector.');
         queryClient.invalidateQueries({ queryKey: ['unidad-urbana', unidadId] });
+      } else if (esSinConexion(e)) {
+        setError('Sin internet: no se cobró nada. Para pagar el pasaje necesitas conexión; conéctate y vuelve a intentarlo.');
       } else {
         setError('No se pudo procesar el pago. Intenta de nuevo.');
       }
@@ -78,6 +103,15 @@ export default function PagoUrbano() {
 
   if (isLoading) {
     return <div style={{ padding: 48, textAlign: 'center', color: 'var(--text-soft)' }}>Cargando…</div>;
+  }
+  if (isError && esSinConexion(errorInfo)) {
+    return (
+      <div style={{ padding: 48, textAlign: 'center', color: 'var(--text-soft)', lineHeight: 1.5 }}>
+        <div style={{ fontWeight: 700, fontSize: 18, color: 'var(--text)', marginBottom: 8 }}>Necesitas internet para pagar</div>
+        <p style={{ margin: '0 0 16px', fontSize: 14 }}>No pudimos abrir esta buseta porque no hay conexión. Activa tus datos o el wifi y vuelve a intentarlo.</p>
+        <button className={ui.btnPrimary} onClick={() => void reintentarInfo()}>Intentar de nuevo</button>
+      </div>
+    );
   }
   if (isError || !info) {
     return (
@@ -232,13 +266,13 @@ export default function PagoUrbano() {
             <button
               className={`${ui.btnPrimary} ${ui.btnPrimaryLg}`}
               style={{ width: '100%' }}
-              disabled={pagar.isPending || (porTramos && !tramoListo)}
+              disabled={!enLinea || pagar.isPending || (porTramos && !tramoListo)}
               onClick={() => {
                 setError(null);
                 pagar.mutate();
               }}
             >
-              {pagar.isPending ? 'Pagando…' : `Pagar con mi wallet · saldo ${bs(wallet?.saldoBs ?? 0)}`}
+              {!enLinea ? 'Sin internet: conéctate para pagar' : pagar.isPending ? 'Pagando…' : `Pagar con mi wallet · saldo ${bs(wallet?.saldoBs ?? 0)}`}
             </button>
             {error && (
               <div style={{ fontSize: 13, color: 'var(--bad-text)', marginTop: 12 }}>

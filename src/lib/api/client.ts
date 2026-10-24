@@ -28,6 +28,9 @@ interface Opciones {
   signal?: AbortSignal;
 }
 
+/** El servidor no respondió (sin señal, caído, tiempo agotado): el cliente lo trae como ApiError 0 «sin_conexion». */
+export const esSinConexion = (e: unknown): boolean => !(e instanceof ApiError) || e.status === 0;
+
 export async function api<T>(path: string, opciones: Opciones = {}): Promise<T> {
   const { method = 'GET', body, auth = true, signal } = opciones;
   const headers: Record<string, string> = {};
