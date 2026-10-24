@@ -1,5 +1,12 @@
 {
   "cleanUrls": true,
+  "redirects": [
+    {
+      "source": "/pasajes/:origen/:destino",
+      "destination": "/pasajes/:origen-a-:destino",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/(.*)",
