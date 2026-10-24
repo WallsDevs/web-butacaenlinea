@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getUnidadUrbana, getWallet, pagarPasajeUrbano } from '../../lib/api/endpoints';
@@ -57,9 +57,20 @@ export default function PagoUrbano() {
   const precioBs = ruta ? (tramoListo ? precioTramo(ruta.tramos, ruta.tarifaBs, ruta.paradas.map((p) => p.orden), desde!, hasta!, Boolean(ruta.circuito)) : porTramos ? 0 : ruta.tarifaBs) : 0;
   const nombreParada = (orden: number | null) => ruta?.paradas.find((p) => p.orden === orden)?.nombre ?? '';
 
+  // Una clave por intento de pago: se conserva en los reintentos (corte de señal, doble toque) y se
+  // renueva al cobrar o al cambiar el tramo, porque eso ya es OTRO pasaje.
+  const clave = useRef(crypto.randomUUID());
+  useEffect(() => {
+    clave.current = crypto.randomUUID();
+  }, [desde, hasta]);
   const pagar = useMutation({
-    mutationFn: () => pagarPasajeUrbano(unidadId!, tramoListo ? { desdeOrden: desde!, hastaOrden: hasta! } : undefined),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['wallet'] }),
+    mutationFn: () => pagarPasajeUrbano(unidadId!, clave.current, tramoListo ? { desdeOrden: desde!, hastaOrden: hasta! } : undefined),
+    // Sin respuesta del servidor se reintenta solo: con la misma clave no hay cobro doble
+    retry: (n, e) => !(e instanceof ApiError) && n < 2,
+    onSuccess: () => {
+      clave.current = crypto.randomUUID();
+      void queryClient.invalidateQueries({ queryKey: ['wallet'] });
+    },
     onError: (e) => {
       if (e instanceof ApiError && e.code === 'saldo_insuficiente') {
         const d = e.details as { saldoBs?: number; requeridoBs?: number };

@@ -105,6 +105,9 @@ export default function Checkout() {
   });
 
   const emitir = useMutation({
+    // Sin respuesta (señal cortada) se reintenta solo: el servidor reconoce la misma reserva y
+    // devuelve los boletos ya emitidos, sin cobrar dos veces
+    retry: (n, e) => !(e instanceof ApiError) && n < 2,
     mutationFn: () => {
       const metodo =
         metodoPago === 'wallet'

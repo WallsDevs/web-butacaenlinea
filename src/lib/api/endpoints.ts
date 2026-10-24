@@ -720,10 +720,15 @@ export interface ParadaTramo {
   orden: number;
   nombre: string;
 }
-export const pagarPasajeUrbano = (unidadId: string, tramo?: { desdeOrden: number; hastaOrden: number }) =>
-  api<{ pagado: boolean; tarifaBs: number; ruta: string; unidad: string; linea: string; desde: ParadaTramo | null; hasta: ParadaTramo | null; hora: string; saldoBs: number }>(
+/**
+ * `clave`: una por INTENTO de pago, la misma en cada reintento de ese intento.
+ * Si la respuesta se pierde (sin señal) y se reintenta, el servidor devuelve
+ * el mismo pago (`repetido`) en vez de cobrar otra vez.
+ */
+export const pagarPasajeUrbano = (unidadId: string, clave: string, tramo?: { desdeOrden: number; hastaOrden: number }) =>
+  api<{ pagado: boolean; repetido?: boolean; tarifaBs: number; ruta: string; unidad: string; linea: string; desde: ParadaTramo | null; hasta: ParadaTramo | null; hora: string; saldoBs: number }>(
     '/api/urbano/pagar',
-    { method: 'POST', body: { unidadId, ...(tramo ?? {}) } }
+    { method: 'POST', body: { unidadId, idempotencyKey: clave, ...(tramo ?? {}) } }
   );
 export interface CobrosUrbanos {
   unidad: string;
