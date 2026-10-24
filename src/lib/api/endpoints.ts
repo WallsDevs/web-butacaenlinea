@@ -795,13 +795,25 @@ export const verificarRecarga = (movimientoId: string, aprobar: boolean, nota?: 
     method: 'POST',
     body: { aprobar, nota },
   });
+/** El chequeo nocturno del ledger: la suma da cero, no hay movimientos huérfanos y lo cortado no cambió. */
+export interface ChequeoLedger {
+  fecha: string;
+  hasta: number;
+  cuentas: number;
+  sumaTotalBs: number;
+  huerfanos: number;
+  descuadres: { cuentaId: number; antesBs: number; ahoraBs: number }[];
+  ok: boolean;
+}
 export interface Conciliacion {
   custodiaEsperadaBs: number;
   porTipo: Record<string, number>;
   recargasPendientes: number;
   cuentas: { documentId: string; tipo: string; nombre: string; saldoBs: number }[];
+  ultimoChequeo: ChequeoLedger | null;
 }
 export const getConciliacion = () => api<Conciliacion>('/api/admin/wallet/conciliacion');
+export const correrChequeoLedger = () => api<ChequeoLedger>('/api/admin/wallet/chequeo', { method: 'POST' });
 
 // ── Pasaje urbano ────────────────────────────────────────────────────────────
 export interface UnidadUrbana {
