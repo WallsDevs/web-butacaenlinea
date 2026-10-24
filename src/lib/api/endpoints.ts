@@ -714,6 +714,8 @@ export interface ReembolsoPlataforma {
   monedaPago: string | null;
   montoCobrado: number;
   referenciaPago: string | null;
+  /** false: se anuló antes de que Butaca confirmara el pago; revisar el banco antes de devolver. */
+  pagoConfirmado: boolean;
 }
 /** Lo cobrado en caja de un turno que la línea deposita a Butaca, por moneda. */
 export interface DepositoTaquilla {

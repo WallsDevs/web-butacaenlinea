@@ -39,6 +39,10 @@ function motivoEmision(e: unknown): string {
       return 'Escribe la referencia de tu pago a Butaca.';
     case 'referencia_duplicada':
       return 'Esa referencia ya se usó en otro pago. Revisa el número de operación.';
+    case 'salida_no_vendible':
+      return 'Esta salida ya no está a la venta (se canceló o ya partió). Busca otra; no se te cobró nada.';
+    case 'metodo_no_permitido':
+      return 'Por la web se paga con tu wallet o a las cuentas de Butaca. Escoge Pago Móvil, transferencia o Zelle.';
     case 'demasiadas_solicitudes':
     case 'demasiados_intentos':
       return 'Demasiados intentos seguidos. Espera un minuto e intenta de nuevo.';

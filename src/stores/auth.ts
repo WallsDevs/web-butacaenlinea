@@ -28,8 +28,9 @@ export const useAuth = create<AuthState>()(
       iniciarSesion: (jwt, usuario) => set({ jwt, usuario }),
       cerrarSesion: () => {
         set({ jwt: null, usuario: null });
-        // Los boletos guardados para verlos sin señal son de esta cuenta: no quedan en el equipo
-        if (typeof caches !== 'undefined') void caches.delete('boletos').catch(() => undefined);
+        // Lo guardado para verlo sin señal es de esta cuenta (boletos, manifiesto con nombres y cédulas,
+        // capturas de pago): no queda en el equipo para el siguiente que lo use
+        if (typeof caches !== 'undefined') for (const c of ['boletos', 'operacion', 'imagenes']) void caches.delete(c).catch(() => undefined);
       },
     }),
     {
