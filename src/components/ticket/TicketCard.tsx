@@ -133,14 +133,16 @@ export function TicketCard({
               Boleto anulado
               <span style={{ display: 'block', fontWeight: 400, fontSize: 12, color: 'var(--text-soft)', marginTop: 4 }}>No sirve para abordar</span>
             </div>
-          ) : (
+          ) : data.qrValue ? (
             <span className={styles.qrMarco}>
-              <QRCodeSVG
-                value={data.qrValue ?? data.codigo ?? 'butacaenlinea.com'}
-                size={esMovil ? 140 : 150}
-                level="M"
-              />
+              <QRCodeSVG value={data.qrValue} size={esMovil ? 140 : 150} level="M" />
             </span>
+          ) : (
+            // Sin la firma no se dibuja un QR: el escáner lo rechazaría como «no válido»
+            <div className={styles.qrMarco} style={{ width: esMovil ? 140 : 150, height: esMovil ? 140 : 150, display: 'grid', placeItems: 'center', textAlign: 'center', color: 'var(--text-soft)', fontWeight: 600, fontSize: 13, padding: 12 }}>
+              {data.folio === 'Por emitir' ? 'El QR aparece al emitir el boleto' : 'Código QR no disponible'}
+              {data.folio !== 'Por emitir' && <span style={{ display: 'block', fontWeight: 400, fontSize: 12, marginTop: 4 }}>En el terminal te ubican por el folio</span>}
+            </div>
           )}
           {data.codigo && <div className={styles.qrCodigo}>{data.codigo}</div>}
           {esMovil && data.pasajeroNombre && (
