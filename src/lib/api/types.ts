@@ -478,6 +478,7 @@ export interface CauchoDto {
   desgastePct: number | null;
   reencauches: number;
   maxReencauches: number;
+  kmDesdeRotacion: number | null;
   estado: 'sano' | 'rotacion_sugerida' | 'reemplazo_vencido' | 'en_deposito' | 'desechado';
 }
 export interface DiagramaCauchos {
@@ -490,6 +491,8 @@ export interface DiagramaCauchos {
     derecha: { posicion: string; caucho: CauchoDto | null }[];
   }[];
   totalPosiciones: number;
+  deposito: CauchoDto[];
+  reglas: { kmRotacion: number; mmReemplazo: number; mmRotacion: number };
 }
 
 export interface Alerta {
@@ -501,20 +504,115 @@ export interface Alerta {
 export interface OrdenMantenimientoDto {
   documentId: string;
   fecha: string;
+  fechaFin: string | null;
   tipo: 'preventivo' | 'correctivo';
   intervencion: string;
-  detalle?: string;
+  detalle?: string | null;
   km: number;
-  taller: string;
+  taller: string | null;
+  tallerTipo: 'propio' | 'externo' | null;
   costoUsd: number;
+  costoManoObraUsd: number;
+  costoRepuestosUsd: number;
+  servicios: string[];
+  repuestos: { nombre: string; cantidad: number; unidadMedida: string; costoUsd: number }[];
+  unidad: { documentId: string; numero: string } | null;
   diasFueraServicio: number;
+  estado: 'abierta' | 'cerrada';
 }
 
 export interface ResumenMantenimiento {
   anio: number;
   costoAnioUsd: number;
+  repuestosAnioUsd: number;
+  kmAnio: number;
   costoPorKmUsd: number | null;
   diasFueraServicio: number;
+}
+
+export interface KmUnidad {
+  kilometraje: number;
+  hoyKm: number;
+  semanaKm: number;
+  mesKm: number;
+  promedioSemanaKm: number | null;
+  conGps: boolean;
+  dias: { fecha: string; km: number; kmGps: number | null; kmViajes: number }[];
+  ajustes: { km: number; kilometraje: number; nota: string | null; fecha: string }[];
+}
+
+export type Tono = 'ok' | 'warn' | 'bad';
+
+export interface ServicioPlan {
+  clave: string;
+  nombre: string;
+  categoria: string | null;
+  controlPor: 'kilometraje' | 'fecha' | 'ambos';
+  intervaloKm: number | null;
+  intervaloDias: number | null;
+  ultimoKm: number | null;
+  ultimaFecha: string | null;
+  activo: boolean;
+  faltanKm: number | null;
+  faltanDias: number | null;
+  fechaEstimada: string | null;
+  progreso: number;
+  tono: Tono;
+}
+
+export interface PlanUnidad {
+  kilometraje: number;
+  promedioKmSemana: number | null;
+  servicios: ServicioPlan[];
+}
+
+export interface RepuestoDto {
+  documentId: string;
+  codigo: string | null;
+  nombre: string;
+  categoria: string | null;
+  unidadMedida: string;
+  stock: number;
+  stockMinimo: number;
+  bajo: boolean;
+  costoPromedioUsd: number;
+  valorUsd: number;
+  ubicacion: string | null;
+  activo: boolean;
+}
+
+export interface MovimientoRepuesto {
+  id: number;
+  tipo: 'entrada' | 'salida' | 'ajuste';
+  cantidad: number;
+  costoUnitarioUsd: number | null;
+  stockDespues: number;
+  proveedor: string | null;
+  nota: string | null;
+  orden: { documentId: string; intervencion: string } | null;
+  unidad: string | null;
+  fecha: string;
+}
+
+export interface TableroMantenimiento {
+  totales: { unidades: number; conVencidos: number; porVencer: number; enTaller: number; costo90Usd: number; km90: number; repuestosBajos: number };
+  unidades: {
+    documentId: string;
+    numero: string;
+    placa: string | null;
+    estado: string;
+    kilometraje: number;
+    promedioKmSemana: number | null;
+    vencidos: number;
+    porVencer: number;
+    alertas: Alerta[];
+    proximo: { nombre: string; faltanKm: number | null; faltanDias: number | null; tono: Tono } | null;
+    sinPlan: boolean;
+    enTaller: { ordenes: number; intervencion: string; desde: string | null; dias: number; tipo: string } | null;
+    km90: number;
+    costo90Usd: number;
+    costoPorKmUsd: number | null;
+  }[];
 }
 
 // ── Auth ─────────────────────────────────────────────────────────────────────

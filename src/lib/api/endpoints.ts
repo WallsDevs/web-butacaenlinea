@@ -5,7 +5,13 @@ import type {
   Arqueo,
   BoletoPublico,
   CierreTurno,
+  CauchoDto,
   DiagramaCauchos,
+  KmUnidad,
+  MovimientoRepuesto,
+  PlanUnidad,
+  RepuestoDto,
+  TableroMantenimiento,
   Manifiesto,
   MapaAsientos,
   MetodoPago,
@@ -225,6 +231,73 @@ export const reemplazarCaucho = (
   method: 'POST',
   body: datos,
 });
+export const instalarCaucho = (datos: { unidad: string; posicion: string; serial: string; marca?: string; medida?: string; profundidadMm?: number; profundidadNuevaMm?: number }) =>
+  api<CauchoDto>('/api/cauchos', { method: 'POST', body: { data: datos } });
+export const medirCaucho = (cauchoId: string, profundidadMm: number) =>
+  api<CauchoDto>(`/api/cauchos/${cauchoId}/medicion`, { method: 'POST', body: { profundidadMm } });
+export const desmontarCaucho = (cauchoId: string, destino: 'en_deposito' | 'desechado', profundidadMm?: number) =>
+  api<{ ok: boolean }>(`/api/cauchos/${cauchoId}/desmontar`, { method: 'POST', body: { destino, profundidadMm } });
+export const montarCaucho = (cauchoId: string, unidad: string, posicion: string) =>
+  api<CauchoDto>(`/api/cauchos/${cauchoId}/montar`, { method: 'POST', body: { unidad, posicion } });
+export const reencaucharCaucho = (cauchoId: string) =>
+  api<CauchoDto>(`/api/cauchos/${cauchoId}/reencauchar`, { method: 'POST', body: {} });
+export const configurarEjes = (unidadId: string, ejes: { numero: number; nombre: string; tipo: string; porLado: number }[]) =>
+  api<UnidadDto>(`/api/unidades/${unidadId}`, { method: 'PUT', body: { data: { configuracionEjes: { ejes } } } });
+
+// ── Mantenimiento: km, plan, órdenes, inventario ─────────────────────────────
+export const getKmUnidad = (unidadId: string, dias = 30) => api<KmUnidad>(`/api/unidades/${unidadId}/km?dias=${dias}`);
+export const anotarTablero = (unidadId: string, km: number, corregir = false) =>
+  api<{ ok: boolean; kilometraje: number; ajusteKm: number }>(`/api/unidades/${unidadId}/kilometraje`, { method: 'POST', body: { km, corregir } });
+export const getPlan = (unidadId: string) => api<PlanUnidad>(`/api/unidades/${unidadId}/plan`);
+export const aplicarPlanBase = (unidadId: string) => api<{ creados: number }>(`/api/unidades/${unidadId}/plan-base`, { method: 'POST' });
+export interface DatosItem {
+  unidad?: string;
+  nombre?: string;
+  categoria?: string;
+  controlPor?: 'kilometraje' | 'fecha' | 'ambos';
+  intervaloKm?: number | null;
+  intervaloDias?: number | null;
+  ultimoKm?: number | null;
+  ultimaFecha?: string | null;
+  activo?: boolean;
+}
+export const crearItem = (datos: DatosItem) => api('/api/items-mantenimiento', { method: 'POST', body: { data: datos } });
+export const actualizarItem = (itemId: string, datos: DatosItem) => api(`/api/items-mantenimiento/${itemId}`, { method: 'PUT', body: { data: datos } });
+export const borrarItem = (itemId: string) => api(`/api/items-mantenimiento/${itemId}`, { method: 'DELETE' });
+export const actualizarAceite = (unidadId: string, datos: { intervaloAceiteKm?: number; kmUltimoCambioAceite?: number }) =>
+  api<UnidadDto>(`/api/unidades/${unidadId}`, { method: 'PUT', body: { data: datos } });
+export interface DatosOrden {
+  unidad?: string;
+  fecha?: string;
+  fechaFin?: string;
+  tipo?: 'preventivo' | 'correctivo';
+  intervencion?: string;
+  detalle?: string;
+  km?: number;
+  tallerTipo?: 'propio' | 'externo';
+  taller?: string;
+  costoManoObraUsd?: number;
+  estado?: 'abierta' | 'cerrada';
+  enTaller?: boolean;
+  servicios?: string[];
+  repuestos?: { repuesto: string; cantidad: number }[];
+}
+export const crearOrden = (datos: DatosOrden) => api<OrdenMantenimientoDto>('/api/ordenes-mantenimiento', { method: 'POST', body: { data: datos } });
+export const cerrarOrden = (ordenId: string, datos: DatosOrden) =>
+  api<OrdenMantenimientoDto>(`/api/ordenes-mantenimiento/${ordenId}/cerrar`, { method: 'POST', body: datos });
+export const getOrdenesLinea = (estado?: 'abierta' | 'cerrada') =>
+  api<OrdenMantenimientoDto[]>(`/api/ordenes-mantenimiento?sort=fecha:desc&pagination[pageSize]=50${estado ? `&filters[estado][$eq]=${estado}` : ''}`);
+export const getTableroMantenimiento = () => api<TableroMantenimiento>('/api/mantenimiento/tablero');
+export const getRepuestos = (q?: string) => api<RepuestoDto[]>(`/api/repuestos${q ? `?q=${encodeURIComponent(q)}` : ''}`);
+export const crearRepuesto = (datos: { codigo?: string; nombre: string; categoria?: string; unidadMedida?: string; stockMinimo?: number; stockInicial?: number; costoUnitarioUsd?: number; ubicacion?: string }) =>
+  api<RepuestoDto>('/api/repuestos', { method: 'POST', body: datos });
+export const actualizarRepuesto = (id: string, datos: Partial<{ codigo: string; nombre: string; categoria: string; unidadMedida: string; stockMinimo: number; ubicacion: string; activo: boolean }>) =>
+  api<RepuestoDto>(`/api/repuestos/${id}`, { method: 'PUT', body: datos });
+export const entradaRepuesto = (id: string, datos: { cantidad: number; costoUnitarioUsd: number; proveedor?: string; nota?: string }) =>
+  api<RepuestoDto>(`/api/repuestos/${id}/entrada`, { method: 'POST', body: datos });
+export const ajusteRepuesto = (id: string, datos: { stockReal: number; nota: string }) =>
+  api<RepuestoDto>(`/api/repuestos/${id}/ajuste`, { method: 'POST', body: datos });
+export const getMovimientosRepuesto = (id: string) => api<MovimientoRepuesto[]>(`/api/repuestos/${id}/movimientos`);
 
 
 // ── Módulo Empresa ───────────────────────────────────────────────────────────
