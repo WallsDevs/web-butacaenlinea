@@ -55,7 +55,7 @@ const QR = patronQr();
 export default function MarketplaceHome() {
   useSeo(
     'Pasajes de bus en Venezuela: compra tu boleto en línea | Butaca En Línea',
-    'Compra pasajes de bus o autobús en línea a Caracas, Maracaibo, Valencia, Mérida, San Cristóbal y toda Venezuela. Escoge tu puesto y recibe tu boleto al instante.',
+    'Compra pasajes de bus o autobús en línea a Caracas, Maracaibo, Valencia, Mérida y toda Venezuela. Escoge tu puesto y recibe tu boleto al instante.',
     { ruta: '/' }
   );
   const navigate = useNavigate();
