@@ -220,3 +220,5 @@
   font-size: 12px;
   color: var(--text-faint);
 }
+/* En pantallas muy angostas «Pasajes» no cabe junto a «Ingresar» y «Crear cuenta» */
+@media (max-width: 400px) { .enlacePasajes { display: none; } }

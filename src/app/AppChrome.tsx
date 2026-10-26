@@ -160,7 +160,7 @@ export function AppChrome() {
             </button>
           ) : (
             <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <a href="/pasajes" style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-muted)', padding: '9px 10px' }} onClick={(e) => { e.preventDefault(); navigate('/pasajes'); }}>
+              <a href="/pasajes" className={styles.enlacePasajes} style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-muted)', padding: '9px 10px' }} onClick={(e) => { e.preventDefault(); navigate('/pasajes'); }}>
                 Pasajes
               </a>
               <button
@@ -177,6 +177,7 @@ export function AppChrome() {
                   background: 'var(--blue-600)',
                   padding: '9px 16px',
                   borderRadius: 'var(--r-10)',
+                  whiteSpace: 'nowrap',
                 }}
                 onClick={() => navigate('/registro')}
               >
