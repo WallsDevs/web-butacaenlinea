@@ -31,7 +31,7 @@ precacheAndRoute(self.__WB_MANIFEST);
 if (import.meta.env.PROD) {
   // Lo que es un archivo (sitemap.xml, robots.txt, una imagen subida) va a la red tal cual:
   // si cayera al shell, la app lo mostraría como «esta página no existe»
-  registerRoute(new NavigationRoute(createHandlerBoundToURL('index.html'), { denylist: [/\/[^/?]+\.[a-z0-9]{2,5}$/i, /^\/uploads\//] }));
+  registerRoute(new NavigationRoute(createHandlerBoundToURL('spa.html'), { denylist: [/\/[^/?]+\.[a-z0-9]{2,5}$/i, /^\/uploads\//] }));
 }
 
 // Tipografía de Google Fonts

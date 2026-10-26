@@ -17,8 +17,8 @@
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { DOMINIO, RUTA_PRECIOS, TEMPORADAS, datosEstructurados, filasSalidas, resumenPar, rutaCiudad, rutaLinea, rutaPar, rutaTemporada, textosCiudad, textosIndice, textosLinea, textosPar, textosGuia, textosPrecios, textosTemporada, textosTerminal } from '../src/seo/contenido.mjs';
-import { TERMINALES, nombreVisible, rutaTerminal, todasLasGuias } from '../src/seo/guias.mjs';
+import { DOMINIO, RUTA_PRECIOS, TEMPORADAS, datosEstructurados, filasSalidas, resumenPar, rutaCiudad, rutaLinea, rutaPar, rutaTemporada, textosCiudad, textosIndice, textosLinea, textosPar, textosGuia, textosInicio, textosPrecios, textosTemporada, textosTerminal } from '../src/seo/contenido.mjs';
+import { CIUDADES_INICIO, RUTAS_INICIO, TERMINALES, nombreVisible, rutaTerminal, todasLasGuias } from '../src/seo/guias.mjs';
 
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = join(raiz, 'dist');
@@ -91,7 +91,8 @@ for (let i = 0; i < listaPares.length; i += 6) {
 }
 const filasDe = (p) => filasSalidas(salidasDe.get(`${p.origen}→${p.destino}`) ?? [], tasaBcv);
 
-const plantilla = await readFile(join(DIST, 'index.html'), 'utf8');
+// La carcasa vacía (spa.html, copia de index.html): index.html se reescribe al final con la portada armada
+const plantilla = await readFile(join(DIST, 'spa.html'), 'utf8').catch(() => readFile(join(DIST, 'index.html'), 'utf8'));
 
 /** La página: la plantilla de la web con su cabecera y su contenido visible. */
 function pagina(ruta, t, cuerpo, migas, { noindex = false, viajes = [], comprar = true } = {}) {
@@ -104,6 +105,8 @@ function pagina(ruta, t, cuerpo, migas, { noindex = false, viajes = [], comprar 
     .replace(/<meta property="og:title"[^>]*>/, `<meta property="og:title" content="${esc(t.titulo)}" />`)
     .replace(/<meta\s+property="og:description"[\s\S]*?\/>/, `<meta property="og:description" content="${esc(t.descripcion)}" />`)
     .replace(/<meta property="og:url"[^>]*>/, `<meta property="og:url" content="${url}" />`)
+    .replace(/<meta name="twitter:title"[^>]*>/, `<meta name="twitter:title" content="${esc(t.titulo)}" />`)
+    .replace(/<meta name="twitter:description"[^>]*>/, `<meta name="twitter:description" content="${esc(t.descripcion)}" />`)
     .replace('</head>', `${noindex ? '<meta name="robots" content="noindex, follow" />\n' : ''}<script type="application/ld+json" data-seo-pagina="1">${JSON.stringify(datos).replace(/</g, '\\u003c')}</script>\n</head>`);
   const migasHtml = migas.map((m, i) => (i === migas.length - 1 ? `<span>${esc(m.nombre)}</span>` : `<a href="${m.ruta}">${esc(m.nombre)}</a>`)).join(' › ');
   const preguntas = (t.preguntas ?? []).map((q) => `<h3>${esc(q.p)}</h3><p>${esc(q.r)}</p>`).join('');
@@ -301,6 +304,24 @@ for (const temp of TEMPORADAS) {
   const viajes = filasT.filter((f) => f.ruta).map((f) => ({ ...f, origen: f.ruta.origen, destino: f.ruta.destino }));
   await escribir(ruta, pagina(ruta, t, cuerpo, [{ nombre: 'Inicio', ruta: '/' }, { nombre: 'Pasajes', ruta: '/pasajes' }, { nombre: `${temp.titulo} ${temp.anio}`, ruta }], { viajes }));
   urls.push({ u: ruta, cambio: masNueva([...listaT.map((x) => x.updatedAt), ...listaPares.map((p) => p.cambio)]) });
+}
+
+// La portada: H1, entrada, «compra sin cuenta», rutas más buscadas, ciudades, líneas y quiénes somos.
+// Los mismos textos y enlaces que la portada viva (MarketplaceHome), para que Google lea lo que ve la gente.
+{
+  const ti = textosInicio();
+  const indexables = new Set([...pares.values(), ...guias].flatMap((p) => [rutaPar(p.origen, p.destino)]));
+  const rutasInicio = RUTAS_INICIO.filter(([o, d]) => indexables.has(rutaPar(o, d)));
+  const cuerpo =
+    `<section><h2>Compra sin crear cuenta</h2><p>${esc(ti.sinCuenta)}</p><h3>¿Perdiste tu boleto?</h3><p>Recupéralo con los cuatro datos de tu comprobante de Pago Móvil: referencia, banco, teléfono y cédula de quien pagó. <a href="/recuperar-boletos">Recuperar mi boleto</a></p></section>` +
+    lista('Rutas más buscadas', rutasInicio.map(([o, d]) => [rutaPar(o, d), `Pasaje de ${nombreVisible(o)} a ${nombreVisible(d)}`])) +
+    lista('Pasajes por ciudad', CIUDADES_INICIO.filter((c) => conRuta.has(c)).map((c) => [rutaCiudad(c), `Pasajes en ${c}`])) +
+    lista('Precios de pasajes', [[RUTA_PRECIOS, 'Precios de pasajes de bus hoy, en dólares y bolívares'], ...TERMINALES.map((x) => [rutaTerminal(x.slug), `${x.nombre}: precios de pasajes`])]) +
+    lista('Líneas de bus afiliadas', lineas.map((l) => [rutaLinea(l.slug), `Pasajes de ${l.nombre}`])) +
+    `<section><h2>Quiénes somos</h2>${ti.nosotros.map((p) => `<p>${esc(p)}</p>`).join('')}</section>`;
+  const t = { titulo: ti.titulo, descripcion: ti.descripcion, h1: `${ti.h1Antes}: ${ti.h1.toLowerCase()}`, intro: ti.intro };
+  const html = pagina('/', t, `<p><a href="/salidas">Ver todas las salidas y comprar</a> · <a href="/pasajes">Pasajes por ciudad</a></p>${cuerpo}`, [{ nombre: 'Inicio', ruta: '/' }], { comprar: false });
+  await writeFile(join(DIST, 'index.html'), html);
 }
 
 const rutasDePar = new Set([...listaPares, ...guias].map((p) => rutaPar(p.origen, p.destino)));

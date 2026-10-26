@@ -30,4 +30,6 @@ export default defineConfig({
       },
     }),
   ],
+  // Dos páginas con la misma app: la portada (se arma en HTML al publicar) y la carcasa para todo lo demás
+  build: { rollupOptions: { input: { index: 'index.html', spa: 'spa.html' } } },
 });

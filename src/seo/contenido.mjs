@@ -364,6 +364,20 @@ export function textosTerminal(t, destinos, anio = new Date().getFullYear()) {
   };
 }
 
+/** La portada: lo que se busca en el H1 y la promesa que convierte. Los textos son los de la portada viva. */
+export const textosInicio = () => ({
+  titulo: `Pasajes de bus en Venezuela: compra en línea | ${MARCA}`,
+  descripcion: 'Compra pasajes de bus o autobús en línea a Caracas, Maracaibo, Valencia, Mérida y toda Venezuela. Escoge tu puesto y recibe tu boleto al instante.',
+  h1Antes: 'Pasajes de bus en Venezuela',
+  h1: 'Escoge tu puesto y aborda con el teléfono',
+  intro: 'Elige la salida, toca tu asiento en el mapa y paga. Así se ve tu boleto: lo llevas en el teléfono y funciona sin señal.',
+  sinCuenta: 'No hace falta registrarte para comprar tu pasaje. Pagas por Pago Móvil a Butaca, escribes los datos de tu comprobante y el boleto te llega al instante.',
+  nosotros: [
+    'Butaca En Línea nació en San Cristóbal para resolver algo que todo viajero conoce: la cola en taquilla, el puesto apartado por WhatsApp que nadie respeta y el boleto de papel que se pierde.',
+    'Hoy somos la plataforma que conecta a las líneas de transporte con sus pasajeros. El viajero escoge su puesto y paga desde el teléfono; la línea vende en web y taquilla desde un mismo sistema, y el chofer valida el abordaje aunque no haya señal en la vía.',
+  ],
+});
+
 /** Índice de todas las ciudades, por estado. */
 export const textosIndice = () => ({
   titulo: `Pasajes de bus en Venezuela por ciudad | ${MARCA}`,
@@ -376,11 +390,14 @@ export const textosIndice = () => ({
 export function datosEstructurados(ruta, migas, preguntas, viajes = []) {
   const url = `${DOMINIO}${ruta}`;
   return [
-    {
-      '@context': 'https://schema.org',
-      '@type': 'BreadcrumbList',
-      itemListElement: migas.map((m, i) => ({ '@type': 'ListItem', position: i + 1, name: m.nombre, item: `${DOMINIO}${m.ruta}` })),
-    },
+    // Migas de pan solo con camino (la portada no tiene)
+    ...(migas.length > 1
+      ? [{
+          '@context': 'https://schema.org',
+          '@type': 'BreadcrumbList',
+          itemListElement: migas.map((m, i) => ({ '@type': 'ListItem', position: i + 1, name: m.nombre, item: `${DOMINIO}${m.ruta}` })),
+        }]
+      : []),
     ...(preguntas?.length
       ? [{
           '@context': 'https://schema.org',

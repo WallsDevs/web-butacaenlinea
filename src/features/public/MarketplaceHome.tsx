@@ -18,10 +18,10 @@ import { TableroMuestra } from './inicio/Tablero';
 import { BuscadorPasajes } from './BuscadorPasajes';
 import { useInstalar } from './inicio/useInstalar';
 import css from './inicio/inicio.module.css';
-import { rutaCiudad } from '../../seo/contenido.mjs';
+import { rutaCiudad, rutaPar } from '../../seo/contenido.mjs';
+import { CIUDADES_INICIO, RUTAS_INICIO, nombreVisible, rutaTerminal } from '../../seo/guias.mjs';
 
 /** Las ciudades más buscadas: enlaces directos a su página de pasajes (los buscadores siguen estos enlaces). */
-const CIUDADES_DESTACADAS = ['Caracas', 'Maracaibo', 'Valencia', 'Barquisimeto', 'Maracay', 'Mérida', 'San Cristóbal', 'Barinas', 'Puerto La Cruz', 'Barcelona', 'Maturín', 'Ciudad Guayana', 'Ciudad Bolívar', 'Cumaná', 'Coro', 'Valera', 'Guanare', 'El Vigía', 'San Fernando de Apure', 'Porlamar'];
 
 // Número de atención por WhatsApp (solo dígitos, con código de país). VITE_WHATSAPP lo reemplaza.
 const WHATSAPP = (import.meta.env.VITE_WHATSAPP as string | undefined)?.replace(/\D/g, '') || '584129647161';
@@ -54,7 +54,7 @@ const QR = patronQr();
  */
 export default function MarketplaceHome() {
   useSeo(
-    'Pasajes de bus en Venezuela: compra tu boleto en línea | Butaca En Línea',
+    'Pasajes de bus en Venezuela: compra en línea | Butaca En Línea',
     'Compra pasajes de bus o autobús en línea a Caracas, Maracaibo, Valencia, Mérida y toda Venezuela. Escoge tu puesto y recibe tu boleto al instante.',
     { ruta: '/' }
   );
@@ -144,7 +144,9 @@ export default function MarketplaceHome() {
         <div style={{ position: 'relative', maxWidth: 1440, margin: '0 auto', padding: '28px 28px 40px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 40 }}>
           <div style={{ flex: '1 1 440px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 28 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 620 }}>
+              {/* El H1 dice qué se busca («pasajes de bus en Venezuela») y promete lo que convierte */}
               <h1 style={{ margin: 0, fontSize: 'clamp(40px,5.2vw,64px)', fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 1, color: '#FFFFFF', textWrap: 'balance' }}>
+                <span style={{ display: 'block', marginBottom: 14, fontSize: 'clamp(15px,1.4vw,18px)', fontWeight: 600, letterSpacing: '0.02em', lineHeight: 1.3, color: '#9FC0FF' }}>Pasajes de bus en Venezuela</span>
                 Escoge tu puesto y aborda con el teléfono
               </h1>
               <p style={{ margin: 0, fontSize: 17, lineHeight: 1.55, color: '#C7D9FB', textWrap: 'pretty' }}>
@@ -221,7 +223,7 @@ export default function MarketplaceHome() {
 
         <section id="lineas" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 }}>
-            <H2>Líneas afiliadas</H2>
+            <H2>Líneas de bus afiliadas</H2>
             <span style={{ fontSize: 14, color: '#475569' }}>Un solo lugar para comprar en todas</span>
           </div>
           <div className={css.lineasMarco}><div className={css.lineas}>
@@ -244,13 +246,29 @@ export default function MarketplaceHome() {
           </div>
         </section>
 
+        <section id="rutas" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 }}>
+            <H2>Rutas más buscadas</H2>
+            <a href={rutaTerminal('la-bandera')} style={{ fontSize: 15, fontWeight: 700 }}>Precios del Terminal La Bandera →</a>
+          </div>
+          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 300px), 1fr))', gap: 8 }}>
+            {RUTAS_INICIO.map(([o, d]) => (
+              <li key={`${o}-${d}`}>
+                <a href={rutaPar(o, d)} style={{ display: 'block', padding: '12px 14px', borderRadius: 12, background: '#FFFFFF', border: '1px solid #E6EBF4', fontSize: 15, fontWeight: 600, color: '#0F172A' }}>
+                  Pasaje de {nombreVisible(o)} a {nombreVisible(d)}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+
         <section id="ciudades" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 }}>
             <H2>Pasajes por ciudad</H2>
             <a href="/pasajes" style={{ fontSize: 15, fontWeight: 700 }}>Ver todas las ciudades →</a>
           </div>
           <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 8 }}>
-            {CIUDADES_DESTACADAS.map((c) => (
+            {CIUDADES_INICIO.map((c) => (
               <li key={c}>
                 <a href={rutaCiudad(c)} style={{ display: 'block', padding: '12px 14px', borderRadius: 12, background: '#FFFFFF', border: '1px solid #E6EBF4', fontSize: 15, fontWeight: 600, color: '#0F172A' }}>
                   Pasajes en {c}

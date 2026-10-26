@@ -178,7 +178,7 @@ export function BuscadorPasajes({ enPanel = false }: { enPanel?: boolean }) {
         <section id="salidas" data-guia="buscar-salidas" style={{ background: '#081F52', borderRadius: angosta ? 20 : 24, boxShadow: '0 24px 60px rgba(11,42,107,.22)', padding: angosta ? '18px 12px 14px' : '26px 26px 28px', display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px 14px', paddingBottom: 8 }}>
             <Isotipo size={24} trazo={5} contorno="#FFFFFF" acento="#60A5FA" />
-            <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, letterSpacing: '0.14em', color: '#FFFFFF' }}>SALIDAS</h2>
+            <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, letterSpacing: '0.14em', color: '#FFFFFF', textTransform: 'uppercase' }}>Salidas de bus</h2>
             <span style={{ fontSize: 15, fontWeight: 600, color: '#C7D9FB' }}>{lista.length ? `${lista.length} salida${lista.length === 1 ? '' : 's'} · ${diaTxt}` : `Salidas · ${diaTxt}`}</span>
             <span style={{ marginLeft: 'auto', fontSize: 13, color: '#9FC0FF' }}>Precio por pasajero</span>
           </div>
