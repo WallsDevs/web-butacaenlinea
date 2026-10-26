@@ -29,3 +29,5 @@ export function rutaTemporada(slugTemporada: string): string;
 export function textosTemporada(t: Temporada, info?: { salidas?: number; rutas?: { precio: number | null }[] }): Textos & { respuesta: string; preguntas: Pregunta[] };
 export declare const MAX_DESCRIPCION: number;
 export declare function descripcionDe(...partes: (string | false | null | undefined | 0)[]): string;
+export declare function textosGuia(g: import('./guias.mjs').Guia, anio?: number): Textos & { respuesta: string; notaPrecio: string | null };
+export declare function textosTerminal(t: import('./guias.mjs').Terminal, destinos: import('./guias.mjs').Guia[], anio?: number): Textos & { respuesta: string; ruta: string };

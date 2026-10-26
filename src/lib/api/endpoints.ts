@@ -1421,3 +1421,18 @@ export const crearConector = (datos: { lineaId: string; tipo: string; nombre: st
 export const actualizarConector = (id: string, datos: { activo?: boolean; nombre?: string; config?: unknown }) =>
   api<Conector>(`/api/admin/conectores/${id}`, { method: 'PUT', body: datos });
 export const sincronizarConector = (id: string) => api<ResultadoSync>(`/api/admin/conectores/${id}/sincronizar`, { method: 'POST', body: {} });
+
+// ── Avisos de ruta (guías de rutas que todavía no se venden) ─────────────────
+export const avisarRuta = (datos: { origen: string; destino: string; telefono: string; nombre?: string }) =>
+  api<{ ok: boolean }>('/api/avisos-ruta', { method: 'POST', body: datos });
+export interface DemandaRutas {
+  total: number;
+  rutas: { origen: string; destino: string; avisos: number; pendientes: number; ultimaSemana: number; ultimo: string }[];
+}
+export const getDemandaRutas = () => api<DemandaRutas>('/api/admin/avisos-ruta');
+export const getTelefonosRuta = (origen: string, destino: string) =>
+  api<{ id: number; telefono: string; nombre: string | null; creado: string; avisadoEn: string | null }[]>(
+    `/api/admin/avisos-ruta/telefonos?origen=${encodeURIComponent(origen)}&destino=${encodeURIComponent(destino)}`
+  );
+export const marcarAvisados = (origen: string, destino: string) =>
+  api<{ avisados: number }>('/api/admin/avisos-ruta/avisados', { method: 'POST', body: { origen, destino } });

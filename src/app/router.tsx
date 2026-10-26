@@ -49,6 +49,7 @@ const Pasajes = lazy(() => import('../features/public/Pasajes'));
 const PasajesLinea = lazy(() => import('../features/public/PasajesLinea'));
 const PreciosHoy = lazy(() => import('../features/public/PreciosHoy'));
 const PasajesTemporada = lazy(() => import('../features/public/PasajesTemporada'));
+const PaginaTerminal = lazy(() => import('../features/public/PaginaTerminal'));
 const MetodosPago = lazy(() => import('../features/cuenta/MetodosPago'));
 const MiWallet = lazy(() => import('../features/cuenta/MiWallet'));
 const Pos = lazy(() => import('../features/pos/Pos'));
@@ -77,6 +78,7 @@ const AdminWallet = lazy(() => import('../features/admin/AdminWallet'));
 const AdminPagos = lazy(() => import('../features/admin/AdminPagos'));
 const EmpresaFlota = lazy(() => import('../features/empresa/EmpresaFlota'));
 const AdminPasajeros = lazy(() => import('../features/admin/AdminPasajeros'));
+const AdminDemanda = lazy(() => import('../features/admin/AdminDemanda'));
 const AdminCiudades = lazy(() => import('../features/admin/AdminCiudades'));
 const AdminIntegraciones = lazy(() => import('../features/admin/AdminIntegraciones'));
 const AdminConectores = lazy(() => import('../features/admin/AdminConectores'));
@@ -134,6 +136,7 @@ export const router = createBrowserRouter([
       { path: '/pasajes/precios', element: <PreciosHoy /> },
       { path: '/lineas/:slug', element: <PasajesLinea /> },
       { path: '/temporada/:slug', element: <PasajesTemporada /> },
+      { path: '/terminales/:slug', element: <PaginaTerminal /> },
       { path: '/pasajes/:ciudad', element: <Pasajes /> },
       { path: '/pasajes/:origen/:destino', element: <Pasajes /> },
       // QR fijo de la taquilla: el pasajero paga la venta en curso con su wallet
@@ -159,6 +162,7 @@ export const router = createBrowserRouter([
           { index: true, element: <AdminDashboard /> },
           { path: 'empresas', element: <AdminEmpresas /> },
           { path: 'pasajeros', element: <AdminPasajeros /> },
+          { path: 'demanda', element: <AdminDemanda /> },
           { path: 'contratos', element: <AdminContratos /> },
           { path: 'integraciones', element: <AdminIntegraciones /> },
           { path: 'conectores', element: <AdminConectores /> },
