@@ -142,7 +142,7 @@ export function textosCiudad(ciudad, estado, { desde = [], hacia = [] } = {}) {
     descripcion: descripcionDe(
       `Compra pasajes de bus en línea en ${donde}: horarios, precios y puestos de todas las líneas.`,
       destinos.length && `Viaja a ${lista(destinos, 3)}.`,
-      'Boleto con QR.'
+      'Recibe tu boleto al instante.'
     ),
     h1: `Pasajes de autobús en ${ciudad}`,
     intro: `Compra tu pasaje de bus desde o hacia ${donde} sin hacer cola en el terminal. En ${MARCA} ves las salidas de todas las líneas afiliadas, comparas horarios y precios, escoges tu puesto en el mapa del bus y pagas en línea. Tu boleto llega al teléfono con su código QR.`,
@@ -174,7 +174,7 @@ export function textosPar(origen, destino, { precioDesde, duracionMin, distancia
       horario && cerrar(`Salidas ${horario}`),
       dur && `Unas ${dur} de viaje.`,
       todas.length && `Viajan ${lista(todas, 2)}.`,
-      'Compra en línea y escoge tu puesto.'
+      'Compra tu boleto en línea.'
     ),
     h1: `Pasajes en bus de ${origen} a ${destino}`,
     respuesta: respuesta || null,
@@ -213,7 +213,7 @@ export function textosLinea(nombre, { rutas = [], salidasSemana = 0, terminalBas
     descripcion: descripcionDe(
       `Compra en línea tus pasajes de ${nombre}${precio ? ` desde ${precio}` : ''}.`,
       destinos.length && `Viaja a ${lista(destinos, 4)}.`,
-      'Escoge tu puesto y recibe tu boleto con QR.'
+      'Escoge tu puesto y recibe tu boleto al instante.'
     ),
     h1: `Pasajes de ${nombre}`,
     respuesta: [precio && `Desde ${precio}`, rutas.length && `${rutas.length} ${rutas.length === 1 ? 'ruta' : 'rutas'}`, salidasSemana && `${salidasSemana} ${salidasSemana === 1 ? 'salida' : 'salidas'} en los próximos 7 días`].filter(Boolean).join(' · ') || null,
@@ -280,7 +280,7 @@ export function textosTemporada(t, { salidas = 0, rutas = [] } = {}) {
 /** Índice de todas las ciudades, por estado. */
 export const textosIndice = () => ({
   titulo: `Pasajes de autobús en Venezuela por ciudad | ${MARCA}`,
-  descripcion: 'Compra pasajes de bus en línea a cualquier ciudad de Venezuela: Caracas, Maracaibo, Valencia, Mérida, San Cristóbal y más. Escoge tu puesto en el mapa.',
+  descripcion: 'Compra pasajes de bus en línea a cualquier ciudad de Venezuela: Caracas, Maracaibo, Valencia, Mérida, San Cristóbal y más. Recibe tu boleto al instante.',
   h1: 'Pasajes de autobús en Venezuela',
   intro: `Escoge tu ciudad para ver las salidas, horarios y precios de todas las líneas afiliadas a ${MARCA}. Compras en línea, escoges tu puesto y abordas con el boleto en el teléfono.`,
 });
