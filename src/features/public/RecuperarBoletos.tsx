@@ -6,76 +6,92 @@ import { ApiError } from '../../lib/api/client';
 import { fechaCorta, hora } from '../../lib/time';
 import ui from '../../components/ui/ui.module.css';
 import { useSeo } from '../../lib/seo';
+import { BANCOS_VE } from '../../lib/bancos';
+import { ComprobanteMuestra, type DatoComprobante } from './ComprobanteMuestra';
+import css from './recuperar.module.css';
 
 /**
- * Para quien compró sin cuenta y perdió el enlace del boleto: con la cédula del
- * pasajero y el teléfono (o el folio) que puso al comprar, aparecen sus boletos
- * de los últimos meses. Las dos pruebas juntas evitan que baste una cédula ajena.
+ * Para quien compró sin cuenta y perdió el enlace del boleto: con los cuatro
+ * datos de su comprobante de Pago Móvil (referencia, banco, teléfono y cédula
+ * de quien pagó) aparecen los boletos de esa compra. Solo los tiene quien hizo
+ * el pago. El formulario sigue el orden del comprobante, con sus mismos números.
  */
 export default function RecuperarBoletos() {
-  useSeo('Recuperar mis boletos — Butaca En Línea', 'Encuentra los boletos que compraste sin cuenta con tu cédula y tu teléfono.', { noindex: true });
-  const [documento, setDocumento] = useState('');
-  const [telefono, setTelefono] = useState('');
-  const [folio, setFolio] = useState('');
+  useSeo('Recuperar mis boletos — Butaca En Línea', 'Encuentra los boletos que compraste sin cuenta con los datos de tu comprobante de Pago Móvil.', { noindex: true });
+  const [datos, setDatos] = useState<Record<DatoComprobante, string>>({ referencia: '', banco: '', telefono: '', documento: '' });
+  const [activo, setActivo] = useState<DatoComprobante | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const cambiar = (k: DatoComprobante, v: string) => setDatos((d) => ({ ...d, [k]: v }));
 
   const buscar = useMutation({
-    mutationFn: () => recuperarBoletos({ documento, telefono: telefono || undefined, folio: folio || undefined }),
+    mutationFn: () => recuperarBoletos({ referencia: datos.referencia.trim(), banco: datos.banco, telefono: datos.telefono.trim(), documento: datos.documento.trim() }),
     onMutate: () => setError(null),
     onError: (e) => {
-      if (e instanceof ApiError && e.code === 'datos_insuficientes') setError('Escribe la cédula y además el teléfono o el folio que usaste al comprar.');
+      if (e instanceof ApiError && e.code === 'datos_insuficientes') setError('Completa los cuatro datos tal como salen en tu comprobante.');
       else if (e instanceof ApiError && e.code === 'demasiados_intentos') setError('Demasiados intentos seguidos. Espera unos minutos y vuelve a probar.');
       else setError('No pudimos buscar ahora. Revisa tu conexión e intenta de nuevo.');
     },
   });
 
   const digitos = (t: string) => t.replace(/\D/g, '').length;
-  const listo = digitos(documento) >= 5 && (digitos(telefono) >= 7 || folio.trim().length >= 4);
+  const listo = datos.referencia.replace(/[^0-9A-Za-z]/g, '').length >= 4 && Boolean(datos.banco) && digitos(datos.telefono) >= 10 && digitos(datos.documento) >= 5;
   const resultado = buscar.data;
+  const campo = (k: DatoComprobante) => ({ onFocus: () => setActivo(k), onBlur: () => setActivo((a) => (a === k ? null : a)) });
 
   return (
-    <main style={{ maxWidth: 480, margin: '0 auto', padding: '28px 16px 72px' }}>
-      <h1 style={{ margin: '0 0 6px', fontSize: 26, fontWeight: 800, letterSpacing: '-0.02em' }}>Recuperar mis boletos</h1>
-      <p style={{ margin: '0 0 20px', fontSize: 14, lineHeight: 1.55, color: 'var(--text-soft)' }}>
-        ¿Compraste sin cuenta y perdiste el boleto? Escribe la cédula del pasajero y el teléfono o el folio que pusiste al comprar.
+    <main className={css.pagina}>
+      <h1 className={css.titulo}>Recuperar mis boletos</h1>
+      <p className={css.intro}>
+        ¿Compraste sin cuenta y perdiste el enlace de tu boleto? Búscalo con los datos de tu <strong>comprobante de Pago Móvil</strong>: los mismos números que ves en la captura de tu banco.
       </p>
 
-      <form
-        className={ui.card}
-        style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 12 }}
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (listo) buscar.mutate();
-        }}
-      >
-        <label className={ui.field}>
-          <span className={ui.fieldLabel}>Cédula del pasajero</span>
-          <input className={ui.fieldInput} inputMode="numeric" autoComplete="off" placeholder="V-12.345.678" value={documento} onChange={(e) => setDocumento(e.target.value)} />
-        </label>
-        <label className={ui.field}>
-          <span className={ui.fieldLabel}>Teléfono que usaste al comprar</span>
-          <input className={ui.fieldInput} type="tel" inputMode="tel" autoComplete="tel" placeholder="0414 555 1234" value={telefono} onChange={(e) => setTelefono(e.target.value)} />
-        </label>
-        <label className={ui.field}>
-          <span className={ui.fieldLabel}>O el folio del boleto</span>
-          <input className={ui.fieldInput} autoComplete="off" placeholder="A-000123" value={folio} onChange={(e) => setFolio(e.target.value)} />
-        </label>
-        {error && <p role="alert" style={{ margin: 0, fontSize: 13, color: 'var(--bad-text, #B42318)' }}>{error}</p>}
-        <button className={ui.btnPrimary} type="submit" disabled={!listo || buscar.isPending} style={{ padding: 13 }}>
-          {buscar.isPending ? 'Buscando…' : 'Buscar mis boletos'}
-        </button>
-      </form>
+      <div className={css.rejilla}>
+        <form
+          className={css.formulario}
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (listo) buscar.mutate();
+          }}
+        >
+          <label className={css.campo}>
+            <span className={css.etiqueta}><span className={css.marca} aria-hidden>1</span>Referencia del pago</span>
+            <input className={ui.fieldInput} autoComplete="off" inputMode="text" placeholder="Ej. 0004 8812 3371" value={datos.referencia} onChange={(e) => cambiar('referencia', e.target.value)} {...campo('referencia')} />
+          </label>
+          <label className={css.campo}>
+            <span className={css.etiqueta}><span className={css.marca} aria-hidden>2</span>Banco desde el que pagaste</span>
+            <select className={ui.fieldInput} value={datos.banco} onChange={(e) => cambiar('banco', e.target.value)} {...campo('banco')}>
+              <option value="">Escoge tu banco</option>
+              {BANCOS_VE.map((b) => <option key={b}>{b}</option>)}
+            </select>
+          </label>
+          <label className={css.campo}>
+            <span className={css.etiqueta}><span className={css.marca} aria-hidden>3</span>Teléfono desde el que pagaste</span>
+            <input className={ui.fieldInput} type="tel" inputMode="tel" autoComplete="tel" placeholder="0414-555.12.34" value={datos.telefono} onChange={(e) => cambiar('telefono', e.target.value)} {...campo('telefono')} />
+          </label>
+          <label className={css.campo}>
+            <span className={css.etiqueta}><span className={css.marca} aria-hidden>4</span>Cédula de quien pagó</span>
+            <input className={ui.fieldInput} inputMode="text" autoComplete="off" placeholder="V-12.345.678" value={datos.documento} onChange={(e) => cambiar('documento', e.target.value)} {...campo('documento')} />
+          </label>
+          {error && <p role="alert" className={css.error}>{error}</p>}
+          <button className={ui.btnPrimary} type="submit" disabled={!listo || buscar.isPending} style={{ padding: 14, fontSize: 15 }}>
+            {buscar.isPending ? 'Buscando…' : 'Buscar mis boletos'}
+          </button>
+          <p className={css.nota}>Por ahora se recuperan los boletos pagados con Pago Móvil. Si compraste con una cuenta de Butaca, tus boletos están en <Link to="/ingresar?next=%2Fcuenta%2Fboletos">Mis boletos</Link>.</p>
+        </form>
+        <ComprobanteMuestra activo={activo} />
+      </div>
 
       {resultado && resultado.length === 0 && (
-        <p style={{ marginTop: 18, fontSize: 14, lineHeight: 1.55, color: 'var(--text-soft)' }}>
-          No hay boletos con esos datos en los últimos cuatro meses. Revisa que la cédula y el teléfono sean los mismos que pusiste al comprar, o escríbenos por WhatsApp desde <Link to="/ayuda">Ayuda</Link>.
+        <p className={css.vacio}>
+          No encontramos boletos con esos cuatro datos. Revisa que sean los de tu comprobante: la referencia completa, el banco y el teléfono desde el que pagaste, y la cédula del titular de esa cuenta (no siempre es la del pasajero). Si no aparece, escríbenos por WhatsApp desde <Link to="/ayuda">Ayuda</Link>.
         </p>
       )}
       {resultado && resultado.length > 0 && (
-        <section style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 10 }} aria-label="Boletos encontrados">
+        <section className={css.resultados} aria-label="Boletos encontrados">
+          <h2>Tus boletos</h2>
           {resultado.map((b) => <Fila key={b.qrId ?? b.folio} b={b} />)}
           <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--text-faint)', lineHeight: 1.5 }}>
-            Para no perderlos otra vez, <Link to="/registro">crea tu cuenta</Link> con el mismo teléfono.
+            Para no perderlos otra vez, <Link to="/registro">crea tu cuenta</Link>: tus boletos quedan guardados en ella.
           </p>
         </section>
       )}

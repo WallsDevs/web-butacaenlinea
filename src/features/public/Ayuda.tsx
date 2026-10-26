@@ -71,7 +71,7 @@ const PREGUNTAS: { p: string; r: string }[] = [
   { p: 'Hice una recarga y no aparece en mi saldo', r: 'Se acredita cuando la plataforma verifica el pago; mientras tanto se ve como «Por confirmar». Si aparece «Rechazada», revisa que el monto y la referencia coincidan con tu Pago Móvil.' },
   { p: '¿Puedo pagar la buseta sin saldo?', r: 'No: el pasaje urbano se descuenta de tu wallet. Recarga antes de subir.' },
   { p: '¿Cómo sé por dónde viene mi buseta?', r: 'En «Busetas» ves en el mapa las busetas que están en servicio en cada ruta y por dónde van.' },
-  { p: 'Compré sin cuenta y perdí mi boleto', r: 'Entra en «Recuperar mis boletos» (enlace abajo) y escribe la cédula del pasajero con el teléfono o el folio que pusiste al comprar. Aparecen tus boletos y puedes abrirlos de nuevo.' },
+  { p: 'Compré sin cuenta y perdí mi boleto', r: 'Entra en «Recuperar mis boletos» (enlace abajo) y escribe los cuatro datos de tu comprobante de Pago Móvil: la referencia, el banco y el teléfono desde el que pagaste, y la cédula de quien pagó. Aparecen los boletos de esa compra y puedes abrirlos de nuevo.' },
   { p: '¿Puedo cambiar o devolver un boleto?', r: 'Escríbenos por WhatsApp con el folio de tu boleto (aparece en el boleto) y te ayudamos con la línea.' },
 ];
 

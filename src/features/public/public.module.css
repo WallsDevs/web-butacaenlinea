@@ -578,3 +578,9 @@
   .cierreH2 { font-size: 32px; }
   .cierreBotones { margin-left: 0; }
 }
+
+/* Checkout sin cuenta: los datos del comprobante de Pago Móvil, numerados como en «Recuperar» */
+.datosPagador { display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: 16px; background: var(--tint-50, #eff4ff); border: 1px solid var(--tint-300, #c7d7fe); }
+.datosPagadorTitulo { font-size: 15px; font-weight: 700; }
+.datosPagadorNota { margin: -6px 0 2px; font-size: 12.5px; line-height: 1.5; color: var(--text-soft); }
+.marcaDato { display: inline-grid; place-items: center; width: 20px; height: 20px; margin-right: 6px; border-radius: 50%; background: var(--blue-600); color: #fff; font-size: 11px; font-weight: 800; vertical-align: -5px; }

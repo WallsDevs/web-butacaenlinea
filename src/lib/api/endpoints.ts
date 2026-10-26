@@ -83,7 +83,8 @@ export const liberarReserva = (token: string) =>
 export const emitirBoletos = (payload: {
   reservaToken: string;
   pasajeros: PasajeroEmision[];
-  pago: { metodoPago: MetodoPago; monedaPago: 'USD' | 'BS' | 'COP'; referencia?: string };
+  /** Pago Móvil sin cuenta: banco, teléfono y cédula de quien pagó (con ellos y la referencia se recupera el boleto). */
+  pago: { metodoPago: MetodoPago; monedaPago: 'USD' | 'BS' | 'COP'; referencia?: string; bancoPagador?: string; telefonoPagador?: string; documentoPagador?: string };
   /** Con wallet sin saldo suficiente: la recarga a Butaca que el pasajero reporta en la misma compra. */
   recarga?: { referencia: string; banco?: string };
   turnoId?: string | null;
@@ -97,7 +98,7 @@ export const adjuntarComprobante = (qrIds: string[], archivo: File) => {
   return api<{ adjuntado: number }>('/api/boletos/comprobante', { method: 'POST', body: fd, auth: false });
 };
 
-/** Recuperar boletos sin cuenta: cédula + teléfono o folio que se pusieron al comprar. */
+/** Recuperar boletos sin cuenta: los cuatro datos del Pago Móvil (referencia, banco, teléfono y cédula de quien pagó). */
 export interface BoletoRecuperado {
   /** null si se compró con una cuenta: se ve ingresando a ella */
   qrId: string | null;
@@ -109,7 +110,7 @@ export interface BoletoRecuperado {
   pasajeroNombre: string;
   salida?: { fechaHoraSalida?: string; ruta?: { origen?: string; destino?: string }; linea?: { nombre?: string } } | null;
 }
-export const recuperarBoletos = (datos: { documento: string; telefono?: string; folio?: string }) =>
+export const recuperarBoletos = (datos: { referencia: string; banco: string; telefono: string; documento: string }) =>
   api<BoletoRecuperado[]>('/api/boletos/recuperar', { method: 'POST', body: datos, auth: false });
 
 export const getBoletoPorCodigo = (qrId: string) =>

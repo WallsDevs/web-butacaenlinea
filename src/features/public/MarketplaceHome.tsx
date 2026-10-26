@@ -10,6 +10,7 @@ import { useBooking } from './useBooking';
 import { useSeo } from '../../lib/seo';
 import { Promociones } from './inicio/Promociones';
 import { Kilometros } from './inicio/Kilometros';
+import { CompraSinCuenta } from './inicio/CompraSinCuenta';
 import { Destinos } from './inicio/Destinos';
 import { BusetasEnVivo } from './inicio/Busetas';
 import { H2 } from './inicio/piezas';
@@ -207,6 +208,7 @@ function PortadaCompleta() {
       {/* Secciones */}
       <div style={{ position: 'relative', maxWidth: 1440, margin: '0 auto', padding: '0 28px 96px', display: 'flex', flexDirection: 'column', gap: 88 }}>
         {/* Con sesión: rutas con buseta de turno; sin sesión: aviso para registrarse (/busetas sigue por enlace, como /salidas) */}
+        {!usuario && <CompraSinCuenta onBuscar={() => window.scrollTo({ top: 0, behavior: 'smooth' })} />}
         <BusetasEnVivo />
         <Promociones />
         <Kilometros destino={destino} pasajeros={pax} />
