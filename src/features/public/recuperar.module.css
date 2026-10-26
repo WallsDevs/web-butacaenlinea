@@ -1,0 +1,19 @@
+.pagina { max-width: 960px; margin: 0 auto; padding: 32px 16px 72px; }
+.titulo { margin: 0 0 8px; font-size: clamp(28px, 4vw, 38px); font-weight: 700; letter-spacing: -0.03em; line-height: 1.05; }
+.intro { margin: 0 0 24px; max-width: 620px; font-size: 15.5px; line-height: 1.55; color: var(--text-soft); }
+.intro strong { color: var(--text); }
+.rejilla { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 32px; align-items: start; }
+.formulario { background: var(--surface); border: 1px solid var(--border); border-radius: 22px; padding: 22px; display: flex; flex-direction: column; gap: 14px; }
+.campo { display: flex; flex-direction: column; gap: 6px; }
+.etiqueta { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--text-soft); }
+.marca { width: 22px; height: 22px; border-radius: 50%; background: var(--blue-600); color: #fff; font-size: 12px; font-weight: 800; display: grid; place-items: center; flex: none; }
+.error { margin: 0; font-size: 13px; color: var(--bad-text, #b42318); }
+.nota { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--text-faint); }
+.vacio { margin-top: 22px; max-width: 620px; font-size: 14px; line-height: 1.55; color: var(--text-soft); }
+.resultados { margin-top: 26px; max-width: 620px; display: flex; flex-direction: column; gap: 10px; }
+.resultados h2 { margin: 0 0 4px; font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
+@media (max-width: 820px) {
+  .rejilla { grid-template-columns: minmax(0, 1fr); gap: 22px; }
+  /* En el teléfono el comprobante va primero: es lo que la persona tiene que buscar en su galería */
+  .rejilla > figure { order: -1; justify-self: center; }
+}
