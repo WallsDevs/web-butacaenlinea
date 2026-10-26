@@ -367,7 +367,7 @@ export function textosTerminal(t, destinos, anio = new Date().getFullYear()) {
 /** Índice de todas las ciudades, por estado. */
 export const textosIndice = () => ({
   titulo: `Pasajes de bus en Venezuela por ciudad | ${MARCA}`,
-  descripcion: 'Compra pasajes de bus o autobús en línea a cualquier ciudad de Venezuela: Caracas, Maracaibo, Valencia, Mérida, San Cristóbal y más. Recibe tu boleto al instante.',
+  descripcion: 'Compra pasajes de bus o autobús en línea a cualquier ciudad de Venezuela: Caracas, Maracaibo, Valencia, Mérida y más. Recibe tu boleto al instante.',
   h1: 'Pasajes de bus en Venezuela',
   intro: `Escoge tu ciudad para ver las salidas de autobús, horarios y precios de todas las líneas afiliadas a ${MARCA}. Compras en línea, escoges tu puesto y abordas con el boleto en el teléfono.`,
 });
