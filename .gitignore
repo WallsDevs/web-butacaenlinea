@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Carcasa de la app: la genera scripts/copiar-shell.mjs desde index.html
+spa.html

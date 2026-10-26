@@ -30,8 +30,10 @@ export function useSeo(
     if (descripcion) {
       meta('name', 'description', descripcion);
       meta('property', 'og:description', descripcion);
+      meta('name', 'twitter:description', descripcion);
     }
     meta('property', 'og:title', titulo);
+    meta('name', 'twitter:title', titulo);
     if (opciones?.ruta) {
       const url = `${DOMINIO}${opciones.ruta}`;
       let canonica = document.querySelector('link[rel="canonical"]');

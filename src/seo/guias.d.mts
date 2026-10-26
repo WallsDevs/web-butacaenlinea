@@ -19,3 +19,5 @@ export declare function todasLasGuias(ciudades: { nombre: string; estado: string
 export declare function guiaDe(origen: string, destino: string, ciudades: { nombre: string; estado: string | null }[]): Guia | null;
 export declare const TERMINALES: Terminal[];
 export declare function rutaTerminal(slug: string): string;
+export declare const CIUDADES_INICIO: string[];
+export declare const RUTAS_INICIO: [string, string][];

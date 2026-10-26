@@ -158,3 +158,28 @@ export const TERMINALES = [
   },
 ];
 export const rutaTerminal = (slugTerminal) => `/terminales/${slugTerminal}`;
+
+/**
+ * Lo que enlaza la portada (la página con más autoridad): solo ciudades y rutas
+ * con página indexable. Ordenadas por lo que más se busca (sugerencias de
+ * Google, oct 2026). Las comparten la web y el HTML para Google.
+ */
+export const CIUDADES_INICIO = ['Caracas', 'Maracaibo', 'Valencia', 'Barquisimeto', 'Maracay', 'Mérida', 'San Cristóbal', 'Barinas', 'Puerto La Cruz', 'Barcelona', 'Maturín', 'Ciudad Guayana', 'Ciudad Bolívar', 'Cumaná', 'Coro', 'Valera', 'Guanare', 'San Antonio del Táchira', 'Punto Fijo', 'San Fernando de Apure'];
+export const RUTAS_INICIO = [
+  ['Caracas', 'Valencia'],
+  ['Caracas', 'Maracaibo'],
+  ['Caracas', 'Barquisimeto'],
+  ['Caracas', 'San Cristóbal'],
+  ['Caracas', 'Maturín'],
+  ['Caracas', 'Puerto La Cruz'],
+  ['Caracas', 'Ciudad Guayana'],
+  ['Caracas', 'Mérida'],
+  ['Caracas', 'Maracay'],
+  ['San Cristóbal', 'Caracas'],
+  ['Maracaibo', 'Caracas'],
+  ['Valencia', 'Caracas'],
+  ['Barquisimeto', 'Caracas'],
+  ['San Cristóbal', 'Mérida'],
+  ['Maracaibo', 'Valencia'],
+  ['Valencia', 'Barquisimeto'],
+];

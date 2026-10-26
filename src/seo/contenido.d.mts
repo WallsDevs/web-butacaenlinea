@@ -31,3 +31,4 @@ export declare const MAX_DESCRIPCION: number;
 export declare function descripcionDe(...partes: (string | false | null | undefined | 0)[]): string;
 export declare function textosGuia(g: import('./guias.mjs').Guia, anio?: number): Textos & { respuesta: string; notaPrecio: string | null };
 export declare function textosTerminal(t: import('./guias.mjs').Terminal, destinos: import('./guias.mjs').Guia[], anio?: number): Textos & { respuesta: string; ruta: string };
+export declare function textosInicio(): { titulo: string; descripcion: string; h1Antes: string; h1: string; intro: string; sinCuenta: string; nosotros: string[] };
