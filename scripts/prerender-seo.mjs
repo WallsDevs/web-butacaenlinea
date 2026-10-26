@@ -223,8 +223,8 @@ for (const term of TERMINALES) {
   const destinos = todasLasGuias(ciudades).filter((g) => g.origen === term.ciudad && g.terminalSalida === term.nombre).sort((a, b) => (a.precio?.min ?? 999) - (b.precio?.min ?? 999));
   if (!destinos.length) continue;
   const t = textosTerminal(term, destinos);
-  const tabla = `<section><h2>Destinos y precios de referencia</h2><table><thead><tr><th>Destino</th><th>Precio de referencia</th><th>Duración</th><th>Líneas</th></tr></thead><tbody>${destinos
-    .map((g) => `<tr><td><a href="${rutaPar(g.origen, g.destino)}">${esc(nombreVisible(g.destino))}</a></td><td>${g.precio ? (g.precio.min === g.precio.max ? `$${g.precio.min}` : `$${g.precio.min}–${g.precio.max}`) : '—'}</td><td>${Math.floor(g.minutos / 60)} h${g.minutos % 60 ? ` ${g.minutos % 60} min` : ''}</td><td>${esc(g.lineas.join(', ') || '—')}</td></tr>`)
+  const tabla = `<section><h2>Destinos y precios de referencia</h2><table><thead><tr><th>Destino</th><th>Precio de referencia</th><th>Duración</th></tr></thead><tbody>${destinos
+    .map((g) => `<tr><td><a href="${rutaPar(g.origen, g.destino)}">${esc(nombreVisible(g.destino))}</a></td><td>${g.precio ? (g.precio.min === g.precio.max ? `$${g.precio.min}` : `$${g.precio.min}–${g.precio.max}`) : '—'}</td><td>${Math.floor(g.minutos / 60)} h${g.minutos % 60 ? ` ${g.minutos % 60} min` : ''}</td></tr>`)
     .join('')}</tbody></table></section>` + lista('Otros terminales', TERMINALES.filter((x) => x.slug !== term.slug).map((x) => [rutaTerminal(x.slug), `${x.nombre}: precios de pasajes`]));
   await escribir(t.ruta, pagina(t.ruta, t, tabla, [...migasBase, { nombre: term.nombre, ruta: t.ruta }], { comprar: false }));
   urls.push({ u: t.ruta, cambio: null });

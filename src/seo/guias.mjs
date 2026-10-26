@@ -11,15 +11,17 @@
  * Los datos:
  *   · km y minutos: aproximados por carretera; se dicen como «unas 13 h».
  *   · precio: SOLO con fuente publicada y su fecha. Sin fuente, no se pone.
- *   · líneas: las que la prensa o los agregadores nombran en esa ruta.
+ *   · líneas: las que la prensa o los agregadores nombran en esa ruta. SOLO
+ *     INTERNO (a qué líneas ofrecerles Butaca): nunca se publican, porque
+ *     mandarían al pasajero a comprarle a la competencia.
  * Se comparten con el HTML para Google (scripts/prerender-seo.mjs).
  */
 
 /** De dónde sale cada precio de referencia. */
 export const FUENTES = {
-  sitssa: { nombre: 'la tarifa referencial de SITSSA', fecha: '2025-08', url: 'https://eldiario.com/2025/08/04/sitssa-precios-pasajes-autobus-caracas-interior-del-pais/' },
+  sitssa: { nombre: 'la tarifa oficial de referencia', fecha: '2025-08', url: 'https://eldiario.com/2025/08/04/sitssa-precios-pasajes-autobus-caracas-interior-del-pais/' },
   eldiario: { nombre: 'el sondeo de El Diario', fecha: '2026-03', url: 'https://eldiario.com/2026/03/26/semana-santa-2026-cuanto-cuesta-viajar-en-autobus-desde-caracas/' },
-  rome2rio: { nombre: 'la estimación de Rome2Rio para líneas privadas', fecha: '2026-10', url: 'https://www.rome2rio.com/' },
+  rome2rio: { nombre: 'las estimaciones de agregadores de viaje para líneas privadas', fecha: '2026-10', url: 'https://www.rome2rio.com/' },
   elnacional: { nombre: 'el sondeo de El Nacional', fecha: '2024-12', url: 'https://www.elnacional.com/2024/12/cuanto-cuesta-viajar-en-venezuela-durante-la-epoca-decembrina/' },
   temporada: { nombre: 'la lista de temporada de Venezuela en Marcha', fecha: '2025-12', url: 'https://venezuelaenmarcha.org/la-lista-de-precios-para-viajar-en-autobus-a-varios-estados-de-venezuela-durante-la-temporada-decembrina/' },
 };

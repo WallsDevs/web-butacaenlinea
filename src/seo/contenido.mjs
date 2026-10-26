@@ -314,19 +314,17 @@ export function textosGuia(g, anio = new Date().getFullYear()) {
     descripcion: descripcionDe(
       `Pasaje en bus de ${o} a ${d}: ${precio ? `${precio}, ` : ''}${unas} de viaje (${g.km} km).`,
       `Sale del ${g.terminalSalida}.`,
-      g.lineas.length && `Líneas: ${lista(g.lineas, 2)}.`,
       'Te avisamos cuando se venda en línea.'
     ),
     h1: `Pasaje de ${o} a ${d} en bus`,
     respuesta: ((r) => r[0].toUpperCase() + r.slice(1))([precio, `${unas} de viaje`, `${g.km} km`].filter(Boolean).join(' · ')),
-    intro: `Lo que necesitas saber para viajar en autobús de ${o} a ${d}: cuánto cuesta el pasaje, cuántas horas dura el viaje, de qué terminal sale y qué líneas cubren la ruta. Todavía no vendemos esta ruta en línea en ${MARCA}; déjanos tu WhatsApp y te escribimos apenas una línea la publique.`,
+    intro: `Lo que necesitas saber para viajar en autobús de ${o} a ${d}: cuánto cuesta el pasaje, cuántas horas dura el viaje y de qué terminal sale. Todavía no vendemos esta ruta en línea en ${MARCA}; déjanos tu WhatsApp y te escribimos apenas una línea la publique.`,
     datos: [
       precio && { k: 'Precio de referencia', v: precio },
       { k: 'Duración', v: unas },
       { k: 'Distancia', v: `${g.km} km` },
       { k: 'Sale desde', v: g.terminalSalida },
       { k: 'Llega a', v: g.terminalLlegada },
-      g.lineas.length && { k: 'Líneas que cubren la ruta', v: g.lineas.join(', ') },
     ].filter(Boolean),
     notaPrecio: g.precio ? `Precio de referencia ${segun(g.precio)}. Se paga en bolívares a la tasa BCV del día; confírmalo en la taquilla.` : null,
     preguntas: [
@@ -338,10 +336,7 @@ export function textosGuia(g, anio = new Date().getFullYear()) {
       },
       { p: `¿Cuántas horas son de ${o} a ${d} en bus?`, r: `El viaje dura ${unas}: son unos ${g.km} km por carretera. Puede tardar más en temporada alta o si el bus hace paradas en el camino.` },
       { p: `¿De qué terminal sale el bus de ${o} a ${d}?`, r: `Sale del ${g.terminalSalida} y llega al ${g.terminalLlegada}. Llega al menos 30 minutos antes de la salida con tu cédula.` },
-      {
-        p: `¿Qué líneas viajan de ${o} a ${d}?`,
-        r: g.lineas.length ? `Han cubierto esta ruta ${g.lineas.join(', ')}. Los horarios cambian: confírmalos con la línea o en la taquilla.` : `Varias líneas salen hacia ${d} desde el ${g.terminalSalida}; los horarios cambian con frecuencia, así que confírmalos en la taquilla.`,
-      },
+      { p: `¿Cuándo conviene comprar el pasaje de ${o} a ${d}?`, r: `Con anticipación en temporada alta (diciembre, Carnaval, Semana Santa y agosto), cuando los puestos se agotan días antes. El resto del año suele haber puestos el mismo día, pero comprar antes te asegura el horario y el puesto que quieres.` },
       { p: `¿Puedo comprar el pasaje de ${o} a ${d} en línea?`, r: `Todavía no en ${MARCA}. Deja tu WhatsApp en esta página y te avisamos apenas una línea publique la ruta, para que compres desde el teléfono, escojas tu puesto y recibas tu boleto al instante.` },
     ],
   };
@@ -355,11 +350,11 @@ export function textosTerminal(t, destinos, anio = new Date().getFullYear()) {
     titulo: `${t.nombre}: precios de pasajes ${anio} y destinos | ${MARCA}`,
     descripcion: descripcionDe(
       `${t.nombre} (${t.ciudad}): precios de pasajes de bus ${anio}${barato ? ` desde ${dolares(barato)}` : ''} a ${lista(destinos.map((g) => nombreVisible(g.destino)), 4)}.`,
-      'Horas de viaje y líneas por destino.'
+      'Horas de viaje por destino.'
     ),
     h1: `${t.nombre}: precios de pasajes ${anio}`,
     respuesta: `${destinos.length} destinos${barato ? ` · pasajes desde ${dolares(barato)}` : ''}`,
-    intro: `Desde el ${t.nombre}, en ${t.direccion}, salen los autobuses hacia ${t.cubre}. Aquí tienes los destinos con su precio de referencia, la duración del viaje y las líneas. Los precios son referenciales (con su fuente y fecha) y se pagan en bolívares a la tasa BCV del día: confírmalos en la taquilla.`,
+    intro: `Desde el ${t.nombre}, en ${t.direccion}, salen los autobuses hacia ${t.cubre}. Aquí tienes los destinos con su precio de referencia y la duración del viaje. Los precios son referenciales (con su fuente y fecha) y se pagan en bolívares a la tasa BCV del día: confírmalos en la taquilla.`,
     preguntas: [
       { p: `¿Dónde queda el ${t.nombre}?`, r: `En ${t.direccion}.` },
       { p: `¿A dónde salen los autobuses del ${t.nombre}?`, r: `Hacia ${t.cubre}: ${lista(destinos.map((g) => nombreVisible(g.destino)), 12)}.` },
