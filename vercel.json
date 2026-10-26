@@ -10,7 +10,7 @@
   "rewrites": [
     {
       "source": "/(.*)",
-      "destination": "/spa.html"
+      "destination": "/spa"
     }
   ],
   "headers": [
@@ -62,7 +62,7 @@
       ]
     },
     {
-      "source": "/spa.html",
+      "source": "/spa",
       "headers": [
         {
           "key": "Cache-Control",
