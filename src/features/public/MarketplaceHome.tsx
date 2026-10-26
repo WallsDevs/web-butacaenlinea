@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { Navigate, useNavigate } from 'react-router';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { getLineas, getSalidas } from '../../lib/api/endpoints';
 import { fechaCorta, hora } from '../../lib/time';
@@ -52,36 +52,14 @@ const QR = patronQr();
  * marketplace de la plataforma. Búsqueda y salidas son reales; promociones y
  * kilómetros son demostración hasta que exista el programa en el servidor.
  */
-/** Teléfonos y tablets: hasta este ancho la portada no se muestra. */
-const ANCHO_MAXIMO_TACTIL = 1024;
-/** Los buscadores (Google rastrea como teléfono) sí ven la portada: si no, desaparece de los resultados. */
-const ES_BUSCADOR = /bot|crawl|spider|slurp|bingpreview|facebookexternalhit|whatsapp|telegrambot|linkedinbot|twitterbot/i;
-
-/**
- * En teléfono y tablet la portada no se muestra a las personas: sin sesión
- * van directo a «Ingresar» y con sesión, a su panel (el pasajero, a Viajar,
- * donde también compra). Se decide antes de pintar, así no se alcanza a ver.
- */
 export default function MarketplaceHome() {
-  const usuario = useAuth((s) => s.usuario);
-  const tactil =
-    typeof window !== 'undefined' &&
-    window.matchMedia(`(max-width: ${ANCHO_MAXIMO_TACTIL}px)`).matches &&
-    !ES_BUSCADOR.test(navigator.userAgent);
-  if (tactil) {
-    const rol = usuario?.role?.type;
-    return <Navigate to={rol ? HOME_POR_ROL[rol] ?? '/cuenta' : '/ingresar'} replace />;
-  }
-  return <PortadaCompleta />;
-}
-
-function PortadaCompleta() {
   useSeo(
-    'Pasajes de autobús en Venezuela: compra tu boleto en línea | Butaca En Línea',
-    'Compra pasajes de autobús en línea a Caracas, Maracaibo, Valencia, Mérida, San Cristóbal y toda Venezuela. Escoge tu puesto y recibe tu boleto al instante.',
+    'Pasajes de bus en Venezuela: compra tu boleto en línea | Butaca En Línea',
+    'Compra pasajes de bus o autobús en línea a Caracas, Maracaibo, Valencia, Mérida, San Cristóbal y toda Venezuela. Escoge tu puesto y recibe tu boleto al instante.',
     { ruta: '/' }
   );
   const navigate = useNavigate();
+  const [menuAbierto, setMenuAbierto] = useState(false);
   const usuario = useAuth((s) => s.usuario);
   const instalar = useInstalar();
   const { data: lineas } = useQuery({ queryKey: ['lineas'], queryFn: getLineas });
@@ -139,7 +117,28 @@ function PortadaCompleta() {
             >
               {usuario ? 'Mi cuenta' : 'Ingresar'}
             </a>
+            <button
+              type="button"
+              className={css.botonMenu}
+              aria-label={menuAbierto ? 'Cerrar menú' : 'Abrir menú'}
+              aria-expanded={menuAbierto}
+              onClick={() => setMenuAbierto((a) => !a)}
+            >
+              <span aria-hidden="true">{menuAbierto ? '✕' : '☰'}</span>
+            </button>
           </nav>
+          {menuAbierto && (
+            <div className={css.menuMovil} onClick={() => setMenuAbierto(false)}>
+              <a href="/pasajes" onClick={(e) => { e.preventDefault(); navigate('/pasajes'); }}>Pasajes por ciudad</a>
+              <a href="#salidas">Salidas</a>
+              <a href="#busetas">Busetas</a>
+              <a href="#promos">Promociones</a>
+              <a href="#kilometros">Kilómetros</a>
+              <a href="#lineas">Líneas afiliadas</a>
+              <a href="#nosotros">Quiénes somos</a>
+              <a href="/ayuda" onClick={(e) => { e.preventDefault(); navigate('/ayuda'); }}>Ayuda</a>
+            </div>
+          )}
         </header>
 
         <div style={{ position: 'relative', maxWidth: 1440, margin: '0 auto', padding: '28px 28px 40px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 40 }}>

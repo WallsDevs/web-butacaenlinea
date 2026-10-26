@@ -127,6 +127,17 @@ export function AppChrome() {
     <>
     {lateral && <BarraLateral secciones={lateral} titulo={rol === 'cliente' ? usuario?.nombreCorto ?? usuario?.username ?? 'Mi cuenta' : nav!.tagline} home={nav!.home} pathname={location.pathname} />}
     <header className={`${styles.chrome} ${lateral ? styles.ocultaEnEscritorio : ''} no-print`}>
+      {location.pathname !== (nav?.home ?? '/') && (
+        <button
+          type="button"
+          className={styles.atras}
+          aria-label="Volver"
+          // Sin historial (se abrió el enlace directo) vuelve al inicio en vez de salir de la app
+          onClick={() => (location.key === 'default' ? navigate(nav?.home ?? '/') : navigate(-1))}
+        >
+          ‹
+        </button>
+      )}
       <button
         className={styles.brandZone}
         style={nav ? { marginRight: 0 } : undefined}
