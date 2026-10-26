@@ -10,9 +10,16 @@
 .pieLink { color: #c7d9fb; }
 .pieLink:hover { color: #fff; }
 .chipDia:hover { border-color: #2563eb; }
+/* Menú de la portada en teléfono y tablet: el horizontal no cabe */
+.botonMenu { display: none; width: 42px; height: 42px; align-items: center; justify-content: center; border: 1.5px solid rgba(255, 255, 255, 0.5); border-radius: 10px; background: transparent; color: #fff; font-size: 18px; line-height: 1; cursor: pointer; }
+.menuMovil { position: absolute; left: 16px; right: 16px; top: 76px; z-index: 40; display: flex; flex-direction: column; padding: 8px; border-radius: 16px; background: #0b2a6b; border: 1px solid rgba(159, 192, 255, 0.25); box-shadow: 0 18px 40px rgba(2, 8, 30, 0.45); }
+.menuMovil a { padding: 14px 16px; border-radius: 10px; color: #e6efff; font-size: 16px; font-weight: 600; }
+.menuMovil a:active, .menuMovil a:hover { background: rgba(159, 192, 255, 0.12); color: #fff; }
+@media (min-width: 861px) { .menuMovil { display: none; } }
 @media (max-width: 860px) {
   .lineas { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .navHorizontal { display: none !important; }
+  .botonMenu { display: inline-flex; }
 }
 @media (max-width: 640px) {
   .lineas { grid-template-columns: minmax(0, 1fr); }

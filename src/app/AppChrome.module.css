@@ -222,3 +222,8 @@
 }
 /* En pantallas muy angostas «Pasajes» no cabe junto a «Ingresar» y «Crear cuenta» */
 @media (max-width: 400px) { .enlacePasajes { display: none; } }
+
+/* Volver: solo en teléfono y tablet, donde no hay botón atrás de escritorio */
+.atras { display: none; align-items: center; justify-content: center; width: 38px; height: 38px; margin: 0 -8px 0 -10px; border-radius: 10px; color: var(--text); font-size: 30px; line-height: 1; padding-bottom: 4px; }
+.atras:active { background: var(--border); }
+@media (max-width: 900px) { .atras { display: inline-flex; } }
