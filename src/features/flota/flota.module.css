@@ -89,6 +89,7 @@
   border-radius: var(--r-20);
   padding: 22px;
 }
+.dosTarjetas { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); }
 .kicker { font-size: 13px; font-weight: 700; color: var(--blue-600); }
 .cifraKm {
   font-size: 42px;
@@ -200,7 +201,7 @@
   color: var(--text-muted);
   flex-wrap: wrap;
 }
-.muestra { width: 14px; height: 14px; border-radius: 5px; display: inline-block; }
+.muestra { width: 14px; height: 14px; border-radius: 5px; display: inline-block; vertical-align: -2px; border-width: 1.5px; border-style: solid; }
 
 .detalleCaucho {
   border: 1px solid var(--border);
@@ -287,4 +288,115 @@
   .contenido { padding: 20px 16px 56px; }
   .tresTarjetas { grid-template-columns: 1fr; }
   .cauchosLayout { grid-template-columns: 1fr; }
+}
+
+/* ── Mantenimiento: kilometraje ─────────────────────────────────────────── */
+.kmCifras { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 14px; font-size: 12px; color: var(--text-soft); }
+.kmCifras strong { display: block; font-size: 17px; color: var(--text); font-weight: 700; letter-spacing: -0.01em; }
+.notaSuave { font-size: 12px; color: var(--text-faint); margin-top: 10px; line-height: 1.5; }
+.graficoKm { margin-top: 16px; }
+.graficoKmCabecera { font-size: 12px; color: var(--text-soft); min-height: 18px; }
+.graficoKmCabecera strong { color: var(--text); }
+.graficoKmSvg { display: block; width: 100%; height: 76px; margin-top: 6px; cursor: crosshair; }
+.graficoKmGuia { stroke: var(--divider); stroke-width: 1; stroke-dasharray: 2 3; vector-effect: non-scaling-stroke; }
+.graficoKmEje { stroke: var(--border); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.graficoKmBarra { fill: var(--blue-600); opacity: 0.55; }
+.graficoKmBarraFoco { fill: var(--blue-600); }
+.graficoKmPie { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-faint); margin-top: 4px; }
+.tablaOculta { margin-top: 8px; font-size: 12px; color: var(--text-soft); }
+.tablaOculta summary { cursor: pointer; width: fit-content; }
+.tablaOculta table { margin-top: 8px; font-size: 12px; }
+.tablaOculta td, .tablaOculta th { padding: 6px 10px; }
+
+/* ── Plan de mantenimiento ──────────────────────────────────────────────── */
+.cardPlan {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-20);
+  padding: 24px;
+  margin-top: 20px;
+}
+.planLayout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 24px; margin-top: 18px; align-items: start; }
+.listaPlan { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.filaPlan { display: flex; gap: 12px; align-items: center; padding: 12px 0; border-top: 1px solid var(--row-divider); }
+.filaPlan:first-child { border-top: 0; padding-top: 0; }
+.filaPlanPausada { opacity: 0.55; }
+.filaPlanTexto { flex: 1; min-width: 0; }
+.filaPlanNota { font-size: 13px; color: var(--text); margin-top: 3px; }
+.filaPlanCada { color: var(--text-faint); font-size: 12px; }
+.barraPlan { height: 6px; background: var(--divider); border-radius: var(--r-pill); margin-top: 8px; overflow: hidden; }
+.barraPlanRelleno { height: 100%; background: var(--blue-600); border-radius: var(--r-pill); }
+.barraWarn { background: var(--warn-border); }
+.barraBad { background: var(--bad-border); }
+.otrasAlertas { display: flex; flex-direction: column; gap: 10px; }
+.vacio { background: var(--surface-alt); border-radius: var(--r-18); padding: 20px; display: flex; flex-direction: column; gap: 10px; align-items: flex-start; font-size: 14px; }
+.vacio p { font-size: 13px; color: var(--text-soft); line-height: 1.5; margin: 0; }
+
+/* ── Cauchos ────────────────────────────────────────────────────────────── */
+.presetsEjes { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; margin: 16px 0; }
+.presetEje {
+  text-align: left; padding: 16px; border-radius: var(--r-16); border: 1px solid var(--border);
+  background: var(--surface-alt); display: flex; flex-direction: column; gap: 4px; cursor: pointer;
+}
+.presetEje span { font-size: 12px; color: var(--text-soft); }
+.presetEje:hover { border-color: var(--blue-600); }
+.cauchoVacio { cursor: pointer; }
+.cauchoVacio:hover { border-color: var(--blue-600); color: var(--blue-700); }
+.cauchoDestino { outline: 2px dashed var(--blue-600); outline-offset: 2px; }
+.avisoMover {
+  margin-left: auto; display: flex; gap: 10px; align-items: center; font-size: 13px;
+  background: var(--tint-50); color: var(--blue-700); padding: 8px 12px; border-radius: var(--r-14);
+}
+.listaDeposito { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+.itemDeposito { display: flex; gap: 10px; align-items: center; justify-content: space-between; border: 1px solid var(--border); border-radius: var(--r-14); padding: 10px 12px; font-size: 13px; }
+.opcionLista { display: flex; gap: 10px; align-items: center; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--r-14); font-size: 13px; cursor: pointer; }
+.opcionListaSel { border-color: var(--blue-600); background: var(--tint-50); }
+
+/* ── Órdenes ────────────────────────────────────────────────────────────── */
+.filaAbierta td { background: var(--warn-bg); }
+.etiquetaGrupo { font-size: 13px; font-weight: 600; color: var(--text-soft); margin-bottom: 8px; }
+.rejillaOrden { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; align-items: end; }
+.chipsServicios { display: flex; flex-wrap: wrap; gap: 8px; }
+.chipServicio { display: inline-flex; gap: 6px; align-items: center; padding: 7px 12px; border-radius: var(--r-pill); border: 1px solid var(--border); font-size: 13px; cursor: pointer; }
+.chipServicio input { margin: 0; }
+.chipServicioSel { border-color: var(--blue-600); background: var(--tint-50); color: var(--blue-700); }
+.filaRepuesto { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.filaRepuesto select { flex: 1; min-width: 0; }
+.costoFila { width: 90px; font-size: 13px; text-align: right; color: var(--text-soft); flex: none; }
+.totalOrden { display: flex; flex-direction: column; align-items: flex-end; font-size: 12px; color: var(--text-soft); padding-bottom: 6px; }
+.totalOrden strong { font-size: 22px; color: var(--text); }
+
+/* ── Tablero de la flota ────────────────────────────────────────────────── */
+.cifrasTablero { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-top: 20px; }
+.cifraTablero {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-18);
+  padding: 16px 18px; display: flex; flex-direction: column; gap: 2px; text-align: left; font: inherit;
+}
+button.cifraTablero { cursor: pointer; }
+.cifraTablero strong { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; color: var(--text); }
+.cifraTablero span { font-size: 12px; color: var(--text-soft); }
+.cifraTablero[data-tono='bad'] { border-color: var(--bad-border); background: var(--bad-bg); }
+.cifraTablero[data-tono='warn'] { border-color: var(--warn-border); background: var(--warn-bg); }
+.filaClic { cursor: pointer; }
+.filaClic:hover td { background: var(--surface-alt); }
+.movRepuesto { display: flex; gap: 12px; font-size: 12px; padding: 5px 0; color: var(--text-soft); flex-wrap: wrap; }
+
+@media (max-width: 1020px) {
+  .planLayout { grid-template-columns: 1fr; }
+}
+@media (max-width: 600px) {
+  .filaRepuesto { flex-wrap: wrap; }
+  .filaRepuesto select { flex-basis: 100%; }
+}
+@media (max-width: 600px) {
+  .cardCauchos, .cardPlan { padding: 16px; }
+  .diagrama { padding: 14px 10px; }
+  .eje { gap: 8px; }
+  .ejeEtiqueta { width: 62px; }
+  .ejeNombre { font-size: 13px; }
+  .ejeCentro { gap: 6px; }
+  .ladoCauchos { gap: 4px; }
+  .caucho { width: 40px; height: 58px; border-radius: 12px; }
+  .cauchoDesgaste { font-size: 10px; }
+  .barraEje { min-width: 6px; }
 }

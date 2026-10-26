@@ -77,7 +77,7 @@ export default function MarketplaceHome() {
 function PortadaCompleta() {
   useSeo(
     'Pasajes de autobús en Venezuela: compra tu boleto en línea | Butaca En Línea',
-    'Compra pasajes de bus en línea a Caracas, Maracaibo, Valencia, Barquisimeto, Mérida, San Cristóbal y todo Venezuela. Compara líneas y horarios, escoge tu puesto y recibe tu boleto con QR.',
+    'Compra pasajes de autobús en línea a Caracas, Maracaibo, Valencia, Mérida, San Cristóbal y toda Venezuela. Escoge tu puesto y recibe tu boleto al instante.',
     { ruta: '/' }
   );
   const navigate = useNavigate();
@@ -124,6 +124,7 @@ function PortadaCompleta() {
           </a>
           <nav style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 26, fontSize: 14, fontWeight: 500 }}>
             <span className={css.navHorizontal} style={{ display: 'flex', alignItems: 'center', gap: 26 }}>
+              <a className={css.navLink} href="/pasajes">Pasajes</a>
               <a className={css.navLink} href="#busetas">Busetas</a>
               <a className={css.navLink} href="#promos">Promociones</a>
               <a className={css.navLink} href="#kilometros">Kilómetros</a>

@@ -57,3 +57,17 @@
   .tablaRutaPrimero tr { grid-template-areas: 'linea precio' 'fecha comprar' 'hora llega'; }
   .tablaRutaPrimero .cLinea { font-weight: 700; color: var(--text); font-size: 15px; }
 }
+
+/* Guía de ruta: la nota de la fuente del precio y el «avísame» */
+.notaPrecio { margin: -12px 0 22px; font-size: 12px; color: var(--text-faint); max-width: 760px; line-height: 1.5; }
+.aviso { margin: 0 0 30px; padding: 22px; border-radius: 20px; background: var(--tint-50, #EFF4FF); border: 1px solid var(--tint-300, #C7D7FE); }
+.aviso h2 { margin: 0 0 6px; font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
+.aviso p { margin: 0; font-size: 15px; line-height: 1.55; color: var(--text-soft); max-width: 680px; }
+.avisoForm { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin-top: 14px; }
+.avisoForm label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600; color: var(--text-soft); flex: 1 1 180px; }
+.avisoForm input { height: 46px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); font: inherit; font-size: 16px; color: var(--text); }
+.avisoForm button { height: 46px; padding: 0 22px; border-radius: 12px; background: var(--blue-600); color: #fff; font-weight: 700; font-size: 15px; flex: 0 0 auto; }
+.avisoForm button:disabled { opacity: 0.6; }
+.aviso .avisoError { margin-top: 10px; color: var(--bad-text); font-size: 13px; }
+.aviso .avisoNota { margin-top: 10px; font-size: 12px; color: var(--text-faint); }
+@media (max-width: 560px) { .avisoForm button { flex: 1 1 100%; } }

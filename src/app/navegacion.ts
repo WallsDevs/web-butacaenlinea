@@ -29,13 +29,13 @@ export const esGrupo = (e: EntradaNav): e is GrupoNav => 'items' in e;
 
 const sec = (label: string, ruta: string, modulos?: ClaveModulo[]): SeccionModulo => ({ id: ruta, label, ruta, modulos });
 
-/** Superadmin: UN solo menú. 11 secciones agrupadas por lo que el dueño hace con ellas. */
+/** Superadmin: UN solo menú. 12 secciones agrupadas por lo que el dueño hace con ellas. */
 export const MENU_ADMIN: EntradaNav[] = [
   sec('Dashboard', '/admin'),
   {
     id: 'clientes',
     label: 'Clientes',
-    items: [sec('Empresas', '/admin/empresas'), sec('Pasajeros', '/admin/pasajeros'), sec('Contratos', '/admin/contratos'), sec('Integraciones', '/admin/integraciones'), sec('Conectores', '/admin/conectores')],
+    items: [sec('Empresas', '/admin/empresas'), sec('Pasajeros', '/admin/pasajeros'), sec('Demanda', '/admin/demanda'), sec('Contratos', '/admin/contratos'), sec('Integraciones', '/admin/integraciones'), sec('Conectores', '/admin/conectores')],
   },
   {
     id: 'finanzas',

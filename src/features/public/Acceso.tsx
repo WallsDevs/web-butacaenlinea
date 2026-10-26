@@ -261,6 +261,9 @@ export default function Acceso({ modo }: { modo: 'login' | 'registro' }) {
               </a>
             </div>
             <div style={{ fontSize: 14, color: '#475569', textAlign: 'center' }}>
+              <a className={css.enlace} href="/pasajes" onClick={(e) => { e.preventDefault(); navigate('/pasajes'); }} style={{ fontWeight: 700 }}>Ver pasajes y horarios sin cuenta</a>
+            </div>
+            <div style={{ fontSize: 14, color: '#475569', textAlign: 'center' }}>
               <a className={css.enlace} href="/ayuda" onClick={(e) => { e.preventDefault(); ir('/ayuda'); }}>¿Cómo funciona? Mira la ayuda</a>
             </div>
             {!reg && (
