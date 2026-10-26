@@ -57,7 +57,7 @@ export default function PaginaTerminal() {
         <div className={styles.tablaEnvoltura}>
           <table className={`${styles.tabla} ${styles.tablaRutaPrimero}`}>
             <thead>
-              <tr><th>Destino</th><th>Precio de referencia</th><th>Duración</th><th>Líneas</th></tr>
+              <tr><th>Destino</th><th>Precio de referencia</th><th>Duración</th></tr>
             </thead>
             <tbody>
               {destinos.map((g) => (
@@ -65,14 +65,13 @@ export default function PaginaTerminal() {
                   <td className={styles.cLinea}><Link to={rutaPar(g.origen, g.destino)}>{nombreVisible(g.destino)}</Link></td>
                   <td className={styles.cPrecio}>{g.precio ? (g.precio.min === g.precio.max ? `$${g.precio.min}` : `$${g.precio.min}–${g.precio.max}`) : '—'}</td>
                   <td className={styles.cFecha}>{horas(g.minutos)}</td>
-                  <td className={styles.cLlega}>{g.lineas.join(', ') || '—'}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
         <p className={styles.notaPrecio} style={{ marginTop: 10 }}>
-          Precios de referencia de SITSSA, sondeos de prensa y agregadores, con la fecha de cada fuente en la página de cada ruta. Se pagan en bolívares a la tasa BCV del día: confírmalos en la taquilla.
+          Precios de referencia de tarifas publicadas, sondeos de prensa y agregadores, con la fecha de cada fuente en la página de cada ruta. Se pagan en bolívares a la tasa BCV del día: confírmalos en la taquilla.
         </p>
       </section>
 
