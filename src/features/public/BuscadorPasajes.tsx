@@ -41,12 +41,13 @@ export function BuscadorPasajes({ enPanel = false }: { enPanel?: boolean }) {
   const { data: rutas, isError: rutasError } = useQuery({ queryKey: ['rutas-publicas'], queryFn: () => getRutas() });
   const origenes = useMemo(() => [...new Set((rutas ?? []).map((r) => r.origen).filter(Boolean))].sort() as string[], [rutas]);
   // Mientras nadie elige, se parte de la primera ruta que existe (el diseño no tiene la opción «todos»)
-  const origen = criterios.origen || origenes[0] || '';
+  // Solo valores que el selector puede mostrar: si no, se vería una ciudad y se buscaría otra
+  const origen = criterios.origen && origenes.includes(criterios.origen) ? criterios.origen : origenes[0] || '';
   const destinos = useMemo(
     () => [...new Set((rutas ?? []).filter((r) => r.origen === origen).map((r) => r.destino).filter(Boolean))].sort() as string[],
     [rutas, origen]
   );
-  const destino = criterios.destino && criterios.destino !== origen ? criterios.destino : destinos[0] || '';
+  const destino = criterios.destino && criterios.destino !== origen && destinos.includes(criterios.destino) ? criterios.destino : destinos[0] || '';
 
   // Cuatro días desde hoy
   const dias = useMemo(() => {

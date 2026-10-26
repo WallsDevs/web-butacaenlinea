@@ -67,8 +67,12 @@ export default function Pasajes() {
   useEffect(() => {
     if (origen && destino) setCriterios({ origen: origen.nombre, destino: destino.nombre, ...(primeraFecha ? { fecha: primeraFecha } : {}) });
     else if (ciudad) {
+      // Solo una ruta que exista: una ciudad sin rutas no se pone de destino (el buscador
+      // mostraría otra ciudad y buscaría esta, «Caracas a Táriba»)
       const sale = pares.find((p) => p.origen === ciudad.nombre);
-      setCriterios(sale ? { origen: ciudad.nombre, destino: sale.destino } : { destino: ciudad.nombre });
+      const llega = pares.find((p) => p.destino === ciudad.nombre);
+      if (sale) setCriterios({ origen: ciudad.nombre, destino: sale.destino });
+      else if (llega) setCriterios({ origen: llega.origen, destino: ciudad.nombre });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ciudad?.nombre, origen?.nombre, destino?.nombre, pares.length, primeraFecha]);
@@ -97,13 +101,17 @@ export default function Pasajes() {
   const sinOferta = Boolean(ciudad && rutasListas && !pares.some((p) => p.origen === ciudad.nombre || p.destino === ciudad.nombre));
   useSeo(noExiste ? 'Ciudad no encontrada | Butaca En Línea' : t.titulo, t.descripcion, { ruta, noindex: noExiste || sinOferta, datos: noExiste ? undefined : datosEstructurados(ruta, migas, t.preguntas, viajes) });
 
+  // Solo se enlazan las ciudades con alguna ruta a la venta: las demás (pueblos de rutas
+  // urbanas como Táriba) existen por su dirección, pero no se ofrecen como destino de bus
+  const conRuta = useMemo(() => new Set(pares.flatMap((p) => [p.origen, p.destino])), [pares]);
+  const conPasajes = useMemo(() => ciudades.filter((c) => conRuta.has(c.nombre)), [ciudades, conRuta]);
   const porEstado = useMemo(() => {
     const m = new Map<string, Ciudad[]>();
-    for (const c of ciudades) m.set(c.estado ?? 'Otras', [...(m.get(c.estado ?? 'Otras') ?? []), c]);
+    for (const c of conPasajes) m.set(c.estado ?? 'Otras', [...(m.get(c.estado ?? 'Otras') ?? []), c]);
     return [...m.entries()].sort((a, b) => a[0].localeCompare(b[0]));
-  }, [ciudades]);
+  }, [conPasajes]);
   const centro = origen ?? ciudad;
-  const vecinas = centro ? ciudades.filter((c) => c.estado === centro.estado && c.nombre !== centro.nombre) : [];
+  const vecinas = centro ? conPasajes.filter((c) => c.estado === centro.estado && c.nombre !== centro.nombre) : [];
   const desde = centro ? pares.filter((p) => p.origen === centro.nombre && p.destino !== destino?.nombre) : [];
   const hacia = ciudad ? pares.filter((p) => p.destino === ciudad.nombre) : [];
 
@@ -167,9 +175,21 @@ export default function Pasajes() {
           </div>
         </section>
       )}
-      {(ciudad || (origen && destino)) && (
+      {((ciudad && rutasListas && !sinOferta) || (origen && destino)) && (
         <section className={styles.buscar} aria-label="Buscar salidas">
           <BuscadorPasajes enPanel />
+        </section>
+      )}
+      {sinOferta && (
+        <section className={styles.seccion}>
+          <h2>Ciudades con pasajes de autobús</h2>
+          {conPasajes.length > 0 ? (
+            <ul className={styles.enlaces}>
+              {conPasajes.map((c) => <li key={c.nombre}><Link to={rutaCiudad(c.nombre)}>Pasajes en {c.nombre}</Link></li>)}
+            </ul>
+          ) : (
+            <p className={styles.intro}>Las líneas afiliadas todavía están publicando sus rutas.</p>
+          )}
         </section>
       )}
 

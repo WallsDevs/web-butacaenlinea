@@ -124,6 +124,7 @@ function PortadaCompleta() {
           </a>
           <nav style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 26, fontSize: 14, fontWeight: 500 }}>
             <span className={css.navHorizontal} style={{ display: 'flex', alignItems: 'center', gap: 26 }}>
+              <a className={css.navLink} href="/pasajes">Pasajes</a>
               <a className={css.navLink} href="#busetas">Busetas</a>
               <a className={css.navLink} href="#promos">Promociones</a>
               <a className={css.navLink} href="#kilometros">Kilómetros</a>

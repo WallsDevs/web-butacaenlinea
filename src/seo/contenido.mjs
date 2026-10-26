@@ -145,9 +145,13 @@ export function textosCiudad(ciudad, estado, { desde = [], hacia = [] } = {}) {
       'Recibe tu boleto al instante.'
     ),
     h1: `Pasajes de autobús en ${ciudad}`,
-    intro: `Compra tu pasaje de bus desde o hacia ${donde} sin hacer cola en el terminal. En ${MARCA} ves las salidas de todas las líneas afiliadas, comparas horarios y precios, escoges tu puesto en el mapa del bus y pagas en línea. Tu boleto llega al teléfono con su código QR.`,
+    intro: desde.length || hacia.length
+      ? `Compra tu pasaje de bus desde o hacia ${donde} sin hacer cola en el terminal. En ${MARCA} ves las salidas de todas las líneas afiliadas, comparas horarios y precios, escoges tu puesto en el mapa del bus y pagas en línea. Tu boleto llega al teléfono al instante.`
+      : `Todavía ninguna línea afiliada a ${MARCA} vende pasajes de autobús desde o hacia ${donde}. Cuando alguna publique su ruta, aparecerá aquí con sus horarios y precios.`,
     preguntas: [
-      { p: `¿Cómo compro un pasaje a ${ciudad}?`, r: `Busca tu salida en ${MARCA}: elige desde dónde sales, ${ciudad} como destino y el día. Toca la salida, escoge tu puesto y paga. El boleto queda en «Mis boletos».` },
+      ...(desde.length || hacia.length
+        ? [{ p: `¿Cómo compro un pasaje a ${ciudad}?`, r: `Busca tu salida en ${MARCA}: elige desde dónde sales, ${ciudad} como destino y el día. Toca la salida, escoge tu puesto y paga. El boleto queda en «Mis boletos».` }]
+        : []),
       { p: `¿Qué rutas salen de ${ciudad}?`, r: destinos.length ? `Desde ${ciudad} hay salidas a ${destinos.join(', ')}. Los horarios y precios de cada línea están en su página.` : `Las líneas afiliadas publican sus salidas desde ${ciudad} con anticipación. Si no ves la tuya, escríbenos por WhatsApp y te avisamos.` },
       ...PREGUNTAS_COMPRA,
     ],

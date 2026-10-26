@@ -143,9 +143,14 @@ const urls = [{ u: '/' }, { u: '/salidas' }, { u: '/ayuda' }];
 const masNueva = (fechas) => fechas.filter(Boolean).sort().pop() ?? null;
 const migasBase = [{ nombre: 'Inicio', ruta: '/' }, { nombre: 'Pasajes', ruta: '/pasajes' }];
 
+// Solo se enlazan las ciudades con alguna ruta a la venta: las demás (pueblos de rutas urbanas
+// como Táriba) tienen su página por dirección, pero no se ofrecen como destino de bus
+const conRuta = new Set([...pares.values()].flatMap((p) => [p.origen, p.destino]));
+const conPasajes = ciudades.filter((c) => conRuta.has(c.nombre));
+
 // Índice por estado
 const porEstado = new Map();
-for (const c of ciudades) porEstado.set(c.estado ?? 'Otras', [...(porEstado.get(c.estado ?? 'Otras') ?? []), c]);
+for (const c of conPasajes) porEstado.set(c.estado ?? 'Otras', [...(porEstado.get(c.estado ?? 'Otras') ?? []), c]);
 const indice = [...porEstado.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([e, cs]) => lista(e, cs.map((c) => [rutaCiudad(c.nombre), `Pasajes en ${c.nombre}`]))).join('');
 const temporadasVivas = TEMPORADAS.filter((t) => new Date(`${t.hasta}T23:59:59-04:00`).getTime() >= Date.now());
 await escribir('/pasajes', pagina('/pasajes', textosIndice(), lista('Precios y temporadas', [[RUTA_PRECIOS, 'Precios de pasajes de autobús hoy, en dólares y bolívares'], ...temporadasVivas.map((t) => [rutaTemporada(t.slug), `Pasajes para ${t.nombre} ${t.anio}`])]) + indice, migasBase));
@@ -160,7 +165,9 @@ for (const c of ciudades) {
   const cuerpo =
     lista(`Viajes desde ${c.nombre}`, desde.map((p) => [rutaPar(p.origen, p.destino), `Pasajes de ${p.origen} a ${p.destino}${p.precio != null ? ` desde $${p.precio}` : ''}`])) +
     lista(`Viajes hacia ${c.nombre}`, hacia.map((p) => [rutaPar(p.origen, p.destino), `Pasajes de ${p.origen} a ${p.destino}`])) +
-    lista(`Otras ciudades de ${c.estado ?? ''}`, ciudades.filter((x) => x.estado === c.estado && x.nombre !== c.nombre).map((x) => [rutaCiudad(x.nombre), `Pasajes en ${x.nombre}`]));
+    (desde.length || hacia.length
+      ? lista(`Otras ciudades de ${c.estado ?? ''}`, conPasajes.filter((x) => x.estado === c.estado && x.nombre !== c.nombre).map((x) => [rutaCiudad(x.nombre), `Pasajes en ${x.nombre}`]))
+      : lista('Ciudades con pasajes de autobús', conPasajes.map((x) => [rutaCiudad(x.nombre), `Pasajes en ${x.nombre}`])));
   // Sin ninguna ruta que la toque, la página existe para la gente pero no se indexa: 59 páginas
   // casi iguales sin oferta son relleno para Google y bajan al sitio entero
   const conOferta = desde.length > 0 || hacia.length > 0;
