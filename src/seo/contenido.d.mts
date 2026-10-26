@@ -27,3 +27,5 @@ export interface Temporada { slug: string; nombre: string; titulo: string; desde
 export const TEMPORADAS: Temporada[];
 export function rutaTemporada(slugTemporada: string): string;
 export function textosTemporada(t: Temporada, info?: { salidas?: number; rutas?: { precio: number | null }[] }): Textos & { respuesta: string; preguntas: Pregunta[] };
+export declare const MAX_DESCRIPCION: number;
+export declare function descripcionDe(...partes: (string | false | null | undefined | 0)[]): string;

@@ -42,6 +42,28 @@ const horas = (min) => {
 const dolares = (n) => `$${Number(n).toLocaleString('es-VE', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
 /** Cierra la frase sin doble punto: «7:00 a. m.» ya termina en punto. */
 const cerrar = (t) => (t.endsWith('.') ? t : `${t}.`);
+
+/** Lo que Google muestra de la descripción antes de cortarla. */
+export const MAX_DESCRIPCION = 155;
+/**
+ * Arma una descripción de hasta 155 caracteres: la primera frase siempre y
+ * las siguientes, en orden, solo si caben enteras. Si la primera sola ya se
+ * pasa, se corta en la última palabra que cabe (nunca a mitad de palabra).
+ */
+export function descripcionDe(...partes) {
+  const [primera = '', ...resto] = partes.filter(Boolean);
+  let texto = primera;
+  for (const p of resto) if (`${texto} ${p}`.length <= MAX_DESCRIPCION) texto = `${texto} ${p}`;
+  if (texto.length <= MAX_DESCRIPCION) return texto;
+  const corte = texto.slice(0, MAX_DESCRIPCION - 1);
+  return `${corte.slice(0, corte.lastIndexOf(' ')).replace(/[,:;·\s]+$/, '')}…`;
+}
+/** «Caracas, Valencia y Maracaibo» (sin pasarse de `max` nombres). */
+const lista = (nombres, max) => {
+  const n = nombres.slice(0, max);
+  if (nombres.length > max) return `${n.join(', ')} y más`;
+  return n.length > 1 ? `${n.slice(0, -1).join(', ')} y ${n[n.length - 1]}` : n[0] ?? '';
+};
 const bolivares = (n) => `Bs ${Math.round(Number(n)).toLocaleString('es-VE')}`;
 
 /** Las horas se dicen en hora de Venezuela, aunque la página se arme en un servidor de otro país. */
@@ -115,10 +137,13 @@ const PREGUNTAS_COMPRA = [
 export function textosCiudad(ciudad, estado, { desde = [], hacia = [] } = {}) {
   const donde = estado && estado !== ciudad ? `${ciudad}, ${estado}` : ciudad;
   const destinos = desde.map((r) => r.destino);
-  const conDestinos = destinos.length ? ` Viaja a ${destinos.slice(0, 4).join(', ')}${destinos.length > 4 ? ' y más' : ''}.` : '';
   return {
     titulo: `Pasajes de autobús a ${ciudad} y desde ${ciudad} | ${MARCA}`,
-    descripcion: `Compra pasajes de bus en línea en ${donde}: horarios, precios y puestos de todas las líneas.${conDestinos} Escoge tu asiento y recibe tu boleto con QR.`,
+    descripcion: descripcionDe(
+      `Compra pasajes de bus en línea en ${donde}: horarios, precios y puestos de todas las líneas.`,
+      destinos.length && `Viaja a ${lista(destinos, 3)}.`,
+      'Boleto con QR.'
+    ),
     h1: `Pasajes de autobús en ${ciudad}`,
     intro: `Compra tu pasaje de bus desde o hacia ${donde} sin hacer cola en el terminal. En ${MARCA} ves las salidas de todas las líneas afiliadas, comparas horarios y precios, escoges tu puesto en el mapa del bus y pagas en línea. Tu boleto llega al teléfono con su código QR.`,
     preguntas: [
@@ -139,13 +164,18 @@ export function textosPar(origen, destino, { precioDesde, duracionMin, distancia
   const precio = usd ? dolares(usd) : null;
   const precioBs = resumen?.desdeBs ? bolivares(resumen.desdeBs) : null;
   const todas = [...new Set([...(resumen?.lineas ?? []), ...lineas])];
-  const conLineas = todas.length ? ` Viajan ${todas.slice(0, 3).join(', ')}${todas.length > 3 ? ' y más líneas' : ''}.` : '';
   const frecuencia = resumen?.salidasSemana ? `${resumen.salidasSemana} ${resumen.salidasSemana === 1 ? 'salida' : 'salidas'} en los próximos 7 días` : null;
   const horario = resumen?.primera ? (resumen.ultima && resumen.ultima !== resumen.primera ? `entre las ${resumen.primera} y las ${resumen.ultima}` : `a las ${resumen.primera}`) : null;
   const respuesta = [precio && `Desde ${precio}${precioBs ? ` (${precioBs})` : ''}`, frecuencia, dur && `unas ${dur} de viaje`].filter(Boolean).join(' · ');
   return {
     titulo: `Pasajes en bus de ${origen} a ${destino}: precio y horarios | ${MARCA}`,
-    descripcion: `Pasajes de autobús de ${origen} a ${destino}${precio ? ` desde ${precio}` : ''}.${horario ? ` ${cerrar(`Salidas ${horario}`)}` : ''}${dur ? ` Unas ${dur} de viaje.` : ''}${conLineas} Compra en línea, escoge tu puesto y aborda con tu boleto QR.`,
+    descripcion: descripcionDe(
+      `Pasajes de autobús de ${origen} a ${destino}${precio ? ` desde ${precio}` : ''}.`,
+      horario && cerrar(`Salidas ${horario}`),
+      dur && `Unas ${dur} de viaje.`,
+      todas.length && `Viajan ${lista(todas, 2)}.`,
+      'Compra en línea y escoge tu puesto.'
+    ),
     h1: `Pasajes en bus de ${origen} a ${destino}`,
     respuesta: respuesta || null,
     intro: `Compra tu pasaje de bus de ${origen} a ${destino} en línea.${horario ? ` ${cerrar(`Hay salidas ${horario}${terminalSalida ? ` desde ${terminalSalida}` : ''}`)}` : ''}${resumen?.lineaBarata ? ` La opción más económica hoy es ${resumen.lineaBarata.nombre}, desde ${dolares(resumen.lineaBarata.desdeUsd)}.` : ''} Compara las salidas de todas las líneas, escoge tu puesto en el mapa del bus y paga desde el teléfono, sin hacer cola en el terminal.`,
@@ -180,7 +210,11 @@ export function textosLinea(nombre, { rutas = [], salidasSemana = 0, terminalBas
   const precio = desde.length ? dolares(Math.min(...desde)) : null;
   return {
     titulo: `Pasajes de ${nombre}: rutas, horarios y precios | ${MARCA}`,
-    descripcion: `Compra en línea tus pasajes de ${nombre}${precio ? ` desde ${precio}` : ''}.${destinos.length ? ` Viaja a ${destinos.slice(0, 5).join(', ')}${destinos.length > 5 ? ' y más' : ''}.` : ''} Escoge tu puesto y recibe tu boleto con QR.`,
+    descripcion: descripcionDe(
+      `Compra en línea tus pasajes de ${nombre}${precio ? ` desde ${precio}` : ''}.`,
+      destinos.length && `Viaja a ${lista(destinos, 4)}.`,
+      'Escoge tu puesto y recibe tu boleto con QR.'
+    ),
     h1: `Pasajes de ${nombre}`,
     respuesta: [precio && `Desde ${precio}`, rutas.length && `${rutas.length} ${rutas.length === 1 ? 'ruta' : 'rutas'}`, salidasSemana && `${salidasSemana} ${salidasSemana === 1 ? 'salida' : 'salidas'} en los próximos 7 días`].filter(Boolean).join(' · ') || null,
     intro: `${nombre}${terminalBase ? `, con base en ${terminalBase},` : ''} vende sus pasajes en ${MARCA}: ves sus salidas, escoges tu puesto en el mapa del bus y pagas desde el teléfono, sin hacer cola en el terminal.`,
@@ -196,7 +230,11 @@ export function textosLinea(nombre, { rutas = [], salidasSemana = 0, terminalBas
 export function textosPrecios(fecha, cantidad) {
   return {
     titulo: `Precios de pasajes de autobús en Venezuela hoy | ${MARCA}`,
-    descripcion: `Cuánto cuesta viajar en autobús en Venezuela hoy: precios de ${cantidad} rutas en dólares y en bolívares a la tasa BCV, actualizados ${fecha}. Compra en línea y escoge tu puesto.`,
+    descripcion: descripcionDe(
+      `Cuánto cuesta viajar en autobús en Venezuela hoy: ${cantidad} rutas con su precio en dólares y en bolívares (tasa BCV).`,
+      `Actualizado ${fecha}.`,
+      'Compra en línea.'
+    ),
     h1: 'Precios de pasajes de autobús hoy',
     intro: `Lo que cuesta cada ruta hoy en las líneas que venden en ${MARCA}, en dólares y en bolívares a la tasa del BCV. El precio exacto de cada salida (según la línea y el tipo de puesto) lo ves antes de pagar. Actualizado ${fecha}.`,
     preguntas: [
@@ -223,7 +261,10 @@ export function textosTemporada(t, { salidas = 0, rutas = [] } = {}) {
   const fechas = `del ${new Date(`${t.desde}T12:00:00-04:00`).toLocaleDateString('es-VE', { day: 'numeric', month: 'long' })} al ${new Date(`${t.hasta}T12:00:00-04:00`).toLocaleDateString('es-VE', { day: 'numeric', month: 'long' })}`;
   return {
     titulo: `Pasajes de autobús para ${t.nombre} ${t.anio}: salidas y precios | ${MARCA}`,
-    descripcion: `Pasajes en bus para viajar en ${t.titulo.toLowerCase()} ${t.anio} en Venezuela${precio ? ` desde ${precio}` : ''}: ${salidas ? `${salidas} salidas publicadas ${fechas}` : `salidas ${fechas}`}. Aparta tu puesto en línea antes de que se agoten.`,
+    descripcion: descripcionDe(
+      `Pasajes de bus para ${t.nombre} ${t.anio} en Venezuela${precio ? ` desde ${precio}` : ''}: ${salidas ? `${salidas} salidas publicadas ${fechas}` : `salidas ${fechas}`}.`,
+      'Aparta tu puesto en línea antes de que se agoten.'
+    ),
     h1: `Pasajes de autobús para ${t.nombre} ${t.anio}`,
     respuesta: [precio && `Desde ${precio}`, salidas ? `${salidas} ${salidas === 1 ? 'salida publicada' : 'salidas publicadas'}` : 'Salidas publicándose', fechas].filter(Boolean).join(' · '),
     intro: `En ${t.titulo.toLowerCase()} los puestos de bus se agotan semanas antes. En ${MARCA} ves las salidas de todas las líneas ${fechas}, escoges tu puesto en el mapa del bus y pagas desde el teléfono, sin hacer cola en el terminal.`,
@@ -239,7 +280,7 @@ export function textosTemporada(t, { salidas = 0, rutas = [] } = {}) {
 /** Índice de todas las ciudades, por estado. */
 export const textosIndice = () => ({
   titulo: `Pasajes de autobús en Venezuela por ciudad | ${MARCA}`,
-  descripcion: `Compra pasajes de bus en línea a cualquier ciudad de Venezuela: Caracas, Maracaibo, Valencia, Barquisimeto, Mérida, San Cristóbal y más. Todas las líneas, puesto en el mapa y boleto con QR.`,
+  descripcion: 'Compra pasajes de bus en línea a cualquier ciudad de Venezuela: Caracas, Maracaibo, Valencia, Mérida, San Cristóbal y más. Escoge tu puesto en el mapa.',
   h1: 'Pasajes de autobús en Venezuela',
   intro: `Escoge tu ciudad para ver las salidas, horarios y precios de todas las líneas afiliadas a ${MARCA}. Compras en línea, escoges tu puesto y abordas con el boleto en el teléfono.`,
 });

@@ -77,7 +77,7 @@ export default function MarketplaceHome() {
 function PortadaCompleta() {
   useSeo(
     'Pasajes de autobús en Venezuela: compra tu boleto en línea | Butaca En Línea',
-    'Compra pasajes de bus en línea a Caracas, Maracaibo, Valencia, Barquisimeto, Mérida, San Cristóbal y todo Venezuela. Compara líneas y horarios, escoge tu puesto y recibe tu boleto con QR.',
+    'Compra pasajes de autobús en línea a Caracas, Maracaibo, Valencia, Mérida, San Cristóbal y toda Venezuela. Compara líneas, escoge tu puesto y recibe tu QR.',
     { ruta: '/' }
   );
   const navigate = useNavigate();
