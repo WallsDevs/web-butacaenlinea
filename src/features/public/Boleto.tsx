@@ -66,7 +66,7 @@ export default function Boleto() {
         </div>
         <p style={{ margin: '0 0 16px', fontSize: 14 }}>
           {noExiste
-            ? 'Revisa el enlace. Si compraste sin cuenta, puedes buscarlo con tu cédula.'
+            ? 'Revisa el enlace. Si compraste sin cuenta, puedes buscarlo con los datos de tu comprobante de Pago Móvil.'
             : 'Tu boleto está guardado; el problema es de conexión con el servidor. Intenta de nuevo en un momento.'}
         </p>
         {noExiste ? (

@@ -12,6 +12,7 @@ import { useAuth } from '../../stores/auth';
 import type { MetodoPago } from '../../lib/api/types';
 import ui from '../../components/ui/ui.module.css';
 import styles from './public.module.css';
+import { BANCOS_VE } from '../../lib/bancos';
 
 /**
  * Por qué no se pudo emitir, dicho para el pasajero. Lo que no esté aquí
@@ -37,6 +38,8 @@ function motivoEmision(e: unknown): string {
       return 'Falta algún dato del pago. Revisa el método y la referencia.';
     case 'referencia_requerida':
       return 'Escribe la referencia de tu pago a Butaca.';
+    case 'datos_pagador_requeridos':
+      return 'Completa los datos de quien hizo el Pago Móvil: banco, teléfono y cédula, como salen en tu comprobante.';
     case 'referencia_duplicada':
       return 'Esa referencia ya se usó en otro pago. Revisa el número de operación.';
     case 'salida_no_vendible':
@@ -113,6 +116,11 @@ export default function Checkout() {
   const [expirada, setExpirada] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [referencia, setReferencia] = useState('');
+  // Pago Móvil sin cuenta: quien pagó (puede no ser el pasajero). Teléfono y cédula salen del primer
+  // pasajero hasta que la persona los cambie (null = «igual que el pasajero»)
+  const [bancoPagador, setBancoPagador] = useState('');
+  const [telefonoPagador, setTelefonoPagador] = useState<string | null>(null);
+  const [documentoPagador, setDocumentoPagador] = useState<string | null>(null);
   // La captura del pago a Butaca (recarga o pago directo): Butaca la ve al verificar
   const [captura, setCaptura] = useState<File | null>(null);
   // Con wallet sin saldo: por dónde recarga el faltante (en bolívares)
@@ -178,6 +186,7 @@ export default function Checkout() {
           metodoPago: metodo.id,
           monedaPago: metodo.moneda,
           referencia: metodo.id === 'wallet' ? undefined : referencia.trim(),
+          ...(metodo.id === 'pago_movil' ? { bancoPagador, telefonoPagador: telPagador.trim(), documentoPagador: docPagador.trim() } : {}),
         },
         // Con wallet y saldo corto: el faltante se recarga a Butaca en esta misma compra
         ...(esCliente && !walletAlcanza ? { recarga: { referencia: referencia.trim(), banco: medioRecarga === 'pago_movil' ? 'Pago Móvil' : 'Transferencia' } } : {}),
@@ -218,6 +227,10 @@ export default function Checkout() {
   const total = subtotal + pasajeros.length * (recargos.tasaTerminal + recargos.seguro);
   const totalBs = totalBsCompra;
   const pideReferencia = !esCliente || !walletAlcanza;
+  const telPagador = telefonoPagador ?? pasajeros[0]?.telefono ?? '';
+  const docPagador = documentoPagador ?? pasajeros[0]?.documento ?? '';
+  const pagoMovilSinCuenta = !esCliente && metodoPago === 'pago_movil';
+  const pagadorCompleto = !pagoMovilSinCuenta || (Boolean(bancoPagador) && telPagador.replace(/\D/g, '').length >= 10 && docPagador.replace(/\D/g, '').length >= 5);
   const metodoActual = METODOS.find((m) => m.id === metodoPago) ?? METODOS[0];
   const datosCompletos = pasajeros.every((p) => p.nombre.trim().length > 2 && p.documento.trim().length > 4);
 
@@ -336,12 +349,38 @@ export default function Checkout() {
 
         {pideReferencia && (
           <div style={{ marginTop: 14, maxWidth: 420 }}>
-            <Field
-              label="Referencia del pago (nro. de operación o confirmación)"
-              value={referencia}
-              onChange={(e) => setReferencia(e.target.value)}
-              placeholder="Ej. 00482913"
-            />
+            {pagoMovilSinCuenta ? (
+              <div className={styles.datosPagador}>
+                <div className={styles.datosPagadorTitulo}>Datos de tu comprobante de Pago Móvil</div>
+                <p className={styles.datosPagadorNota}>Con estos cuatro datos Butaca verifica tu pago, y recuperas tu boleto si pierdes el enlace.</p>
+                <label className={ui.field}>
+                  <span className={ui.fieldLabel}><span className={styles.marcaDato} aria-hidden>1</span>Referencia del pago</span>
+                  <input className={ui.fieldInput} value={referencia} onChange={(e) => setReferencia(e.target.value)} placeholder="Ej. 0004 8812 3371" autoComplete="off" />
+                </label>
+                <label className={ui.field}>
+                  <span className={ui.fieldLabel}><span className={styles.marcaDato} aria-hidden>2</span>Banco desde el que pagaste</span>
+                  <select className={ui.fieldInput} value={bancoPagador} onChange={(e) => setBancoPagador(e.target.value)}>
+                    <option value="">Escoge tu banco</option>
+                    {BANCOS_VE.map((b) => <option key={b}>{b}</option>)}
+                  </select>
+                </label>
+                <label className={ui.field}>
+                  <span className={ui.fieldLabel}><span className={styles.marcaDato} aria-hidden>3</span>Teléfono desde el que pagaste</span>
+                  <input className={ui.fieldInput} type="tel" inputMode="tel" value={telPagador} onChange={(e) => setTelefonoPagador(e.target.value)} placeholder="0414-555.12.34" />
+                </label>
+                <label className={ui.field}>
+                  <span className={ui.fieldLabel}><span className={styles.marcaDato} aria-hidden>4</span>Cédula de quien pagó</span>
+                  <input className={ui.fieldInput} value={docPagador} onChange={(e) => setDocumentoPagador(e.target.value)} placeholder="V-12.345.678" />
+                </label>
+              </div>
+            ) : (
+              <Field
+                label="Referencia del pago (nro. de operación o confirmación)"
+                value={referencia}
+                onChange={(e) => setReferencia(e.target.value)}
+                placeholder="Ej. 00482913"
+              />
+            )}
             <label className={ui.field} style={{ marginTop: 12 }}>
               <span className={ui.fieldLabel}>Captura del pago (recomendado)</span>
               <input
@@ -386,7 +425,7 @@ export default function Checkout() {
               <button
                 className={`${ui.btnPrimary} ${ui.btnPrimaryLg}`}
                 style={{ marginTop: 12 }}
-                disabled={!datosCompletos || (pideReferencia && !referencia.trim()) || expirada || emitir.isPending || !totalBs}
+                disabled={!datosCompletos || (pideReferencia && !referencia.trim()) || !pagadorCompleto || expirada || emitir.isPending || !totalBs}
                 onClick={() => emitir.mutate()}
               >
                 {emitir.isPending ? 'Emitiendo…' : esCliente && walletAlcanza ? `Pagar ${fmtBs(totalBs)} con mi wallet` : esCliente ? 'Recargar y apartar mis puestos' : 'Ya pagué · emitir mis boletos'}

@@ -39,3 +39,6 @@
 .compacto .cabecera { padding: 14px 16px 10px; }
 .compacto .fila { padding: 7px 9px; }
 @media (prefers-reduced-motion: reduce) { .fila { transition: none; } }
+.compacto .fila { gap: 8px; }
+.compacto .fila dt { font-size: 11.5px; white-space: nowrap; }
+.compacto .fila dd { font-size: 13px; }
