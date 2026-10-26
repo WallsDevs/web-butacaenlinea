@@ -12,6 +12,7 @@
 /* Con poco ancho el panel azul sobra: el formulario va primero y la marca encima */
 @media (max-width: 900px) {
   .aside { display: none !important; }
+  .soloAncho { display: none !important; }
   .marcaMovil { display: flex; }
   .main { padding: 24px 20px 32px !important; }
 }

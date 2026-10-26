@@ -164,7 +164,6 @@ export default function Acceso({ modo }: { modo: 'login' | 'registro' }) {
 
       <main className={css.main} style={{ flex: '1 1 480px', display: 'flex', flexDirection: 'column', padding: '28px 40px 40px', boxSizing: 'border-box', background: '#FFFFFF' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-          {/* En teléfono y tablet la portada no existe (lleva de vuelta aquí): solo en escritorio */}
           <a className={css.enlace} href="/" style={{ fontSize: 15, fontWeight: 600 }} onClick={(e) => { e.preventDefault(); navigate('/'); }}>← Volver al inicio</a>
           <a className={css.marcaMovil} href="/" aria-label="Butaca En Línea" style={{ marginLeft: 'auto', alignItems: 'center', gap: 8 }}>
             <Isotipo size={28} trazo={5} fondo="claro" />
@@ -254,16 +253,18 @@ export default function Acceso({ modo }: { modo: 'login' | 'registro' }) {
               {cargando ? (reg ? 'Creando cuenta…' : 'Ingresando…') : reg ? 'Crear cuenta' : 'Ingresar'}
             </button>
 
-            <div style={{ fontSize: 15, color: '#475569', textAlign: 'center' }}>
+            {/* Las pestañas de arriba ya cambian entre ingresar y crear cuenta: en teléfono sobra */}
+            <div className={css.soloAncho} style={{ fontSize: 15, color: '#475569', textAlign: 'center' }}>
               {reg ? '¿Ya tienes cuenta?' : '¿Primera vez?'}{' '}
               <a className={css.enlace} href={reg ? '/ingresar' : '/registro'} onClick={(e) => { e.preventDefault(); ir(reg ? '/ingresar' : '/registro'); }} style={{ fontWeight: 700 }}>
                 {reg ? 'Ingresar' : 'Crea tu cuenta de pasajero'}
               </a>
             </div>
-            <div style={{ fontSize: 14, color: '#475569', textAlign: 'center' }}>
+            {/* Pasajes y ayuda están en el menú de la portada: en teléfono el login queda limpio */}
+            <div className={css.soloAncho} style={{ fontSize: 14, color: '#475569', textAlign: 'center' }}>
               <a className={css.enlace} href="/pasajes" onClick={(e) => { e.preventDefault(); navigate('/pasajes'); }} style={{ fontWeight: 700 }}>Ver pasajes y horarios sin cuenta</a>
             </div>
-            <div style={{ fontSize: 14, color: '#475569', textAlign: 'center' }}>
+            <div className={css.soloAncho} style={{ fontSize: 14, color: '#475569', textAlign: 'center' }}>
               <a className={css.enlace} href="/ayuda" onClick={(e) => { e.preventDefault(); ir('/ayuda'); }}>¿Cómo funciona? Mira la ayuda</a>
             </div>
             {!reg && (
