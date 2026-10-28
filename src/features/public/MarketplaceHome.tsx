@@ -209,7 +209,7 @@ export default function MarketplaceHome() {
       {/* Secciones */}
       <div style={{ position: 'relative', maxWidth: 1440, margin: '0 auto', padding: '0 28px 96px', display: 'flex', flexDirection: 'column', gap: 88 }}>
         {/* Con sesión: rutas con buseta de turno; sin sesión: aviso para registrarse (/busetas sigue por enlace, como /salidas) */}
-        {!usuario && <CompraSinCuenta onBuscar={() => window.scrollTo({ top: 0, behavior: 'smooth' })} />}
+        <CompraSinCuenta conSesion={Boolean(usuario)} onBuscar={() => window.scrollTo({ top: 0, behavior: 'smooth' })} />
         <BusetasEnVivo />
         <Promociones />
         <Kilometros destino={destino} pasajeros={pax} />
