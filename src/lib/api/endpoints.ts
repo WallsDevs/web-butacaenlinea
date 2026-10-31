@@ -1437,3 +1437,13 @@ export const getTelefonosRuta = (origen: string, destino: string) =>
   );
 export const marcarAvisados = (origen: string, destino: string) =>
   api<{ avisados: number }>('/api/admin/avisos-ruta/avisados', { method: 'POST', body: { origen, destino } });
+
+// ── Visitas desde Instagram ──────────────────────────────────────────────────
+export interface VisitasOrigen {
+  origen: string;
+  hoy: number;
+  semana: number;
+  mes: number;
+  dias: { dia: string; visitas: number }[];
+}
+export const getVisitas = () => api<VisitasOrigen[]>('/api/admin/visitas');

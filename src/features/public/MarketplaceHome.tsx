@@ -25,6 +25,10 @@ import { CIUDADES_INICIO, RUTAS_INICIO, nombreVisible, rutaTerminal } from '../.
 
 // Número de atención por WhatsApp (solo dígitos, con código de país). VITE_WHATSAPP lo reemplaza.
 const WHATSAPP = (import.meta.env.VITE_WHATSAPP as string | undefined)?.replace(/\D/g, '') || '584129647161';
+// Las líneas piden afiliarse por WhatsApp (antes era un correo a la vista, presa del spam)
+const AFILIAR = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent('Hola, quiero afiliar mi línea de transporte a Butaca En Línea.')}`;
+/** La única red social de Butaca, de momento. */
+const INSTAGRAM = 'https://www.instagram.com/butacaenlinea/';
 const COLORES_LINEA = ['#0B2A6B', '#2563EB', '#1D4ED8', '#123B8F', '#3B82F6', '#0B2A6B'];
 const HOME_POR_ROL: Record<string, string> = { superadmin: '/admin', empresa: '/empresa', cajero: '/pos', chofer: '/app-conductor', colector: '/colector', cliente: '/cuenta' };
 
@@ -242,7 +246,7 @@ export default function MarketplaceHome() {
           </div></div>
           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '22px 26px', borderRadius: 20, background: '#EFF4FF' }}>
             <span style={{ fontSize: 16, fontWeight: 600, color: '#0B2A6B' }}>¿Tienes una línea de transporte? Vende tus puestos en Butaca En Línea.</span>
-            <a href="mailto:hola@butacaenlinea.com?subject=Afiliar%20mi%20l%C3%ADnea" style={{ fontSize: 15, fontWeight: 700 }}>Afiliar mi línea →</a>
+            <a href={AFILIAR} target="_blank" rel="noopener noreferrer" style={{ fontSize: 15, fontWeight: 700 }}>Afiliar mi línea por WhatsApp →</a>
           </div>
         </section>
 
@@ -335,7 +339,7 @@ export default function MarketplaceHome() {
               {[
                 ['Viajar', [['Pasajes por ciudad', '/pasajes'], ['Destinos', '#destinos'], ['Todas las salidas', '/salidas'], ['Promociones', '#promos'], ['Mis boletos', '/cuenta/boletos'], ['Recuperar boletos', '/recuperar-boletos'], ['Ayuda', '/ayuda'], ['Horarios', '#salidas']]],
                 ['Kilómetros', [['Cómo funcionan', '#kilometros'], ['Niveles', '#kilometros'], ['Canjear premios', '#kilometros']]],
-                ['Empresa', [['Quiénes somos', '#nosotros'], ['Líneas afiliadas', '#lineas'], ['Afiliar mi línea', 'mailto:hola@butacaenlinea.com?subject=Afiliar%20mi%20l%C3%ADnea']]],
+                ['Empresa', [['Quiénes somos', '#nosotros'], ['Líneas afiliadas', '#lineas'], ['Afiliar mi línea', AFILIAR]]],
               ].map(([titulo, links]) => (
                 <div key={titulo as string} style={{ display: 'flex', flexDirection: 'column', gap: 12, fontSize: 14, minWidth: 0 }}>
                   <span style={{ color: '#FFFFFF', fontWeight: 700, fontSize: 15 }}>{titulo as string}</span>
@@ -346,7 +350,14 @@ export default function MarketplaceHome() {
                 <span style={{ color: '#FFFFFF', fontWeight: 700, fontSize: 15 }}>Atención</span>
                 <span>Todos los días · 6:00 a 22:00</span>
                 {WHATSAPP && <a href={`https://wa.me/${WHATSAPP}`} style={{ color: '#FFFFFF', fontWeight: 600 }}>WhatsApp</a>}
-                {enlacePie('hola@butacaenlinea.com', 'mailto:hola@butacaenlinea.com')}
+                <a href={INSTAGRAM} target="_blank" rel="noopener noreferrer" className={css.pieLink} style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }} aria-label="Instagram de Butaca En Línea: @butacaenlinea">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <rect x="3" y="3" width="18" height="18" rx="5" />
+                    <circle cx="12" cy="12" r="4" />
+                    <circle cx="17.5" cy="6.5" r="0.6" fill="currentColor" />
+                  </svg>
+                  @butacaenlinea
+                </a>
               </div>
             </div>
           </div>
