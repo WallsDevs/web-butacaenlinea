@@ -6,9 +6,10 @@ import css from './inicio.module.css';
 /**
  * «Compra sin crear cuenta»: que se sepa que se puede comprar pagando por
  * Pago Móvil sin registrarse, y dónde se recupera el boleto si se pierde el
- * enlace (con los datos del comprobante, que ya tiene en la captura).
+ * enlace (con los datos del comprobante, que ya tiene en la captura). Se
+ * muestra siempre; con sesión solo se omite la invitación a crear cuenta.
  */
-export function CompraSinCuenta({ onBuscar }: { onBuscar: () => void }) {
+export function CompraSinCuenta({ onBuscar, conSesion = false }: { onBuscar: () => void; conSesion?: boolean }) {
   return (
     <section id="sin-cuenta" className={css.sinCuenta} aria-labelledby="sin-cuenta-titulo">
       <div className={css.sinCuentaTexto}>
@@ -23,7 +24,7 @@ export function CompraSinCuenta({ onBuscar }: { onBuscar: () => void }) {
         </ul>
         <div className={css.sinCuentaAcciones}>
           <button type="button" className={css.botonClaro} onClick={onBuscar}>Buscar pasajes</button>
-          <Link to="/registro" className={css.enlaceSuave}>O crea tu cuenta y tus boletos quedan guardados</Link>
+          {!conSesion && <Link to="/registro" className={css.enlaceSuave}>O crea tu cuenta y tus boletos quedan guardados</Link>}
         </div>
       </div>
 

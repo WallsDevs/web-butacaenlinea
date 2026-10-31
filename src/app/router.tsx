@@ -131,6 +131,8 @@ export const router = createBrowserRouter([
       // El que ESPERA en la parada: llega sin escanear ningún QR
       { path: '/busetas', element: <Busetas /> },
       { path: '/ayuda', element: <Ayuda /> },
+      // Enlace de la biografía de Instagram: se cuenta la visita (lib/origen.ts) y se va al inicio
+      { path: '/ig', element: <Navigate to="/" replace /> },
       // Páginas de pasajes para buscadores: todas, por ciudad y por ruta
       { path: '/pasajes', element: <Pasajes /> },
       { path: '/pasajes/precios', element: <PreciosHoy /> },
