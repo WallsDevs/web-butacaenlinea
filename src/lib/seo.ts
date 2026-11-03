@@ -45,17 +45,8 @@ export function useSeo(
       canonica.setAttribute('href', url);
       meta('property', 'og:url', url);
     }
-    let robots = document.querySelector('meta[name="robots"]');
-    if (opciones?.noindex) {
-      if (!robots) {
-        robots = document.createElement('meta');
-        robots.setAttribute('name', 'robots');
-        document.head.appendChild(robots);
-      }
-      robots.setAttribute('content', 'noindex');
-    } else if (robots) {
-      robots.remove();
-    }
+    // Lo mismo que el HTML para Google: «noindex, follow» en lo privado o vacío, «index» en lo demás
+    meta('name', 'robots', opciones?.noindex ? 'noindex, follow' : 'index, follow, max-image-preview:large');
     // Datos estructurados de la página (se reemplazan al cambiar de página)
     document.querySelectorAll('script[data-seo-pagina]').forEach((s) => s.remove());
     if (datos) {
