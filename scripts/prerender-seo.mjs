@@ -22,7 +22,7 @@ import { CIUDADES_INICIO, RUTAS_INICIO, TERMINALES, nombreVisible, rutaTerminal,
 
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = join(raiz, 'dist');
-const API = (process.env.SEO_API_URL || process.env.VITE_API_URL || 'https://api-butacaenlinea-production.up.railway.app').replace(/\/$/, '');
+const API = (process.env.SEO_API_URL || process.env.VITE_API_URL || 'https://api.butacaenlinea.com').replace(/\/$/, '');
 const usarApi = !/localhost|127\.0\.0\.1/.test(API) || process.env.SEO_API_URL;
 
 const esc = (t) => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -107,7 +107,9 @@ function pagina(ruta, t, cuerpo, migas, { noindex = false, viajes = [], comprar 
     .replace(/<meta property="og:url"[^>]*>/, `<meta property="og:url" content="${url}" />`)
     .replace(/<meta name="twitter:title"[^>]*>/, `<meta name="twitter:title" content="${esc(t.titulo)}" />`)
     .replace(/<meta name="twitter:description"[^>]*>/, `<meta name="twitter:description" content="${esc(t.descripcion)}" />`)
-    .replace('</head>', `${noindex ? '<meta name="robots" content="noindex, follow" />\n' : ''}<script type="application/ld+json" data-seo-pagina="1">${JSON.stringify(datos).replace(/</g, '\\u003c')}</script>\n</head>`);
+    // La plantilla ya trae «index, follow»: se reemplaza (dos etiquetas robots se contradirían)
+    .replace(/<meta name="robots"[^>]*>/, `<meta name="robots" content="${noindex ? 'noindex, follow' : 'index, follow, max-image-preview:large'}" />`)
+    .replace('</head>', `<script type="application/ld+json" data-seo-pagina="1">${JSON.stringify(datos).replace(/</g, '\\u003c')}</script>\n</head>`);
   const migasHtml = migas.map((m, i) => (i === migas.length - 1 ? `<span>${esc(m.nombre)}</span>` : `<a href="${m.ruta}">${esc(m.nombre)}</a>`)).join(' › ');
   const preguntas = (t.preguntas ?? []).map((q) => `<h3>${esc(q.p)}</h3><p>${esc(q.r)}</p>`).join('');
   const contenido = `<main style="max-width:1080px;margin:0 auto;padding:24px;font-family:system-ui,sans-serif;color:#0F172A">
