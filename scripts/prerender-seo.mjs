@@ -22,7 +22,7 @@ import { CIUDADES_INICIO, RUTAS_INICIO, TERMINALES, nombreVisible, rutaTerminal,
 
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = join(raiz, 'dist');
-const API = (process.env.SEO_API_URL || process.env.VITE_API_URL || 'https://api-butacaenlinea-production.up.railway.app').replace(/\/$/, '');
+const API = (process.env.SEO_API_URL || process.env.VITE_API_URL || 'https://api.butacaenlinea.com').replace(/\/$/, '');
 const usarApi = !/localhost|127\.0\.0\.1/.test(API) || process.env.SEO_API_URL;
 
 const esc = (t) => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');

@@ -1,4 +1,27 @@
-# React + TypeScript + Vite
+# Butaca En Línea — web
+
+Frontend React + TypeScript + Vite. El backend de producción está en
+`https://api.butacaenlinea.com` (AWS Lightsail).
+
+## Publicación en Vercel
+
+En el proyecto `web-butacaenlinea`, configurar estas variables para Production:
+
+| Variable | Valor |
+|---|---|
+| `VITE_API_URL` | `https://api.butacaenlinea.com` |
+| `VITE_WEB_URL` | `https://butacaenlinea.com` |
+| `SEO_API_URL` | `https://api.butacaenlinea.com` |
+
+Ejecutar un nuevo despliegue después de cambiarlas: Vite incorpora la URL al
+JavaScript durante la compilación. Las variables del panel prevalecen sobre
+`.env.production`. Build: `npm run build`; directorio de salida: `dist`.
+`vercel.json` conserva las rutas de la SPA y permite conexiones e imágenes del API.
+No colocar secretos del servidor, llaves QR ni contraseñas en variables `VITE_*`.
+
+En desarrollo, `.env` apunta al backend local en `http://localhost:1340`.
+
+## Plantilla React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
 
