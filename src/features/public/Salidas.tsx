@@ -2,11 +2,11 @@ import { useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { getOcupacionSalidas, getRutas, getSalidas } from '../../lib/api/endpoints';
-import { hora, duracion, fechaLarga, rangoDia, hoyISO } from '../../lib/time';
-import { Money } from '../../components/ui/Money';
+import { fechaLarga, rangoDia, hoyISO } from '../../lib/time';
+import { PantallaCarga } from '../../components/ui/PantallaCarga';
 import { Field } from '../../components/ui/Field';
 import { PillTabs } from '../../components/ui/PillTabs';
-import { RouteDash } from '../../components/ui/RouteDash';
+import { TarjetaSalida } from './TarjetaSalida';
 import { useBooking } from './useBooking';
 import { useSeo } from '../../lib/seo';
 import ui from '../../components/ui/ui.module.css';
@@ -37,7 +37,7 @@ export default function Salidas() {
     ? rangoDia(fecha)
     : { desde: new Date().toISOString(), hasta: new Date(Date.now() + DIAS_CATALOGO * 86_400_000).toISOString() };
 
-  const { data: salidas, isLoading } = useQuery({
+  const { data: salidas, isPending, isError, refetch } = useQuery({
     queryKey: ['salidas', 'todas', origen, destino, fecha],
     queryFn: () => getSalidas({ origen: origen || undefined, destino: destino || undefined, desde, hasta, limite: 100 }),
     refetchInterval: 60_000,
@@ -83,13 +83,6 @@ export default function Salidas() {
     return lista;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [salidas, orden, ocupacion, criterios.pasajeros]);
-
-  const tipoUnidad = (s: (typeof ordenadas)[number]) => {
-    const pisos = s.unidad?.configuracionAsientos?.pisos;
-    const nombres = pisos?.map((p) => p.nombre) ?? [];
-    const prefijo = (pisos?.length ?? 1) > 1 ? 'Doble piso' : 'Piso sencillo';
-    return `${prefijo} · ${[...new Set(nombres)].join(' + ')}`;
-  };
 
   const escoger = (id: string) => {
     limpiarSeleccion();
@@ -151,13 +144,13 @@ export default function Salidas() {
       <div className={styles.resultadosCabecera}>
         <div>
           <h2 className={styles.resultadosH2}>
-            {isLoading ? 'Buscando…' : `${ordenadas.length} salida${ordenadas.length === 1 ? ' disponible' : 's disponibles'}`}
+            {!salidas ? 'Salidas de bus' : `${ordenadas.length} salida${ordenadas.length === 1 ? ' disponible' : 's disponibles'}`}
           </h2>
           <div className={styles.resultadosSub}>
             {origen || 'Todos los orígenes'} → {destino || 'todos los destinos'} · {fecha ? fechaLarga(`${fecha}T12:00:00`) : `próximos ${DIAS_CATALOGO} días`} · todas las empresas
           </div>
         </div>
-        <div style={{ marginLeft: 'auto' }}>
+        <div className={styles.ordenSalidas}>
           <PillTabs<Orden>
             variant="loose"
             items={[
@@ -172,69 +165,27 @@ export default function Salidas() {
       </div>
 
       <div className={styles.listaSalidas}>
+        {isPending && <PantallaCarga enLista mensaje="Buscando salidas…" />}
+        {isError && !salidas && (
+          <div className={styles.avisoSalidas} role="alert">
+            <strong>No pudimos cargar las salidas</strong>
+            <button type="button" onClick={() => void refetch()}>Reintentar</button>
+          </div>
+        )}
         {ordenadas.map((s, i) => {
-          const destacada = i === 0;
-          const precioMin = Math.min(...Object.values(s.preciosUsd ?? { x: 0 }));
           // En el catálogo (sin fecha, orden por hora) cada día lleva su cabecera
           const dia = s.fechaHoraSalida.slice(0, 10);
           const nuevoDia = !fecha && orden === 'hora' && (i === 0 || ordenadas[i - 1].fechaHoraSalida.slice(0, 10) !== dia);
           return (
             <div key={s.documentId}>
-            {nuevoDia && (
-              <div className={styles.resultadosSub} style={{ fontWeight: 700, color: 'var(--text)', margin: i === 0 ? '0 0 10px' : '18px 0 10px' }}>
-                {fechaLarga(s.fechaHoraSalida)}
-              </div>
-            )}
-            <div className={`${styles.tarjetaSalida} ${destacada ? styles.tarjetaSalidaHl : ''}`}>
-              <div className={styles.tarjetaSalidaInterior}>
-                <div className={styles.horario}>
-                  <div>
-                    <div className={styles.horaGrande}>{hora(s.fechaHoraSalida)}</div>
-                    <div className={styles.horaSub}>Salida</div>
-                  </div>
-                  <RouteDash width={86} duracion={s.ruta ? duracion(s.ruta.duracionMin) : undefined} />
-                  <div>
-                    <div className={styles.horaGrande}>{hora(s.fechaHoraLlegada)}</div>
-                    <div className={styles.horaSub}>Llegada</div>
-                  </div>
-                </div>
-                <div className={styles.unidadInfo}>
-                  {s.linea && (
-                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--blue-600)', marginBottom: 2 }}>
-                      {s.linea.nombre}
-                    </div>
-                  )}
-                  <div className={styles.unidadTipo}>{tipoUnidad(s)}</div>
-                  <div className={styles.unidadMeta}>
-                    Unidad {s.unidad?.numero} · {s.unidad?.marcaModelo} · {libresDe(s)} puestos libres
-                  </div>
-                  <div className={styles.amenidades}>
-                    {(s.unidad?.amenidades ?? []).map((a) => (
-                      <span key={a} className={styles.amenidad}>
-                        {a}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-                <div className={styles.precioCta}>
-                  <div style={{ textAlign: 'right' }}>
-                    <Money usd={precioMin} className={styles.precioGrande} />
-                    <div className={styles.horaSub}>por pasajero</div>
-                  </div>
-                  <button
-                    className={`${styles.btnEscoger} ${destacada ? styles.btnEscogerHl : ''}`}
-                    onClick={() => escoger(s.documentId)}
-                  >
-                    Escoger puesto
-                  </button>
-                </div>
-              </div>
-            </div>
+              {nuevoDia && <h3 className={styles.diaSalidas}>{fechaLarga(s.fechaHoraSalida)}</h3>}
+              <TarjetaSalida salida={s} libres={ocupacion ? libresDe(s) : undefined}
+                mostrarFecha={!fecha && orden !== 'hora'} alElegir={() => escoger(s.documentId)} />
             </div>
           );
         })}
-        {!isLoading && !ordenadas.length && (
-          <div className={styles.vacio} style={{ padding: 40 }}>
+        {salidas && !ordenadas.length && (
+          <div className={styles.avisoSalidas} role="status">
             No hay salidas {destino ? `a ${destino}` : ''} con {criterios.pasajeros} puesto{criterios.pasajeros === 1 ? '' : 's'} libres {fecha ? 'ese día' : `en los próximos ${DIAS_CATALOGO} días`}. Prueba otra fecha o menos pasajeros.
           </div>
         )}

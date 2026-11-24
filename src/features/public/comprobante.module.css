@@ -37,8 +37,8 @@
 .pie strong { color: var(--marino); }
 .compacto { max-width: 300px; }
 .compacto .cabecera { padding: 14px 16px 10px; }
-.compacto .fila { padding: 7px 9px; }
-@media (prefers-reduced-motion: reduce) { .fila { transition: none; } }
-.compacto .fila { gap: 8px; }
-.compacto .fila dt { font-size: 11.5px; white-space: nowrap; }
+.compacto .fila { grid-template-columns: 20px minmax(0, 1fr) auto; gap: 5px; padding: 6px 5px; }
+.compacto .marca { width: 20px; height: 20px; }
+.compacto .fila dt { font-size: 12px; line-height: 1.2; color: var(--text-muted); }
 .compacto .fila dd { font-size: 13px; }
+@media (prefers-reduced-motion: reduce) { .fila { transition: none; } }

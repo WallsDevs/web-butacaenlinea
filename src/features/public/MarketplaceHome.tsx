@@ -1,21 +1,20 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { getLineas, getSalidas } from '../../lib/api/endpoints';
-import { fechaCorta, hora } from '../../lib/time';
-import { Money } from '../../components/ui/Money';
+import { getSalidas } from '../../lib/api/endpoints';
+import { BoletoMuestra } from '../../components/ticket/BoletoMuestra';
 import { Isotipo } from '../../components/brand/LogoMark';
 import { useAuth } from '../../stores/auth';
 import { useBooking } from './useBooking';
 import { useSeo } from '../../lib/seo';
-import { Promociones } from './inicio/Promociones';
 import { Kilometros } from './inicio/Kilometros';
 import { CompraSinCuenta } from './inicio/CompraSinCuenta';
+import { TarjetasNfc } from './inicio/TarjetasNfc';
 import { Destinos } from './inicio/Destinos';
-import { BusetasEnVivo } from './inicio/Busetas';
 import { H2 } from './inicio/piezas';
 import { TableroMuestra } from './inicio/Tablero';
 import { BuscadorPasajes } from './BuscadorPasajes';
+import type { Modalidad } from './FormularioViaje';
 import { useInstalar } from './inicio/useInstalar';
 import css from './inicio/inicio.module.css';
 import { rutaCiudad, rutaPar } from '../../seo/contenido.mjs';
@@ -29,32 +28,13 @@ const WHATSAPP = (import.meta.env.VITE_WHATSAPP as string | undefined)?.replace(
 const AFILIAR = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent('Hola, quiero afiliar mi línea de transporte a Butaca En Línea.')}`;
 /** La única red social de Butaca, de momento. */
 const INSTAGRAM = 'https://www.instagram.com/butacaenlinea/';
-const COLORES_LINEA = ['#0B2A6B', '#2563EB', '#1D4ED8', '#123B8F', '#3B82F6', '#0B2A6B'];
 const HOME_POR_ROL: Record<string, string> = { superadmin: '/admin', empresa: '/empresa', cajero: '/pos', chofer: '/app-conductor', colector: '/colector', cliente: '/cuenta' };
 
 
-/** Un patrón de QR de muestra (los tres localizadores y relleno fijo), como en el boleto del diseño. */
-function patronQr(): string[] {
-  let sd = 77;
-  const r = () => { sd = (sd * 9301 + 49297) % 233280; return sd / 233280; };
-  const finder = (fila: number, col: number) => {
-    for (const [fr, fc] of [[0, 0], [0, 14], [14, 0]]) {
-      const a = fila - fr, b = col - fc;
-      if (a >= 0 && a < 7 && b >= 0 && b < 7) return a === 0 || a === 6 || b === 0 || b === 6 || (a >= 2 && a <= 4 && b >= 2 && b <= 4) ? 1 : 0;
-    }
-    return -1;
-  };
-  return Array.from({ length: 441 }, (_, i) => {
-    const f = finder(Math.floor(i / 21), i % 21);
-    return (f === -1 ? r() > 0.52 : f === 1) ? '#0F172A' : 'transparent';
-  });
-}
-const QR = patronQr();
-
 /**
  * PÁGINA PRINCIPAL de butacaenlinea.com (diseño «Sitio Público v5»): el
- * marketplace de la plataforma. Búsqueda y salidas son reales; promociones y
- * kilómetros son demostración hasta que exista el programa en el servidor.
+ * marketplace de la plataforma. Las búsquedas muestran salidas reales. El programa
+ * de kilómetros se presenta como demostración.
  */
 export default function MarketplaceHome() {
   useSeo(
@@ -63,16 +43,16 @@ export default function MarketplaceHome() {
     { ruta: '/' }
   );
   const navigate = useNavigate();
+  const portada = useRef<HTMLDivElement>(null);
   const [menuAbierto, setMenuAbierto] = useState(false);
   const usuario = useAuth((s) => s.usuario);
+  const [modalidad, setModalidad] = useState<Modalidad>('Urbano');
   const instalar = useInstalar();
-  const { data: lineas } = useQuery({ queryKey: ['lineas'], queryFn: getLineas });
   const { data: proximas } = useQuery({
     queryKey: ['salidas-proximas', 'todas'],
     queryFn: () => getSalidas({ desde: new Date().toISOString() }),
     refetchInterval: 60_000,
   });
-  const precioMin = (s: { preciosUsd?: Record<string, number> }) => Math.min(...Object.values(s.preciosUsd ?? { x: 0 }));
   // Lo que eligió en el buscador (lo comparte el almacén de reserva)
   const { criterios, setCriterios } = useBooking();
   const destino = criterios.destino;
@@ -84,12 +64,26 @@ export default function MarketplaceHome() {
     if (h) document.getElementById(h.slice(1))?.scrollIntoView();
   }, []);
 
+  useEffect(() => {
+    if (!portada.current || !('IntersectionObserver' in window)) return;
+    const reducir = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const observador = new IntersectionObserver((entradas) => {
+      for (const entrada of entradas) {
+        if (!entrada.isIntersecting) continue;
+        observador.unobserve(entrada.target);
+        if (!reducir.matches) entrada.target.classList.add(css.enVista);
+      }
+    });
+    portada.current.querySelectorAll('[data-entrada]').forEach(el => observador.observe(el));
+    return () => observador.disconnect();
+  }, []);
+
   const proxima = proximas?.[0];
   const home = usuario?.role?.type ? HOME_POR_ROL[usuario.role.type] ?? '/cuenta' : '/cuenta';
   const enlacePie = (txt: string, href: string) => <a key={txt} className={css.pieLink} href={href}>{txt}</a>;
 
   return (
-    <div style={{ position: 'relative', minHeight: '100vh', overflowX: 'clip' }}>
+    <div ref={portada} style={{ position: 'relative', minHeight: '100vh', overflowX: 'clip' }}>
       {/* Hero */}
       <div style={{ position: 'relative', paddingBottom: 110 }}>
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(165deg,#0B2A6B 0%,#123B8F 55%,#1D4ED8 100%)', overflow: 'hidden' }}>
@@ -108,10 +102,8 @@ export default function MarketplaceHome() {
           <nav style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 26, fontSize: 14, fontWeight: 500 }}>
             <span className={css.navHorizontal} style={{ display: 'flex', alignItems: 'center', gap: 26 }}>
               <a className={css.navLink} href="/pasajes">Pasajes</a>
-              <a className={css.navLink} href="#busetas">Busetas</a>
-              <a className={css.navLink} href="#promos">Promociones</a>
+              <a className={css.navLink} href="/busetas">Busetas</a>
               <a className={css.navLink} href="#kilometros">Kilómetros</a>
-              <a className={css.navLink} href="#lineas">Líneas</a>
               <a className={css.navLink} href="#nosotros">Quiénes somos</a>
             </span>
             <a
@@ -135,127 +127,62 @@ export default function MarketplaceHome() {
             <div className={css.menuMovil} onClick={() => setMenuAbierto(false)}>
               <a href="/pasajes" onClick={(e) => { e.preventDefault(); navigate('/pasajes'); }}>Pasajes por ciudad</a>
               <a href="#salidas">Salidas</a>
-              <a href="#busetas">Busetas</a>
-              <a href="#promos">Promociones</a>
+              <a href="/busetas">Busetas</a>
               <a href="#kilometros">Kilómetros</a>
-              <a href="#lineas">Líneas afiliadas</a>
               <a href="#nosotros">Quiénes somos</a>
               <a href="/ayuda" onClick={(e) => { e.preventDefault(); navigate('/ayuda'); }}>Ayuda</a>
             </div>
           )}
         </header>
 
-        <div style={{ position: 'relative', maxWidth: 1440, margin: '0 auto', padding: '28px 28px 40px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 40 }}>
-          <div style={{ flex: '1 1 440px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 28 }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 620 }}>
-              {/* El H1 dice qué se busca («pasajes de bus en Venezuela») y promete lo que convierte */}
-              <h1 style={{ margin: 0, fontSize: 'clamp(40px,5.2vw,64px)', fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 1, color: '#FFFFFF', textWrap: 'balance' }}>
-                <span style={{ display: 'block', marginBottom: 14, fontSize: 'clamp(15px,1.4vw,18px)', fontWeight: 600, letterSpacing: '0.02em', lineHeight: 1.3, color: '#9FC0FF' }}>Pasajes de bus en Venezuela</span>
-                Escoge tu puesto y aborda con el teléfono
-              </h1>
-              <p style={{ margin: 0, fontSize: 17, lineHeight: 1.55, color: '#C7D9FB', textWrap: 'pretty' }}>
-                Elige la salida, toca tu asiento en el mapa y paga. Así se ve tu boleto: lo llevas en el teléfono y funciona sin señal.
-              </p>
-            </div>
+        <div className={css.presentacion}>
+          <div className={css.textoPresentacion}>
+            {/* El H1 dice qué se busca («pasajes de bus en Venezuela») y promete lo que convierte */}
+            <h1>
+              <span>Pasajes de bus en Venezuela</span>
+              Escoge tu puesto y aborda con el teléfono
+            </h1>
+            <p>
+              Elige la salida, toca tu asiento en el mapa y paga. Así se ve tu boleto: lo llevas en el teléfono y funciona sin señal.
+            </p>
           </div>
 
           {/* Boleto de muestra */}
-          <aside style={{ flex: '1 0 300px', maxWidth: 340, minWidth: 280, marginTop: 8 }}>
-            <div style={{ background: '#FFFFFF', borderRadius: 22, boxShadow: '0 24px 60px rgba(11,42,107,.28)', overflow: 'hidden' }}>
-              <div style={{ padding: '12px 18px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid #EEF2F9' }}>
-                <Isotipo size={20} fondo="claro" />
-                <span style={{ fontSize: 13, fontWeight: 700 }}>Boleto electrónico</span>
-                <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 600, padding: '3px 9px', borderRadius: 999, background: '#E7F6EC', color: '#166534' }}>Válido</span>
-              </div>
-              <div style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'auto minmax(0,1fr) auto', alignItems: 'center', gap: 10 }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    <span style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-0.03em', lineHeight: 1 }}>{proxima ? hora(proxima.fechaHoraSalida) : '20:30'}</span>
-                    <span style={{ fontSize: 12, color: '#475569', whiteSpace: 'nowrap' }}>{proxima?.ruta?.origen ?? 'San Cristóbal'}</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', paddingBottom: 14 }}>
-                    <span style={{ width: 8, height: 8, borderRadius: '50%', border: '2px solid #2563EB', boxSizing: 'border-box', flex: 'none' }} />
-                    <span style={{ flex: 1, height: 2, background: 'repeating-linear-gradient(90deg,#9FC0FF 0 5px,transparent 5px 10px)' }} />
-                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#2563EB', flex: 'none' }} />
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 1, alignItems: 'flex-end' }}>
-                    <span style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-0.03em', lineHeight: 1 }}>{proxima ? hora(proxima.fechaHoraLlegada) : '06:15'}</span>
-                    <span style={{ fontSize: 12, color: '#475569', whiteSpace: 'nowrap' }}>{proxima?.ruta?.destino ?? 'Caracas'}</span>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: 14, fontSize: 13, color: '#7C8AA5', borderTop: '2px dashed #DCE3EE', paddingTop: 12 }}>
-                  <span>Puesto <strong style={{ color: '#2563EB' }}>04</strong></span>
-                  <span>{proxima ? fechaCorta(proxima.fechaHoraSalida) : 'Vie 21 ago'}</span>
-                  <span>Piso 1 VIP</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ width: 52, height: 52, flex: 'none', border: '1.5px solid #E2E8F2', borderRadius: 10, padding: 5, boxSizing: 'border-box' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(21,1fr)', width: '100%', height: '100%' }}>
-                      {QR.map((c, i) => <span key={i} style={{ background: c }} />)}
-                    </div>
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    <span style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>
-                      {proxima ? <Money usd={precioMin(proxima)} /> : 'Bs 1.421,20'}
-                    </span>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: '#2563EB' }}>+820 km</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+          <aside className={css.boletoPortada} id="boleto-de-muestra" aria-label="Ejemplo de boleto">
+            <BoletoMuestra salida={proxima} />
           </aside>
         </div>
       </div>
 
       {/* Buscador y salidas (el mismo que ve el pasajero en su panel) */}
-      <BuscadorPasajes />
+      <BuscadorPasajes modalidad={modalidad} elegirModalidad={setModalidad} />
+      <TarjetasNfc />
+      <CompraSinCuenta conSesion={Boolean(usuario)} onBuscar={() => {
+        setModalidad('Nacional');
+        document.getElementById('buscar-pasajes')?.scrollIntoView({
+          behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth',
+        });
+      }} />
+      <Kilometros destino={destino} pasajeros={pax} />
 
       {/* Secciones */}
       <div style={{ position: 'relative', maxWidth: 1440, margin: '0 auto', padding: '0 28px 96px', display: 'flex', flexDirection: 'column', gap: 88 }}>
-        {/* Con sesión: rutas con buseta de turno; sin sesión: aviso para registrarse (/busetas sigue por enlace, como /salidas) */}
-        <CompraSinCuenta conSesion={Boolean(usuario)} onBuscar={() => window.scrollTo({ top: 0, behavior: 'smooth' })} />
-        <BusetasEnVivo />
-        <Promociones />
-        <Kilometros destino={destino} pasajeros={pax} />
         <Destinos
           salidas={proximas ?? []}
           onElegir={(d) => {
-            setCriterios({ destino: d });
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            setModalidad('Nacional');
+            const ruta = proximas?.find(s => s.ruta?.destino === d)?.ruta;
+            setCriterios({ origen: ruta?.origen ?? criterios.origen, destino: d });
+            window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
           }}
         />
 
-        <section id="lineas" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 }}>
-            <H2>Líneas de bus afiliadas</H2>
-            <span style={{ fontSize: 14, color: '#475569' }}>Un solo lugar para comprar en todas</span>
-          </div>
-          <div className={css.lineasMarco}><div className={css.lineas}>
-            {(lineas ?? []).map((l, i) => (
-              <div key={l.documentId} style={{ background: '#FFFFFF', padding: '24px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <span style={{ width: 48, height: 48, borderRadius: 14, background: COLORES_LINEA[i % COLORES_LINEA.length], color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, fontWeight: 700, letterSpacing: '-0.02em' }}>
-                  {l.nombre.split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase()}
-                </span>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <span style={{ fontSize: 16, fontWeight: 700 }}>{l.nombre}</span>
-                  <span style={{ fontSize: 13, color: '#7C8AA5' }}>{l.terminalBase ?? 'Venta en línea y taquilla'}{l.telefono ? ` · ${l.telefono}` : ''}</span>
-                </div>
-              </div>
-            ))}
-            {!lineas?.length && <div style={{ background: '#FFFFFF', padding: 28, color: '#7C8AA5', gridColumn: '1 / -1', textAlign: 'center' }}>Aún no hay líneas afiliadas.</div>}
-          </div></div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '22px 26px', borderRadius: 20, background: '#EFF4FF' }}>
-            <span style={{ fontSize: 16, fontWeight: 600, color: '#0B2A6B' }}>¿Tienes una línea de transporte? Vende tus puestos en Butaca En Línea.</span>
-            <a href={AFILIAR} target="_blank" rel="noopener noreferrer" style={{ fontSize: 15, fontWeight: 700 }}>Afiliar mi línea por WhatsApp →</a>
-          </div>
-        </section>
-
         <section id="rutas" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 }}>
+          <div data-entrada="texto" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 }}>
             <H2>Rutas más buscadas</H2>
             <a href={rutaTerminal('la-bandera')} style={{ fontSize: 15, fontWeight: 700 }}>Precios del Terminal La Bandera →</a>
           </div>
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 300px), 1fr))', gap: 8 }}>
+          <ul className={css.enlacesViaje} style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 300px), 1fr))', gap: 8 }}>
             {RUTAS_INICIO.map(([o, d]) => (
               <li key={`${o}-${d}`}>
                 <a href={rutaPar(o, d)} style={{ display: 'block', padding: '12px 14px', borderRadius: 12, background: '#FFFFFF', border: '1px solid #E6EBF4', fontSize: 15, fontWeight: 600, color: '#0F172A' }}>
@@ -267,11 +194,11 @@ export default function MarketplaceHome() {
         </section>
 
         <section id="ciudades" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 }}>
+          <div data-entrada="texto" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 }}>
             <H2>Pasajes por ciudad</H2>
             <a href="/pasajes" style={{ fontSize: 15, fontWeight: 700 }}>Ver todas las ciudades →</a>
           </div>
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 8 }}>
+          <ul className={css.enlacesViaje} style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 8 }}>
             {CIUDADES_INICIO.map((c) => (
               <li key={c}>
                 <a href={rutaCiudad(c)} style={{ display: 'block', padding: '12px 14px', borderRadius: 12, background: '#FFFFFF', border: '1px solid #E6EBF4', fontSize: 15, fontWeight: 600, color: '#0F172A' }}>
@@ -283,7 +210,7 @@ export default function MarketplaceHome() {
         </section>
 
         <section id="nosotros" style={{ display: 'flex', flexWrap: 'wrap', gap: 40, alignItems: 'stretch' }}>
-          <div style={{ flex: '1 1 380px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <div data-entrada="texto" style={{ flex: '1 1 380px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 18 }}>
             <H2>Quiénes somos</H2>
             <p style={{ margin: 0, fontSize: 17, lineHeight: 1.65, color: '#334155', textWrap: 'pretty' }}>
               Butaca En Línea nació en San Cristóbal para resolver algo que todo viajero conoce: la cola en taquilla, el puesto apartado por WhatsApp que nadie respeta y el boleto de papel que se pierde.
@@ -337,9 +264,9 @@ export default function MarketplaceHome() {
             </div>
             <div style={{ flex: '2 1 560px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))', gap: 32 }}>
               {[
-                ['Viajar', [['Pasajes por ciudad', '/pasajes'], ['Destinos', '#destinos'], ['Todas las salidas', '/salidas'], ['Promociones', '#promos'], ['Mis boletos', '/cuenta/boletos'], ['Recuperar boletos', '/recuperar-boletos'], ['Ayuda', '/ayuda'], ['Horarios', '#salidas']]],
+                ['Viajar', [['Pasajes por ciudad', '/pasajes'], ['Destinos', '#destinos'], ['Todas las salidas', '/salidas'], ['Mis boletos', '/cuenta/boletos'], ['Recuperar boletos', '/recuperar-boletos'], ['Ayuda', '/ayuda'], ['Horarios', '#salidas']]],
                 ['Kilómetros', [['Cómo funcionan', '#kilometros'], ['Niveles', '#kilometros'], ['Canjear premios', '#kilometros']]],
-                ['Empresa', [['Quiénes somos', '#nosotros'], ['Líneas afiliadas', '#lineas'], ['Afiliar mi línea', AFILIAR]]],
+                ['Empresa', [['Quiénes somos', '#nosotros'], ['Líneas afiliadas', '/pasajes'], ['Afiliar mi línea', AFILIAR]]],
               ].map(([titulo, links]) => (
                 <div key={titulo as string} style={{ display: 'flex', flexDirection: 'column', gap: 12, fontSize: 14, minWidth: 0 }}>
                   <span style={{ color: '#FFFFFF', fontWeight: 700, fontSize: 15 }}>{titulo as string}</span>

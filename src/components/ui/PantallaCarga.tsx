@@ -1,27 +1,21 @@
 import { Isotipo } from '../brand/LogoMark';
+import { IconoNav } from '../../app/iconos';
 import styles from './PantallaCarga.module.css';
 
-/**
- * Lo que se ve mientras llega una pantalla (código diferido o sesión en
- * verificación): la marca respirando y una barra que avanza sola. Nada de
- * un «Cargando…» suelto en una esquina.
- */
-export function PantallaCarga({ mensaje = 'Un momento…' }: { mensaje?: string }) {
+export function PantallaCarga({ mensaje = 'Cargando Butaca En Línea…', enLista = false }: {
+  mensaje?: string;
+  enLista?: boolean;
+}) {
   return (
-    <div className={styles.pantalla} role="status" aria-live="polite" aria-label={mensaje}>
-      <div className={styles.marca}>
-        <span className={styles.iso}>
-          <Isotipo size={44} />
-        </span>
-        <span className={styles.nombre}>
-          Butaca
-          <span className={styles.sub}>EN LÍNEA</span>
-        </span>
+    <div className={enLista ? styles.enLista : styles.pantalla} role="status">
+      <div className={styles.marca} aria-hidden="true">
+        <Isotipo size={48} />
+        <span className={styles.nombre}>Butaca<span className={styles.sub}>EN LÍNEA</span></span>
       </div>
-      <div className={styles.barra} aria-hidden>
-        <span className={styles.progreso} />
+      <div className={styles.recorrido} aria-hidden="true">
+        <span className={styles.bus}><IconoNav id="flota" size={26} /></span>
       </div>
-      <div className={styles.texto}>{mensaje}</div>
+      <p className={styles.texto}>{mensaje}</p>
     </div>
   );
 }

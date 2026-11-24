@@ -1,9 +1,9 @@
-import { useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { getMisBoletos } from '../../lib/api/endpoints';
 import type { BoletoMio } from '../../lib/api/types';
-import { hora, fechaCorta } from '../../lib/time';
-import { StatusChip } from '../../components/ui/StatusChip';
+import { hora, fechaConAnio } from '../../lib/time';
+import { TicketCard } from '../../components/ticket/TicketCard';
 import { PaginaPasajero } from './CuentaLayout';
 import styles from './cuenta.module.css';
 
@@ -13,26 +13,28 @@ const CHIP: Record<string, { tono: 'ok' | 'warn' | 'bad' | 'neutral'; label: str
   no_show: { tono: 'neutral', label: 'No viajó' },
 };
 
-/** Un boleto como el de papel: la ruta y la hora, y el talón con el puesto. */
-function Boleto({ b, pasado }: { b: BoletoMio; pasado?: boolean }) {
-  const navigate = useNavigate();
-  const chip = b.estadoPago === 'por_verificar' ? { tono: 'warn' as const, label: 'Pago por verificar' } : CHIP[b.estado] ?? { tono: 'ok' as const, label: 'Pagado' };
+function Boleto({ b }: { b: BoletoMio }) {
+  const chip = CHIP[b.estado] ?? (b.estadoPago === 'por_verificar'
+    ? { tono: 'warn' as const, label: 'Pago por verificar' }
+    : b.estadoPago === 'rechazado'
+      ? { tono: 'bad' as const, label: 'Pago rechazado' }
+      : { tono: 'ok' as const, label: 'Pagado' });
   return (
-    <button type="button" className={`${styles.boleto} ${pasado ? styles.boletoPasado : ''}`} onClick={() => navigate(`/boleto/${b.qrId}`)}>
-      <span className={styles.boletoCuerpo}>
-        <span className={styles.boletoRuta}>{b.salida?.ruta?.origen} → {b.salida?.ruta?.destino}</span>
-        <span className={styles.boletoCuando}>
-          <b>{b.salida ? hora(b.salida.fechaHoraSalida) : '—'}</b>
-          <span>{b.salida ? fechaCorta(b.salida.fechaHoraSalida) : ''}{b.salida?.fechaHoraLlegada ? ` · llega ${hora(b.salida.fechaHoraLlegada)}` : ''}</span>
-        </span>
-        <span className={styles.boletoDatos}>{b.linea?.nombre} · {b.pasajeroNombre} · {b.folio}</span>
-        <span><StatusChip tono={chip.tono} size="sm">{chip.label}</StatusChip></span>
-      </span>
-      <span className={styles.talon}>
-        <span>Puesto</span>
-        <b>{b.asientoId}</b>
-      </span>
-    </button>
+    <Link to={`/boleto/${b.qrId}`} className={styles.boleto}>
+      <TicketCard variant="compact" data={{
+        folio: b.folio,
+        lineaNombre: b.linea?.nombre,
+        unidad: b.salida?.unidad?.numero,
+        origen: b.salida?.ruta?.origen ?? '',
+        destino: b.salida?.ruta?.destino ?? '',
+        salidaHora: b.salida ? hora(b.salida.fechaHoraSalida) : '',
+        llegadaHora: b.salida?.fechaHoraLlegada ? hora(b.salida.fechaHoraLlegada) : '',
+        fecha: b.salida ? fechaConAnio(b.salida.fechaHoraSalida) : undefined,
+        puestos: b.asientoId,
+        pasajeroNombre: b.pasajeroNombre,
+        estadoChip: chip,
+      }}/>
+    </Link>
   );
 }
 
@@ -69,7 +71,7 @@ export default function MisBoletos() {
       {anteriores.length > 0 && (
         <section className={styles.grupo}>
           <div className={styles.grupoTitulo}>Anteriores · {anteriores.length}</div>
-          <div className={styles.boletos}>{anteriores.map((b) => <Boleto key={b.qrId} b={b} pasado />)}</div>
+          <div className={styles.boletos}>{anteriores.map((b) => <Boleto key={b.qrId} b={b} />)}</div>
         </section>
       )}
     </PaginaPasajero>

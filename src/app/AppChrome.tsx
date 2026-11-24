@@ -126,7 +126,7 @@ export function AppChrome() {
   return (
     <>
     {lateral && <BarraLateral secciones={lateral} titulo={rol === 'cliente' ? usuario?.nombreCorto ?? usuario?.username ?? 'Mi cuenta' : nav!.tagline} home={nav!.home} pathname={location.pathname} />}
-    <header className={`${styles.chrome} ${lateral ? styles.ocultaEnEscritorio : ''} no-print`}>
+    <header className={`${styles.chrome} ${path.startsWith('/boleto/') ? styles.chromeBoleto : ''} ${lateral ? styles.ocultaEnEscritorio : ''} no-print`}>
       {location.pathname !== (nav?.home ?? '/') && (
         <button
           type="button"

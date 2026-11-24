@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { login, getMe, registrarCliente } from '../../lib/api/endpoints';
 import { useAuth } from '../../stores/auth';
+import { BoletoMuestra } from '../../components/ticket/BoletoMuestra';
 import { Isotipo } from '../../components/brand/LogoMark';
 import { useSeo } from '../../lib/seo';
 import css from './acceso.module.css';
@@ -129,27 +130,7 @@ export default function Acceso({ modo }: { modo: 'login' | 'registro' }) {
             Tus boletos y kilómetros, siempre contigo
           </h1>
 
-          <div style={{ background: '#FFFFFF', color: '#0F172A', borderRadius: 20, boxShadow: '0 24px 60px rgba(4,16,48,.35)', overflow: 'hidden', maxWidth: 340, transform: 'rotate(-2deg)' }}>
-            <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid #EEF2F9' }}>
-              <Isotipo size={18} trazo={5} fondo="claro" />
-              <span style={{ fontSize: 13, fontWeight: 700 }}>Boleto electrónico</span>
-              <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 600, padding: '3px 9px', borderRadius: 999, background: '#E7F6EC', color: '#166534' }}>Válido</span>
-            </div>
-            <div style={{ padding: '14px 16px', display: 'grid', gridTemplateColumns: 'auto minmax(0,1fr) auto', alignItems: 'center', gap: 10 }}>
-              <span style={{ display: 'flex', flexDirection: 'column' }}><span style={{ fontSize: 24, fontWeight: 700, letterSpacing: '-0.03em', lineHeight: 1 }}>20:30</span><span style={{ fontSize: 12, color: '#475569' }}>San Cristóbal</span></span>
-              <span style={{ display: 'flex', alignItems: 'center', paddingBottom: 14 }}>
-                <span style={{ width: 8, height: 8, borderRadius: '50%', border: '2px solid #2563EB', boxSizing: 'border-box' }} />
-                <span style={{ flex: 1, height: 2, background: 'repeating-linear-gradient(90deg,#9FC0FF 0 5px,transparent 5px 10px)' }} />
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#2563EB' }} />
-              </span>
-              <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}><span style={{ fontSize: 24, fontWeight: 700, letterSpacing: '-0.03em', lineHeight: 1 }}>06:15</span><span style={{ fontSize: 12, color: '#475569' }}>Caracas</span></span>
-            </div>
-            <div style={{ padding: '10px 16px 14px', borderTop: '2px dashed #DCE3EE', display: 'flex', gap: 14, fontSize: 12, color: '#7C8AA5' }}>
-              <span>Puesto <strong style={{ color: '#2563EB' }}>04</strong></span>
-              <span>Vie 21 ago</span>
-              <span style={{ marginLeft: 'auto', fontWeight: 700, color: '#2563EB' }}>+820 km</span>
-            </div>
-          </div>
+          <BoletoMuestra />
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {PUNTOS.map((p) => (

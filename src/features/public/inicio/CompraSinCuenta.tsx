@@ -1,39 +1,44 @@
 import { Link } from 'react-router';
+import { IconoNav } from '../../../app/iconos';
 import { ComprobanteMuestra } from '../ComprobanteMuestra';
-import { H2 } from './piezas';
-import css from './inicio.module.css';
+import css from './CompraKilometros.module.css';
 
-/**
- * «Compra sin crear cuenta»: que se sepa que se puede comprar pagando por
- * Pago Móvil sin registrarse, y dónde se recupera el boleto si se pierde el
- * enlace (con los datos del comprobante, que ya tiene en la captura). Se
- * muestra siempre; con sesión solo se omite la invitación a crear cuenta.
- */
+const PASOS = [
+  { icono: 'busetas', titulo: 'Escoge', texto: 'Tu salida y tu puesto en el bus.' },
+  { icono: 'telefono', titulo: 'Paga', texto: 'Por Pago Móvil y copia los datos.' },
+  { icono: 'boletos', titulo: 'Guarda', texto: 'El enlace de tu boleto para abordar.' },
+];
+
 export function CompraSinCuenta({ onBuscar, conSesion = false }: { onBuscar: () => void; conSesion?: boolean }) {
   return (
-    <section id="sin-cuenta" className={css.sinCuenta} aria-labelledby="sin-cuenta-titulo">
-      <div className={css.sinCuentaTexto}>
-        <span id="sin-cuenta-titulo"><H2>Compra sin crear cuenta</H2></span>
-        <p className={css.sinCuentaIntro}>
-          No hace falta registrarte para comprar tu pasaje. Pagas por Pago Móvil a Butaca, escribes los datos de tu comprobante y el boleto te llega al instante.
-        </p>
-        <ul className={css.sinCuentaPasos}>
-          <li><strong>Escoge</strong> la salida y tu puesto en el mapa del bus.</li>
-          <li><strong>Paga</strong> por Pago Móvil y copia los datos del comprobante: referencia, banco, teléfono y cédula.</li>
-          <li><strong>Guarda</strong> el enlace de tu boleto: lo muestras en el teléfono al abordar.</li>
-        </ul>
-        <div className={css.sinCuentaAcciones}>
-          <button type="button" className={css.botonClaro} onClick={onBuscar}>Buscar pasajes</button>
-          {!conSesion && <Link to="/registro" className={css.enlaceSuave}>O crea tu cuenta y tus boletos quedan guardados</Link>}
+    <section id="sin-cuenta" className={css.compra} aria-labelledby="sin-cuenta-titulo">
+      <div className={css.fila}>
+        <div className={css.texto} data-entrada="texto">
+          <span className={css.etiqueta}><IconoNav id="rayo" size={16} />Compra rápida</span>
+          <h2 id="sin-cuenta-titulo">Compra sin crear <span>cuenta</span></h2>
+          <p className={css.intro}>Paga tu pasaje con Pago Móvil, completa los datos del comprobante y recibe tu boleto al instante.</p>
+          <ol className={css.detalles} role="list">
+            {PASOS.map((paso, i) => (
+              <li key={paso.titulo}>
+                <span className={css.icono}><IconoNav id={paso.icono} /></span>
+                <div><strong>{i + 1}. {paso.titulo}</strong><p>{paso.texto}</p></div>
+              </li>
+            ))}
+          </ol>
+          <div className={css.acciones}>
+            <button type="button" onClick={onBuscar}>Buscar pasajes <span aria-hidden="true">→</span></button>
+            {!conSesion && <Link to="/registro">O crea tu cuenta y guarda tus boletos</Link>}
+          </div>
         </div>
-      </div>
-
-      <div className={css.sinCuentaRecuperar}>
-        <ComprobanteMuestra compacto />
-        <div className={css.sinCuentaRecuperarTexto}>
-          <h3>¿Perdiste tu boleto?</h3>
-          <p>Recupéralo con los cuatro datos marcados de tu comprobante de Pago Móvil.</p>
-          <Link to="/recuperar-boletos" className={css.botonFuerte}>Recuperar mi boleto</Link>
+        <div className={css.escenaCompra}>
+          <div className={css.telefonoRecibo} data-entrada="telefono">
+            <div className={css.pantallaRecibo}><ComprobanteMuestra compacto /></div>
+          </div>
+          <div className={css.recuperar}>
+            <h3>¿Perdiste tu boleto?</h3>
+            <p>Recupéralo con los cuatro datos marcados en tu comprobante de Pago Móvil.</p>
+            <Link to="/recuperar-boletos">Recuperar mi boleto <span aria-hidden="true">→</span></Link>
+          </div>
         </div>
       </div>
     </section>

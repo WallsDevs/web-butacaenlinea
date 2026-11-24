@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { adjuntarComprobante, emitirBoletos, getDatosPago, getMapaAsientos, getWallet, type DatosPagoPlataforma } from '../../lib/api/endpoints';
 import { ApiError, esSinConexion } from '../../lib/api/client';
-import { hora, fechaCorta } from '../../lib/time';
+import { hora, fechaConAnio } from '../../lib/time';
 import { Field } from '../../components/ui/Field';
 import { TicketCard } from '../../components/ticket/TicketCard';
 import { ReservationTimer } from '../../components/ui/ReservationTimer';
@@ -402,19 +402,20 @@ export default function Checkout() {
 
       <div>
         <TicketCard
+          variant="checkout"
           data={{
             folio: 'Por emitir',
-            lineaNombre: s?.linea?.nombre ?? '',
+            lineaNombre: s?.linea?.nombre,
+            unidad: s?.unidad?.numero,
             origen: s?.ruta?.origen ?? '',
             destino: s?.ruta?.destino ?? '',
-            fecha: s ? fechaCorta(s.fechaHoraSalida) : '',
+            fecha: s ? fechaConAnio(s.fechaHoraSalida) : '',
             salidaHora: s ? hora(s.fechaHoraSalida) : '',
             llegadaHora: s ? hora(s.fechaHoraLlegada) : '',
             puestos: pasajeros.map((p) => p.asientoId).join('·'),
             piso: pisoLabel,
             rampa: s?.rampa?.replace('Rampa ', ''),
             aborda: s ? hora(new Date(new Date(s.fechaHoraSalida).getTime() - 40 * 60000).toISOString()) : undefined,
-            codigo: 'Se genera al emitir',
             totalUsd: total,
           }}
           footer={

@@ -1,64 +1,67 @@
-/* Pantalla de carga: la marca respira, la barra avanza */
-/* Centrada en lo que quede de ventana (bajo la barra superior o junto a la lateral) */
+.pantalla, .enLista {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 1.5rem;
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--navy);
+  background: radial-gradient(ellipse at center, var(--surface) 18%, var(--canvas) 80%);
+}
 .pantalla {
   min-height: calc(100vh - 140px);
   min-height: calc(100dvh - 140px);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 18px;
-  padding: 24px;
 }
-:global(body.con-barra-lateral) .pantalla {
-  min-height: 100vh;
-  min-height: 100dvh;
+:global(body.con-barra-lateral) .pantalla { min-height: 100dvh; }
+.enLista { min-height: var(--alto-lista, 18rem); border-radius: var(--r-16); }
+.marca { display: flex; align-items: center; gap: .65rem; }
+.nombre {
+  display: grid;
+  gap: .3rem;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -.04em;
+  line-height: .95;
+  text-align: left;
 }
-.marca {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+.sub { font-size: .68rem; color: var(--blue-700); letter-spacing: .2em; }
+.recorrido {
+  position: relative;
+  width: min(14rem, 85%);
+  height: 2.5rem;
+  background: repeating-linear-gradient(to right, var(--tint-300) 0 7px, transparent 7px 12px) center / 100% 3px no-repeat;
 }
-.iso {
+.recorrido::before, .recorrido::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: .75rem;
+  height: .75rem;
+  border: 3px solid var(--blue-600);
+  border-radius: 50%;
+  background: var(--surface);
+}
+.recorrido::before { left: 0; }
+.recorrido::after { right: 0; background: var(--blue-600); }
+.bus {
+  position: absolute;
+  inset: 0;
+  margin: auto;
   display: grid;
   place-items: center;
-  animation: respirar 1.6s ease-in-out infinite;
+  width: 2.5rem;
+  border-radius: var(--r-12);
+  background: var(--navy);
+  color: white;
 }
-.nombre {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 24px;
-  font-weight: 700;
-  letter-spacing: -0.04em;
-  line-height: 0.85;
-  color: var(--text);
+.texto { margin: 0; font-size: clamp(1.125rem, 2vw, 1.4rem); font-weight: 600; }
+@media (prefers-reduced-motion: no-preference) {
+  .bus { animation: recorrer 2.8s ease-in-out infinite alternate; }
 }
-.sub {
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.16em;
-  line-height: 1;
-  color: var(--blue-600);
-}
-.barra {
-  width: 180px;
-  height: 4px;
-  border-radius: 999px;
-  background: var(--tint-100);
-  overflow: hidden;
-}
-.progreso {
-  display: block;
-  width: 40%;
-  height: 100%;
-  border-radius: 999px;
-  background: var(--blue-600);
-  animation: avanzar 1.2s ease-in-out infinite;
-}
-.texto {
-  font-size: 13px;
-  color: var(--text-faint);
+@keyframes recorrer {
+  from { transform: translateX(-125%); }
+  to { transform: translateX(125%); }
 }
 
 /* Dentro de una tarjeta: tres puntos y el texto */
@@ -85,19 +88,10 @@
 .puntos span:nth-child(2) { animation-delay: 0.2s; }
 .puntos span:nth-child(3) { animation-delay: 0.4s; }
 
-@keyframes respirar {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(0.92); opacity: 0.75; }
-}
-@keyframes avanzar {
-  0% { transform: translateX(-120%); }
-  100% { transform: translateX(300%); }
-}
 @keyframes latir {
   0%, 100% { opacity: 0.25; transform: translateY(0); }
   50% { opacity: 1; transform: translateY(-3px); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .iso, .progreso, .puntos span { animation: none; }
-  .progreso { width: 100%; }
+  .puntos span { animation: none; }
 }

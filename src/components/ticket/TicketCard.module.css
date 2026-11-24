@@ -1,174 +1,138 @@
-/* Tarjeta de boleto — componente de marca (hero, checkout, POS, móvil) */
-
-.card {
-  background: var(--surface);
-  color: var(--text);
-  border-radius: var(--r-20);
-  overflow: hidden;
-  box-shadow: var(--shadow-panel);
+.ticket {
+  container-type: inline-size;
+  width: 100%;
+  min-width: 0;
+  color: #0b1b3d;
+  text-align: left;
+  font-variant-numeric: tabular-nums;
+  filter: drop-shadow(0 7px 13px rgba(12, 48, 106, .13));
 }
-.cardHero {
-  border-radius: var(--r-22);
-  box-shadow: var(--shadow-ticket);
-}
-
-.header {
-  padding: 16px 20px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: var(--surface-alt);
-  border-bottom: 1px solid var(--border);
-}
-.headerLogo {
-  width: 26px;
-  height: 26px;
-  display: grid;
-  place-items: center;
-  flex: none;
-}
-.headerTitle {
-  font-size: 13px;
-  font-weight: 700;
-}
-.headerFolio {
-  margin-left: auto;
-  font-size: 12px;
-  color: var(--text-faint);
-}
-
-.body {
-  padding: 20px;
-}
-.linea {
-  font-weight: 700;
-  font-size: 18px;
-}
-.rutaFecha {
-  font-size: 13px;
-  color: var(--text-soft);
-}
-
-.horas {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  margin-top: 16px;
-}
-.horaLabel {
-  font-size: 11px;
-  color: var(--text-faint);
-  font-weight: 600;
-  letter-spacing: 0.04em;
-}
-.horaValor {
-  font-size: 30px;
-  font-weight: 700;
-  line-height: 1.05;
-}
-.horaValorLg {
-  font-size: 34px;
-}
-.horaCiudad {
-  font-size: 13px;
-  color: var(--text-muted);
-}
-.tramo {
-  flex: 1;
-  margin: 0 14px 10px;
-  height: 2px;
-  background: repeating-linear-gradient(90deg, var(--dash) 0 6px, transparent 6px 12px);
-}
-
-.datos {
-  display: grid;
-  gap: 8px;
-  margin-top: 18px;
-}
-.datos3 { grid-template-columns: repeat(3, 1fr); }
-.datos4 { grid-template-columns: repeat(4, 1fr); }
-.dato {
-  background: var(--surface-alt);
-  border-radius: var(--r-12);
-  padding: 10px;
-}
-.datoLabel {
-  font-size: 11px;
-  color: var(--text-faint);
-}
-.datoValor {
-  font-size: 15px;
-  font-weight: 700;
-}
-
-/* Troquel: la separación característica de la marca */
-.troquel {
-  border-top: 1px dashed var(--dash);
-}
-
-.zonaQr {
-  padding: 20px;
-  display: grid;
-  place-items: center;
-}
-.qrMarco {
+.ticketMuestra { filter: drop-shadow(0 3px 7px rgba(8, 33, 77, .1)); }
+.papel {
+  --talon: max(24%, 264px);
+  --corte: calc(100% - var(--talon));
+  --muesca: clamp(6px, 1.65cqw, 13px);
+  position: relative;
+  border-radius: clamp(16px, 3.7cqw, 32px);
   background: #fff;
-  padding: 8px;
-  border: 1px solid var(--border-input);
-  border-radius: var(--r-14);
-  display: grid;
-  place-items: center;
+  overflow: hidden;
+  mask: radial-gradient(circle at var(--corte) 0, transparent calc(var(--muesca) - .6px), #000 var(--muesca)),
+        radial-gradient(circle at var(--corte) 100%, transparent calc(var(--muesca) - .6px), #000 var(--muesca));
+  mask-composite: intersect;
 }
-.qrCodigo {
-  font-size: 12px;
-  color: var(--text-faint);
-  letter-spacing: 0.14em;
-  margin-top: 10px;
+.muestra, .resumen { --talon: 23%; }
+.papel::after {
+  content: '';
+  position: absolute;
+  top: var(--muesca);
+  bottom: var(--muesca);
+  left: var(--corte);
+  width: 1px;
+  background: repeating-linear-gradient(to bottom, #93a8c6 0 5px, transparent 5px 10px);
+  pointer-events: none;
 }
-.qrNombre {
-  font-size: 13px;
-  font-weight: 600;
-  margin-top: 6px;
-}
-
-/* Variante hero: QR pequeño a la izquierda + datos del pasajero */
-.zonaQrHero {
-  padding: 18px 20px;
+.cabecera {
+  position: relative;
+  isolation: isolate;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: clamp(10px, 2.7cqw, 28px);
+  min-height: clamp(52px, 10.7cqw, 96px);
+  padding: 1.2cqw 4.4cqw 2.6cqw;
+  color: #fff;
 }
-.heroNombre {
-  font-weight: 700;
-  font-size: 15px;
+.onda { position: absolute; inset: 0; z-index: -1; width: 100%; height: 100%; }
+.marca, .titulo, .tipo, .folio, .datos > span { display: inline-flex; align-items: center; }
+.marca { gap: 1.4cqw; flex: none; }
+.marca > svg { width: clamp(23px, 5.4cqw, 48px); height: auto; }
+.marca > span { display: grid; gap: .45cqw; }
+.marca b { font-size: clamp(18px, 3.55cqw, 32px); line-height: .9; letter-spacing: -.04em; }
+.marca small { font-size: clamp(7px, 1.4cqw, 12px); line-height: 1; letter-spacing: .18em; color: #daedff; }
+.titulo { gap: 1.3cqw; padding-left: 2.7cqw; border-left: 1px solid #b2daff; font-size: clamp(14px, 2.85cqw, 25px); line-height: 1.1; font-weight: 700; }
+.titulo svg { width: 1.45em; height: 1.45em; }
+.cuerpo { display: grid; grid-template-columns: minmax(0, 1fr) var(--talon); }
+.viaje { min-width: 0; padding: 0 2.3cqw 1.9cqw; }
+.identidad, .datos { display: flex; align-items: center; flex-wrap: wrap; }
+.identidad { justify-content: space-between; gap: 6px; padding: .3cqw 1.3cqw 0; }
+.tipo { gap: .6em; padding: .35em .9em; border-radius: 99px; background: #e0efff; color: #064bcc; font-size: clamp(12px, 2cqw, 19px); font-weight: 700; }
+.tipo svg, .datos svg { height: 1.3em; width: 1.3em; flex: none; }
+.folio { gap: .6em; flex-wrap: wrap; justify-content: flex-end; min-width: 0; font-size: clamp(11px, 1.65cqw, 15px); color: #465774; }
+.folio b { padding: .22em .75em; border: 1px solid #c9d6e8; border-radius: 99px; color: #101f3a; overflow-wrap: anywhere; }
+.ruta { display: grid; grid-template-columns: minmax(0,auto) minmax(16px,1fr) minmax(0,auto); gap: 2cqw; align-items: start; padding: 2.2cqw 1.5cqw 1.8cqw; }
+.ruta > div { min-width: 0; }
+.ruta > div:last-child { text-align: right; }
+.ruta b { display: block; font-size: clamp(29px, 5.75cqw, 54px); line-height: 1; letter-spacing: -.055em; color: #081735; }
+.ruta div span { display: block; margin-top: .3em; font-size: clamp(14px, 2.55cqw, 23px); line-height: 1.15; color: #415172; overflow-wrap: anywhere; }
+.tramo { position: relative; margin-top: clamp(14px, 2.95cqw, 29px); height: 2px; background: repeating-linear-gradient(90deg, #1467f4 0 6px, transparent 6px 10px); }
+.tramo::before, .tramo::after { content: ''; position: absolute; top: 50%; transform: translateY(-50%); width: clamp(7px, 1.3cqw, 12px); aspect-ratio: 1; border: 2px solid #1467f4; border-radius: 50%; background: white; }
+.tramo::before { left: 0; }
+.tramo::after { right: 0; background: #1467f4; }
+.datos { margin: 0 1.4cqw; padding: 1.8cqw 0; gap: 8px 0; border-top: 1px solid #d6e1ef; font-size: clamp(12px, 1.9cqw, 17px); line-height: 1.25; }
+.datos > span { gap: .55em; padding-right: 1.2em; }
+.datos > span + span { border-left: 1px solid #c4d2e4; padding-left: 1.2em; }
+.datos b { font-weight: 650; overflow-wrap: anywhere; }
+.asiento { color: #0f60e8; }
+.transporte { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr) minmax(0, .88fr); align-items: center; padding: .6cqw 1.2cqw; min-height: 9.4cqw; background: linear-gradient(105deg,#f0f6fd,#e8f1ff); border-radius: clamp(10px, 2cqw, 20px); }
+.transporte img { display: block; width: 100%; height: auto; max-height: 8.8cqw; object-fit: contain; mix-blend-mode: multiply; mask-image: linear-gradient(90deg, transparent, black 8% 93%, transparent), linear-gradient(transparent, black 8% 93%, transparent); mask-composite: intersect; }
+.transporte div { min-width: 0; border-left: 1px solid #b9cbe4; padding-left: 1.8cqw; }
+.transporte b, .transporte small { display: block; overflow-wrap: anywhere; }
+.transporte small { color: #405371; font-size: clamp(10px, 1.65cqw, 14px); }
+.transporte b { font-size: clamp(15px, 2.65cqw, 24px); line-height: 1.13; letter-spacing: -.03em; }
+.talon { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 6px; text-align: center; padding: 0 8px 2.2cqw; min-width: 0; }
+.talon svg { width: min(100%, var(--ancho-qr, 100%)); max-width: 248px; height: auto; display: block; }
+.talon p { max-width: 16ch; font-size: clamp(12px, 1.75cqw, 16px); line-height: 1.3; }
+.talon small { color: #52627a; font-size: 11px; letter-spacing: .08em; }
+.ver { font-weight: 700; font-size: 14px; color: #1557ba; }
+.anexo { padding: 15px 20px; margin-top: 4px; border-radius: 14px; background: #fff; }
+.detalles { display: flex; align-items: center; gap: 10px 20px; flex-wrap: wrap; font-size: 13px; color: #394c6a; }
+.detalles > span { overflow-wrap: anywhere; }
+.detalles small { display: block; font-size: 12px; }
+.total { margin-left: auto; text-align: right; }
+.total b { color: #102348; font-size: 18px; }
+@container (max-width: 600px) {
+  .onda { width: 118%; }
+  .papel:not(.muestra) { --talon: 0px; mask: none; }
+  .papel:not(.muestra)::after { display: none; }
+  .papel:not(.muestra) .cuerpo { display: block; }
+  .viaje { padding: 4px 14px 14px; }
+  .ruta { padding-block: 14px; }
+  .datos { padding-block: 12px; }
+  .datos > span, .datos > span + span { padding-inline: 8px; }
+  .datos > span:first-child { padding-left: 0; }
+  .transporte { min-height: 56px; }
+  .transporte img { max-height: 57px; }
+  .papel:not(.muestra) .talon { flex-direction: row; flex-wrap: wrap; border-top: 1.5px dashed #adc0d8; padding: 12px; gap: 6px 12px; }
+  .talon small { width: 100%; }
+  .muestra .viaje { padding: 1px 2cqw 2cqw; }
+  .muestra .identidad { gap: 3px; }
+  .muestra .folio > span { display: none; }
+  .muestra .ruta { padding-block: 2cqw; }
+  .muestra .ruta b { font-size: clamp(21px, 5.7cqw, 32px); }
+  .muestra .ruta div span { font-size: clamp(11px, 2.6cqw, 16px); }
+  .muestra .datos { gap: 4px; padding-block: 1.6cqw; font-size: clamp(10px, 2.15cqw, 13px); }
+  .muestra .datos > span, .muestra .datos > span + span { padding-inline: .5em; gap: .35em; }
+  .muestra .datos > span:first-child { padding-left: 0; }
+  .muestra .transporte { min-height: 9.5cqw; }
+  .muestra .transporte b { font-size: clamp(12px, 2.9cqw, 17px); }
+  .muestra .transporte img { max-height: 9cqw; }
+  .muestra .talon { gap: 4px; padding-inline: 1cqw; }
+  .muestra .talon p { font-size: clamp(10px, 2.1cqw, 12px); }
+  .resumen .talon { padding: 10px; }
+  .anexo { padding: 12px 14px; }
 }
-.heroDoc {
-  font-size: 12px;
-  color: var(--text-faint);
+@container (max-width: 360px) {
+  .titulo { font-size: 12px; }
+  .titulo svg { width: 1.2em; }
+  .muestra .datos { gap: 2px; }
+  .muestra .datos > span, .muestra .datos > span + span { padding-inline: .3em; }
+  .muestra .datos svg { width: 1em; }
 }
-
-.footer {
-  padding: 0 20px 20px;
+@container (max-width: 300px) {
+  .muestra .transporte { grid-template-columns: .7fr 1.2fr .8fr; }
+  .muestra .transporte small { font-size: 9px; }
+  .muestra .titulo { font-size: 11px; }
 }
-.totalFila {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  padding-top: 14px;
-  border-top: 1px solid var(--divider);
-}
-.totalLabel {
-  font-weight: 700;
-}
-.totalValor {
-  font-size: 26px;
-  font-weight: 700;
-}
-
 @media print {
-  .card {
-    box-shadow: none;
-    border: 1px solid var(--border);
-    break-inside: avoid;
-  }
+  .ticket { filter: none; break-inside: avoid; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .papel, .anexo { border: .25mm solid #c7d3e3; }
 }
