@@ -302,82 +302,37 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--r-16);
-  padding: 14px;
+  padding: 1rem;
   display: grid;
-  grid-template-columns: 1.2fr 1.2fr 1fr 0.8fr auto;
-  gap: 12px;
+  grid-template-columns: 1.2fr 1.2fr 1fr .8fr;
+  gap: .875rem;
   align-items: end;
 }
-.resultadosCabecera {
-  display: flex;
-  align-items: flex-end;
-  gap: 16px;
-  margin-top: 32px;
-}
-.resultadosH2 {
-  font-size: 30px;
-  letter-spacing: -0.02em;
-  font-weight: 700;
-}
-.resultadosSub {
-  font-size: 14px;
-  color: var(--text-soft);
-  margin-top: 4px;
-}
-.listaSalidas {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  margin-top: 20px;
-}
-.tarjetaSalida {
-  background: var(--surface);
-  border-radius: var(--r-18);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-card);
-}
-.tarjetaSalidaHl { border-color: var(--tint-300); }
-.tarjetaSalidaInterior {
+.criterios label > span { font-size: 1rem; color: var(--text-muted); }
+.criterios input, .criterios select { min-height: 3rem; font-size: 1rem; min-width: 0; }
+.resultadosCabecera { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 1rem; margin-top: 2rem; }
+.resultadosH2 { font-size: 1.875rem; letter-spacing: -.02em; font-weight: 700; }
+.resultadosSub { font-size: 14px; color: var(--text-soft); margin-top: 4px; }
+.resultadosCabecera .resultadosSub { font-size: 1.0625rem; color: var(--text-muted); }
+.ordenSalidas { margin-inline-start: auto; }
+.ordenSalidas > div { flex-wrap: wrap; }
+.ordenSalidas button { font-size: 1rem; min-height: 3rem; }
+.listaSalidas { container-type: inline-size; display: grid; gap: 1rem; margin-top: 1.25rem; }
+.diaSalidas { margin: .5rem 0 .65rem; font-size: 1.25rem; }
+.avisoSalidas {
   display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: 32px;
-  align-items: center;
-  padding: 22px 24px;
-}
-.horario { display: flex; align-items: center; gap: 20px; }
-.horaGrande { font-size: 30px; font-weight: 700; line-height: 1; }
-.horaSub { font-size: 12px; color: var(--text-faint); margin-top: 3px; }
-.unidadInfo {
-  border-left: 1px solid var(--divider);
-  padding-left: 28px;
-}
-.unidadTipo { font-weight: 700; font-size: 16px; }
-.unidadMeta { font-size: 13px; color: var(--text-soft); margin-top: 2px; }
-.amenidades { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
-.amenidad {
-  font-size: 12px;
+  justify-items: center;
+  align-content: center;
+  gap: 1rem;
+  min-height: 12rem;
+  padding: 1.5rem;
+  border-radius: var(--r-16);
+  background: var(--surface);
+  text-align: center;
   color: var(--text-muted);
-  background: var(--canvas);
-  border: 1px solid var(--border);
-  padding: 5px 11px;
-  border-radius: var(--r-pill);
+  font-size: 1.125rem;
 }
-.precioCta { display: flex; align-items: center; gap: 24px; }
-.precioGrande { font-size: 26px; font-weight: 700; line-height: 1; }
-.btnEscoger {
-  font-size: 14px;
-  font-weight: 700;
-  padding: 14px 22px;
-  border-radius: var(--r-12);
-  background: var(--tint-50);
-  color: var(--blue-700);
-}
-.btnEscogerHl {
-  background: var(--blue-600);
-  color: #fff;
-  box-shadow: var(--shadow-btn);
-}
-.btnEscogerHl:hover { background: var(--blue-700); }
+.avisoSalidas button { min-height: 3rem; padding: .5rem 1.25rem; border-radius: var(--r-12); background: var(--blue-700); color: white; font-weight: 700; }
 
 /* ── Asientos (1.3) ─────────────────────────────────────────── */
 .layoutAsientos {
@@ -571,12 +526,17 @@
   .panelViaje { position: static; }
   .contenido { padding: 20px 16px 56px; }
   .criterios { grid-template-columns: 1fr 1fr; }
-  .tarjetaSalidaInterior { grid-template-columns: 1fr; gap: 16px; }
-  .unidadInfo { border-left: 0; padding-left: 0; }
   .metodosPago { grid-template-columns: 1fr 1fr; }
   .pasajeroCampos { grid-template-columns: 1fr; }
   .cierreH2 { font-size: 32px; }
   .cierreBotones { margin-left: 0; }
+}
+
+@media (max-width: 620px) {
+  .ordenSalidas { margin-inline-start: 0; }
+}
+@media (max-width: 460px) {
+  .criterios { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* Checkout sin cuenta: los datos del comprobante de Pago Móvil, numerados como en «Recuperar» */

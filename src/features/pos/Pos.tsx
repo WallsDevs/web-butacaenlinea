@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { PantallaCarga } from '../../components/ui/PantallaCarga';
 import { useNavigate } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -19,7 +20,7 @@ import {
 } from '../../lib/api/endpoints';
 import { QRCodeSVG } from 'qrcode.react';
 import { ApiError } from '../../lib/api/client';
-import { hora, hoyISO, rangoDia } from '../../lib/time';
+import { fechaConAnio, hora, hoyISO, rangoDia } from '../../lib/time';
 import { useAuth } from '../../stores/auth';
 import { Money, MoneyAlt } from '../../components/ui/Money';
 import { Field } from '../../components/ui/Field';
@@ -28,7 +29,6 @@ import { ReservationTimer } from '../../components/ui/ReservationTimer';
 import { SeatMap } from '../../components/seat-map/SeatMap';
 import { TicketCard } from '../../components/ticket/TicketCard';
 import { Isotipo } from '../../components/brand/LogoMark';
-import { fechaCorta } from '../../lib/time';
 import type { BoletoEmitido, MetodoPago } from '../../lib/api/types';
 import ui from '../../components/ui/ui.module.css';
 import styles from './pos.module.css';
@@ -298,6 +298,7 @@ export default function Pos() {
   // Atajos F2 / F9
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (emitidos) return;
       if (e.key === 'F2') {
         e.preventDefault();
         buscarRef.current?.focus();
@@ -309,7 +310,7 @@ export default function Pos() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [puedeEmitir, esWallet]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [puedeEmitir, esWallet, emitidos]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const salida = salidas?.find((s) => s.documentId === salidaId);
   const piso = mapa?.pisos.find((p) => p.numero === pisoActivo) ?? mapa?.pisos[0];
@@ -726,40 +727,39 @@ export default function Pos() {
       )}
 
       {/* Modal de boletos emitidos */}
-      {emitidos && salida && (
-        <div className={styles.velo}>
-          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-            <TicketCard
-              variant="movil"
-              data={{
-                folio: emitidos[0].folio,
-                codigo: emitidos[0].qrId.slice(0, 8).toUpperCase(),
-                qrValue: emitidos[0].qr,
-                lineaNombre: usuario?.linea?.nombre ?? '',
+      {emitidos && salida && createPortal(
+        <dialog className={styles.veloBoletos} aria-label="Boletos emitidos"
+          ref={(dialog) => { if (dialog && !dialog.open) dialog.showModal(); }}
+          onCancel={() => setEmitidos(null)}>
+          <div className={styles.boletosEmitidos}>
+            {emitidos.map((boleto) => (
+              <TicketCard key={boleto.qrId} data={{
+                folio: boleto.folio,
+                codigo: boleto.qrId.slice(0, 8).toUpperCase(),
+                qrValue: boleto.qr,
+                lineaNombre: salida.linea?.nombre ?? usuario?.linea?.nombre,
+                unidad: salida.unidad?.numero,
                 origen: salida.ruta?.origen ?? '',
                 destino: salida.ruta?.destino ?? '',
-                fecha: fechaCorta(salida.fechaHoraSalida),
+                fecha: fechaConAnio(salida.fechaHoraSalida),
                 salidaHora: hora(salida.fechaHoraSalida),
                 llegadaHora: hora(salida.fechaHoraLlegada),
-                puestos: emitidos.map((b) => b.asientoId).join('·'),
-                piso: String(emitidos[0].piso),
+                puestos: boleto.asientoId,
+                piso: `${boleto.piso}${boleto.claseServicio === 'vip' ? ' VIP' : ''}`,
                 rampa: salida.rampa?.replace('Rampa ', ''),
-                pasajeroNombre: emitidos[0].pasajeroNombre,
-                totalUsd: emitidos.reduce((s, b) => s + b.totalUsd, 0),
-              }}
-              footer={
-                <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                  <button className={ui.btnSecondary} style={{ flex: 1 }} onClick={() => window.print()}>
-                    Imprimir
-                  </button>
-                  <button className={`${ui.btnPrimary}`} style={{ flex: 1, padding: 13 }} onClick={() => setEmitidos(null)}>
-                    Listo
-                  </button>
-                </div>
-              }
-            />
+                pasajeroNombre: boleto.pasajeroNombre,
+                pasajeroDoc: boleto.pasajeroDocumento,
+                totalUsd: boleto.totalUsd,
+              }}/>
+            ))}
+            <div className={`${styles.accionesBoletos} no-print`}>
+              {emitidos.length > 1 && <strong>Total de la venta · <Money usd={emitidos.reduce((total, b) => total + b.totalUsd, 0)}/></strong>}
+              <button className={ui.btnSecondary} onClick={() => window.print()}>Imprimir</button>
+              <button className={ui.btnPrimary} onClick={() => setEmitidos(null)}>Listo</button>
+            </div>
           </div>
-        </div>
+        </dialog>,
+        document.body
       )}
     </div>
   );

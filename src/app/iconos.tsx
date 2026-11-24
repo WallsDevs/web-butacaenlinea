@@ -4,6 +4,10 @@
  * su inicial en un círculo, para que ninguna pestaña quede sin dibujo.
  */
 const TRAZOS: Record<string, React.ReactNode> = {
+  telefono: <><rect x="6" y="2.5" width="12" height="19" rx="2.5" /><path d="M10 5h4M11 19h2" /></>,
+  rayo: <path d="m13 2-9 12h7l-1 8 10-13h-7z" />,
+  estrella: <path d="m12 3 2.8 5.7 6.3.9-4.6 4.5 1.1 6.3-5.6-3-5.6 3 1.1-6.3L3 9.6l6.2-.9z" />,
+  corona: <><path d="m3 6 4.5 4.5L12 4l4.5 6.5L21 6l-2.5 11h-13zM6 20h12" /></>,
   dashboard: <><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></>,
   flota: <><rect x="3" y="5" width="18" height="12" rx="3" /><path d="M3 11h18M7 17v2M17 17v2" /><circle cx="7.5" cy="14" r="1" /><circle cx="16.5" cy="14" r="1" /></>,
   ventas: <><rect x="3" y="6" width="18" height="12" rx="2.5" /><path d="M3 10h18M8 14h3" /></>,

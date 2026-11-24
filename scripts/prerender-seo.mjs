@@ -308,7 +308,7 @@ for (const temp of TEMPORADAS) {
   urls.push({ u: ruta, cambio: masNueva([...listaT.map((x) => x.updatedAt), ...listaPares.map((p) => p.cambio)]) });
 }
 
-// La portada: H1, entrada, «compra sin cuenta», rutas más buscadas, ciudades, líneas y quiénes somos.
+// La portada: H1, entrada, «compra sin cuenta», rutas más buscadas, ciudades y quiénes somos.
 // Los mismos textos y enlaces que la portada viva (MarketplaceHome), para que Google lea lo que ve la gente.
 {
   const ti = textosInicio();
@@ -319,7 +319,6 @@ for (const temp of TEMPORADAS) {
     lista('Rutas más buscadas', rutasInicio.map(([o, d]) => [rutaPar(o, d), `Pasaje de ${nombreVisible(o)} a ${nombreVisible(d)}`])) +
     lista('Pasajes por ciudad', CIUDADES_INICIO.filter((c) => conRuta.has(c)).map((c) => [rutaCiudad(c), `Pasajes en ${c}`])) +
     lista('Precios de pasajes', [[RUTA_PRECIOS, 'Precios de pasajes de bus hoy, en dólares y bolívares'], ...TERMINALES.map((x) => [rutaTerminal(x.slug), `${x.nombre}: precios de pasajes`])]) +
-    lista('Líneas de bus afiliadas', lineas.map((l) => [rutaLinea(l.slug), `Pasajes de ${l.nombre}`])) +
     `<section><h2>Quiénes somos</h2>${ti.nosotros.map((p) => `<p>${esc(p)}</p>`).join('')}</section>`;
   const t = { titulo: ti.titulo, descripcion: ti.descripcion, h1: `${ti.h1Antes}: ${ti.h1.toLowerCase()}`, intro: ti.intro };
   const html = pagina('/', t, `<p><a href="/salidas">Ver todas las salidas y comprar</a> · <a href="/pasajes">Pasajes por ciudad</a></p>${cuerpo}`, [{ nombre: 'Inicio', ruta: '/' }], { comprar: false });

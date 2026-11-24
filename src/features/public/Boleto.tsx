@@ -5,7 +5,7 @@ import { getBoletoPorCodigo } from '../../lib/api/endpoints';
 import { ApiError } from '../../lib/api/client';
 import { useAuth } from '../../stores/auth';
 import { useInstalacion } from '../../lib/instalacion';
-import { hora, fechaCorta } from '../../lib/time';
+import { hora, fechaConAnio } from '../../lib/time';
 import { TicketCard } from '../../components/ticket/TicketCard';
 import { StatusChip } from '../../components/ui/StatusChip';
 import ui from '../../components/ui/ui.module.css';
@@ -96,7 +96,7 @@ export default function Boleto() {
   const volver = () => ((window.history.state as { idx?: number } | null)?.idx ? navigate(-1) : navigate(usuarioId ? '/cuenta/boletos' : '/'));
 
   return (
-    <div style={{ maxWidth: 430, margin: '0 auto', padding: '24px 16px 56px' }}>
+    <div style={{ maxWidth: 900, margin: '0 auto', padding: '24px 16px 56px' }}>
       <button type="button" className={`${ui.btnGhost} no-print`} onClick={volver} style={{ marginBottom: 8, paddingLeft: 0 }}>
         ← Volver
       </button>
@@ -133,15 +133,15 @@ export default function Boleto() {
       )}
 
       <TicketCard
-        variant="movil"
         data={{
           folio: boleto.folio,
           codigo: boleto.qrId.slice(0, 8).toUpperCase(),
           qrValue: boleto.qr ?? undefined,
           lineaNombre: boleto.linea?.nombre,
+          unidad: boleto.salida.unidad?.numero,
           origen: boleto.salida.ruta?.origen ?? '',
           destino: boleto.salida.ruta?.destino ?? '',
-          fecha: fechaCorta(boleto.salida.fechaHoraSalida),
+          fecha: fechaConAnio(boleto.salida.fechaHoraSalida),
           salidaHora: hora(boleto.salida.fechaHoraSalida),
           llegadaHora: hora(boleto.salida.fechaHoraLlegada),
           puestos: boleto.asientoId,
