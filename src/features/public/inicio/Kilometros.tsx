@@ -1,5 +1,4 @@
 import { IconoNav } from '../../../app/iconos';
-import { Demo } from './piezas';
 import css from './CompraKilometros.module.css';
 
 // Cifras de demostración hasta que el programa publique sus distancias y premios.
@@ -27,7 +26,6 @@ export function Kilometros({ destino, pasajeros }: { destino: string; pasajeros:
     <section id="kilometros" className={css.kilometros} aria-labelledby="kilometros-titulo">
       <div className={css.fila}>
         <div className={css.texto} data-entrada="texto">
-          <Demo />
           <h2 id="kilometros-titulo">Cada viaje suma <span>kilómetros</span></h2>
           <p className={css.intro}>Ganas un kilómetro por cada kilómetro recorrido en cualquier línea afiliada. Canjéalos por puestos VIP, equipaje extra o viajes completos.</p>
           <ul className={css.detalles} role="list" aria-label="Niveles del programa">

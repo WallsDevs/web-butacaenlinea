@@ -850,6 +850,70 @@ export const getReembolsosPlataforma = () => api<ReembolsoPlataforma[]>('/api/ad
 export const marcarReembolsoPlataforma = (documentId: string, referencia?: string) =>
   api<{ reembolsado: boolean }>(`/api/admin/reembolsos/${documentId}/reembolsar`, { method: 'POST', body: { referencia } });
 
+export interface TarjetaNfc {
+  codigoPublico: string;
+  titular: { documentId: string; nombre: string } | null;
+  saldoBs: number | null;
+}
+export interface FichaTarjetaNfc extends TarjetaNfc {
+  puedeVerChip: boolean;
+}
+export interface PagoRecargaNfc {
+  montoBs: number;
+  referencia: string;
+  banco?: string;
+}
+const inventarioNfc = '/api/admin/tarjetas-nfc';
+const rutaTarjetaNfc = (codigoPublico: string) => `${inventarioNfc}/${encodeURIComponent(codigoPublico)}`;
+export const getTarjetaNfc = (codigoPublico: string) => api<FichaTarjetaNfc>(rutaTarjetaNfc(codigoPublico));
+export interface TarjetaInventarioNfc {
+  codigoPublico: string;
+  creadaEn: string;
+  titular: TarjetaNfc['titular'];
+  puedeVerChip: boolean;
+}
+export interface PaginaInventarioNfc {
+  tarjetas: TarjetaInventarioNfc[];
+  total: number;
+  pagina: number;
+  porPagina: number;
+}
+export const getInventarioNfc = (filtros: { pagina: number; porPagina?: number; busqueda?: string }, signal?: AbortSignal) => {
+  const consulta = new URLSearchParams({ pagina: String(filtros.pagina) });
+  if (filtros.porPagina !== undefined) consulta.set('porPagina', String(filtros.porPagina));
+  if (filtros.busqueda) consulta.set('busqueda', filtros.busqueda);
+  return api<PaginaInventarioNfc>(`${inventarioNfc}?${consulta}`, { signal });
+};
+export const getChipTarjetaNfc = (codigoPublico: string, signal?: AbortSignal) =>
+  api<{ codigoInterno: string }>(`${rutaTarjetaNfc(codigoPublico)}/chip`, { signal });
+export const consultarChipNfc = (codigoInterno: string, signal?: AbortSignal) =>
+  api<TarjetaNfc>(`${inventarioNfc}/lecturas/consultar`, { method: 'POST', body: { codigoInterno }, signal });
+export interface TarjetaNfcEmitida {
+  codigoPublico: string;
+  codigoInterno: string;
+}
+export interface SolicitudLoteNfc {
+  solicitudId: string;
+  cantidad: number;
+}
+export interface LoteNfc extends SolicitudLoteNfc {
+  tarjetas: TarjetaNfcEmitida[];
+}
+export interface LoteNfcReciente extends SolicitudLoteNfc {
+  creadoEn: string;
+  individual?: true;
+}
+export const solicitarLoteNfc = (solicitud: SolicitudLoteNfc) =>
+  api<LoteNfc>(`${inventarioNfc}/lotes`, { method: 'POST', body: solicitud });
+export const getLotesNfc = () => api<LoteNfcReciente[]>(`${inventarioNfc}/lotes/recientes`);
+/** Recuperación de solicitudes individuales iniciadas antes de la emisión por lotes. */
+export const solicitarTarjetaNfc = (solicitudId: string) =>
+  api<TarjetaNfcEmitida>(`${inventarioNfc}/solicitar`, { method: 'POST', body: { solicitudId } });
+export const vincularTarjetaNfc = (codigoPublico: string, pasajeroId: string) =>
+  api<TarjetaNfc>(`${rutaTarjetaNfc(codigoPublico)}/vincular`, { method: 'POST', body: { pasajeroId } });
+export const recargarTarjetaNfc = (codigoPublico: string, pago: PagoRecargaNfc) =>
+  api<{ movimientoId: string; saldoBs: number }>(`${rutaTarjetaNfc(codigoPublico)}/recargas`, { method: 'POST', body: pago });
+
 export interface RecargaPendiente {
   documentId: string;
   montoBs: number;

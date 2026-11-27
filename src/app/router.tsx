@@ -25,7 +25,7 @@ function lazy<T extends ComponentType<any>>(cargar: () => Promise<{ default: T }
     )
   );
 }
-import { createBrowserRouter, Navigate, Outlet } from 'react-router';
+import { createBrowserRouter, Navigate, Outlet, useLocation } from 'react-router';
 import { AppChrome } from './AppChrome';
 import { AvisoInstalar } from '../components/AvisoInstalar';
 import { GuiaActiva } from '../features/guia/GuiaActiva';
@@ -75,6 +75,7 @@ const AdminTasas = lazy(() => import('../features/admin/AdminTasas'));
 const AdminAuditoria = lazy(() => import('../features/admin/AdminAuditoria'));
 const AdminSeguridad = lazy(() => import('../features/admin/AdminSeguridad'));
 const AdminWallet = lazy(() => import('../features/admin/AdminWallet'));
+const AdminTarjetasNfc = lazy(() => import('../features/admin/AdminTarjetasNfc'));
 const AdminPagos = lazy(() => import('../features/admin/AdminPagos'));
 const EmpresaFlota = lazy(() => import('../features/empresa/EmpresaFlota'));
 const AdminPasajeros = lazy(() => import('../features/admin/AdminPasajeros'));
@@ -95,11 +96,12 @@ const PagoEquipaje = lazy(() => import('../features/equipaje/PagoEquipaje'));
 const Colector = lazy(() => import('../features/urbano/Colector'));
 
 function AppLayout() {
+  const { pathname } = useLocation();
   return (
     <>
       <AppChrome />
-      {/* Arriba, debajo de la cabecera: en el flujo de la página, no flota ni tapa nada */}
-      <AvisoInstalar />
+      {/* La portada coloca el aviso debajo de su propia cabecera. */}
+      {pathname !== '/' && <AvisoInstalar />}
       <Suspense fallback={<PantallaCarga />}>
         <Outlet />
       </Suspense>
@@ -174,6 +176,7 @@ export const router = createBrowserRouter([
           { path: 'ciudades', element: <AdminCiudades /> },
           { path: 'auditoria', element: <AdminAuditoria /> },
           { path: 'wallet', element: <AdminWallet /> },
+          { path: 'tarjetas-nfc', element: <AdminTarjetasNfc /> },
           { path: 'pagos', element: <AdminPagos /> },
           { path: 'seguridad', element: <AdminSeguridad /> },
         ],

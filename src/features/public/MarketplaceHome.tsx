@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getSalidas } from '../../lib/api/endpoints';
 import { BoletoMuestra } from '../../components/ticket/BoletoMuestra';
 import { Isotipo } from '../../components/brand/LogoMark';
+import { AvisoInstalar } from '../../components/AvisoInstalar';
 import { useAuth } from '../../stores/auth';
 import { useBooking } from './useBooking';
 import { useSeo } from '../../lib/seo';
@@ -135,6 +136,7 @@ export default function MarketplaceHome() {
           )}
         </header>
 
+        <AvisoInstalar />
         <div className={css.presentacion}>
           <div className={css.textoPresentacion}>
             {/* El H1 dice qué se busca («pasajes de bus en Venezuela») y promete lo que convierte */}

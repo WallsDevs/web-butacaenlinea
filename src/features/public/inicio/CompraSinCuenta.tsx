@@ -14,7 +14,6 @@ export function CompraSinCuenta({ onBuscar, conSesion = false }: { onBuscar: () 
     <section id="sin-cuenta" className={css.compra} aria-labelledby="sin-cuenta-titulo">
       <div className={css.fila}>
         <div className={css.texto} data-entrada="texto">
-          <span className={css.etiqueta}><IconoNav id="rayo" size={16} />Compra rápida</span>
           <h2 id="sin-cuenta-titulo">Compra sin crear <span>cuenta</span></h2>
           <p className={css.intro}>Paga tu pasaje con Pago Móvil, completa los datos del comprobante y recibe tu boleto al instante.</p>
           <ol className={css.detalles} role="list">
