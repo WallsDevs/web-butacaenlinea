@@ -10,19 +10,8 @@
   gap: clamp(24px, 4vw, 64px);
 }
 .texto { min-width: 0; }
-.etiqueta {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 12px;
-  border-radius: 999px;
-  background: var(--blue-100);
-  color: var(--blue-700);
-  font-size: 14px;
-  font-weight: 700;
-}
 .texto h2 {
-  margin: 12px 0 18px;
+  margin: 0 0 18px;
   font-size: clamp(32px, 3.4vw, 50px);
   line-height: 1.04;
   letter-spacing: -.05em;
