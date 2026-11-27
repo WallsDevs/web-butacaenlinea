@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import type { Ciudad } from '../../lib/api/endpoints';
-import type { LugarRuta } from '../../lib/api/types';
+import { NOMBRE_TIPO_VIAJE, type LugarRuta, type TipoViaje } from '../../lib/api/types';
 import { MapaTrayecto, type Punta, type TrazadoTrayecto } from './MapaTrayecto';
 import { SelectorCiudad } from '../../components/ui/SelectorCiudad';
 import { Field } from '../../components/ui/Field';
@@ -9,6 +9,7 @@ import styles from './ModalRutaViaje.module.css';
 
 export interface FormRuta {
   documentId: string | null;
+  tipoViaje: TipoViaje;
   codigo: string;
   origen: string;
   destino: string;
@@ -122,6 +123,12 @@ export function ModalRutaViaje({
         {/* El trayecto de arriba abajo, A → B como en el mapa; el sentido va sobre la línea que las une */}
         <section className={styles.seccion}>
           <div className={styles.rotulo}>Trayecto</div>
+          <label className={ui.field}>
+            <span className={ui.fieldLabel}>Tipo de viaje</span>
+            <select className={ui.fieldInput} value={form.tipoViaje} onChange={(e) => cambiar({ tipoViaje: e.target.value as TipoViaje })}>
+              {Object.entries(NOMBRE_TIPO_VIAJE).map(([tipo, nombre]) => <option key={tipo} value={tipo}>{nombre}</option>)}
+            </select>
+          </label>
           <div className={styles.trayecto}>
             {(['origen', 'destino'] as const).map((p) => {
               const esOrigen = p === 'origen';

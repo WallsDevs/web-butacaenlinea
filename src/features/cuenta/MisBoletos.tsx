@@ -1,7 +1,8 @@
 import { Link, useNavigate } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '../../stores/auth';
 import { getMisBoletos } from '../../lib/api/endpoints';
-import type { BoletoMio } from '../../lib/api/types';
+import { NOMBRE_TIPO_VIAJE, type BoletoMio } from '../../lib/api/types';
 import { hora, fechaConAnio } from '../../lib/time';
 import { TicketCard } from '../../components/ticket/TicketCard';
 import { PaginaPasajero } from './CuentaLayout';
@@ -23,6 +24,7 @@ function Boleto({ b }: { b: BoletoMio }) {
     <Link to={`/boleto/${b.qrId}`} className={styles.boleto}>
       <TicketCard variant="compact" data={{
         folio: b.folio,
+        tipo: NOMBRE_TIPO_VIAJE[b.salida?.ruta?.tipoViaje ?? 'nacional'],
         lineaNombre: b.linea?.nombre,
         unidad: b.salida?.unidad?.numero,
         origen: b.salida?.ruta?.origen ?? '',
@@ -40,8 +42,9 @@ function Boleto({ b }: { b: BoletoMio }) {
 
 /** Mis boletos: los próximos viajes primero, luego los anteriores. Cada boleto abre su QR. */
 export default function MisBoletos() {
+  const usuarioId = useAuth(s => s.usuario?.id);
   const navigate = useNavigate();
-  const { data: boletos, isLoading } = useQuery({ queryKey: ['mis-boletos'], queryFn: getMisBoletos });
+  const { data: boletos, isLoading } = useQuery({ queryKey: ['mis-boletos', usuarioId], queryFn: getMisBoletos });
   const ahora = Date.now() - 2 * 3600_000;
   const cuando = (b: BoletoMio) => (b.salida ? new Date(b.salida.fechaHoraSalida).getTime() : 0);
   const proximos = (boletos ?? []).filter((b) => b.estado === 'emitido' && cuando(b) > ahora).sort((a, b) => cuando(a) - cuando(b));

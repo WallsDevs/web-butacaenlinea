@@ -94,7 +94,7 @@ export function AppChrome() {
           : rol === 'colector' && (enPerfil || path.startsWith('/colector'))
               ? { menu: SECCIONES_COLECTOR, tagline: usuario?.linea?.nombre ?? 'Colector', home: '/colector' }
               : rol === 'cliente' && enAreaPasajero
-                ? { menu: SECCIONES_CUENTA, tagline: 'Mi cuenta', home: '/' }
+                ? { menu: SECCIONES_CUENTA, tagline: 'Mi cuenta', home: '/cuenta' }
                 : null;
   const hogarDelRol = rol ? HOGAR_POR_ROL[rol] : undefined;
   // En escritorio todos los roles con panel navegan por la barra lateral, el pasajero incluido

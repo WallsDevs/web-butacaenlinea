@@ -6,10 +6,16 @@
 .sub { margin-top: 4px; font-size: 14px; color: var(--text-soft); line-height: 1.45; }
 .acciones { margin-left: auto; display: flex; gap: 10px; align-items: center; }
 
-/* Viajar: el próximo viaje y el saldo arriba, el buscador debajo */
-.resumen { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 14px; margin-bottom: 18px; }
-.tarjeta { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 18px 20px; }
-.proximo { display: flex; gap: 16px; align-items: center; text-align: left; cursor: pointer; background: var(--navy, #0B2A6B); color: #fff; border: none; border-radius: 20px; padding: 18px 20px; width: 100%; }
+/* Viajar */
+.saldoCompra, .guiaCompra {
+  display: inline-flex; align-items: center; gap: 8px; min-height: 44px;
+  color: var(--blue-700); font: inherit; font-size: 15px;
+}
+.saldoCompra { padding: 6px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+.saldoCompra strong { color: var(--navy); }
+.guiaCompra { margin-top: 12px; padding: 4px 0; border: 0; background: none; cursor: pointer; }
+.saldoCompra:hover, .guiaCompra:hover { text-decoration: underline; }
+.proximo { display: flex; gap: 16px; align-items: center; text-align: left; cursor: pointer; background: var(--navy, #0B2A6B); color: #fff; border: none; border-radius: 20px; padding: 18px 20px; width: 100%; margin-top: 18px; box-sizing: border-box; }
 .proximo:hover { filter: brightness(1.06); }
 .proximoHora { display: flex; flex-direction: column; min-width: 64px; }
 .proximoHora b { font-size: 26px; font-weight: 800; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
@@ -19,14 +25,6 @@
 .proximoRuta b { font-size: 18px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .proximoRuta span { font-size: 13px; color: #C7D9FB; }
 .proximoVer { font-size: 13px; font-weight: 700; padding: 8px 12px; border-radius: 10px; background: rgba(255, 255, 255, 0.14); white-space: nowrap; }
-.sinViaje { display: flex; flex-direction: column; justify-content: center; gap: 4px; }
-.sinViaje b { font-size: 16px; }
-.sinViaje span { font-size: 13px; color: var(--text-soft); }
-.saldo { display: flex; flex-direction: column; gap: 6px; justify-content: center; }
-.saldo span { font-size: 12px; font-weight: 700; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.1em; }
-.saldo b { font-size: 24px; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
-.saldo a { font-size: 13px; font-weight: 700; }
-
 /* Mis boletos */
 .grupo { margin-bottom: 26px; }
 .grupoTitulo { font-size: 12px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 10px; }
@@ -50,7 +48,8 @@
 @media (max-width: 720px) {
   .pagina { padding: 18px 14px 96px; }
   .titulo { font-size: 24px; }
-  .resumen { grid-template-columns: minmax(0, 1fr); }
+  .cabecera:has(.saldoCompra) { gap: 8px; }
+  .cabecera:has(.saldoCompra) .acciones { width: auto; margin-left: auto; }
   .boletos { grid-template-columns: minmax(0, 1fr); }
   .acciones { margin-left: 0; width: 100%; }
 }

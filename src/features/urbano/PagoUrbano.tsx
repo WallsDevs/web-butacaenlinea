@@ -49,7 +49,7 @@ export default function PagoUrbano() {
     refetchInterval: 10_000,
   });
   const { data: wallet } = useQuery({
-    queryKey: ['wallet'],
+    queryKey: ['wallet', usuario?.id],
     queryFn: getWallet,
     enabled: Boolean(usuario),
   });
