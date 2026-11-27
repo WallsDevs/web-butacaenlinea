@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { getBoletoPorCodigo } from '../../lib/api/endpoints';
+import { NOMBRE_TIPO_VIAJE } from '../../lib/api/types';
 import { ApiError } from '../../lib/api/client';
 import { useAuth } from '../../stores/auth';
 import { useInstalacion } from '../../lib/instalacion';
@@ -23,6 +24,7 @@ export default function Boleto() {
   const grupo = (location.state as { grupo?: { qrId: string; asientoId: string }[] } | null)?.grupo;
 
   const usuarioId = useAuth((s) => s.usuario?.id ?? null);
+  const esCliente = useAuth((s) => s.usuario?.role?.type === 'cliente');
   const instalacion = useInstalacion();
   const [pistaInstalar, setPistaInstalar] = useState(false);
   const { data: boleto, isLoading, error, refetch, isFetching } = useQuery({
@@ -92,13 +94,16 @@ export default function Boleto() {
             : { tono: 'ok' as const, label: 'Pagado' };
 
   const anulado = boleto.estado === 'anulado';
-  // Volver: a la página anterior si se llegó navegando; si el enlace se abrió directo, a sus boletos
-  const volver = () => ((window.history.state as { idx?: number } | null)?.idx ? navigate(-1) : navigate(usuarioId ? '/cuenta/boletos' : '/'));
+  function volver() {
+    if (esCliente) navigate('/cuenta/boletos');
+    else if (window.history.state?.idx) navigate(-1);
+    else navigate('/');
+  }
 
   return (
     <div style={{ maxWidth: 900, margin: '0 auto', padding: '24px 16px 56px' }}>
       <button type="button" className={`${ui.btnGhost} no-print`} onClick={volver} style={{ marginBottom: 8, paddingLeft: 0 }}>
-        ← Volver
+        ← {esCliente ? 'Mis boletos' : 'Volver'}
       </button>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
         <span style={{ fontWeight: 700, fontSize: 20 }}>Tu boleto</span>
@@ -135,6 +140,7 @@ export default function Boleto() {
       <TicketCard
         data={{
           folio: boleto.folio,
+          tipo: boleto.salida.ruta && NOMBRE_TIPO_VIAJE[boleto.salida.ruta.tipoViaje],
           codigo: boleto.qrId.slice(0, 8).toUpperCase(),
           qrValue: boleto.qr ?? undefined,
           lineaNombre: boleto.linea?.nombre,

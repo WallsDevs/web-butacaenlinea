@@ -23,6 +23,7 @@ import type {
   ResumenMantenimiento,
   SalidaDto,
   TasasVigentes,
+  TipoViaje,
   TurnoDto,
   UnidadDto,
   UsuarioSesion,
@@ -39,6 +40,7 @@ export const getLineas = () =>
 export const getSalidas = (params?: {
   origen?: string;
   destino?: string;
+  tipoViaje?: TipoViaje;
   desde?: string;
   hasta?: string;
   lineaSlug?: string;
@@ -60,6 +62,7 @@ export const getSalidas = (params?: {
   if (params?.lineaSlug) q.set('filters[linea][slug][$eq]', params.lineaSlug);
   if (params?.origen) q.set('filters[ruta][origen][$eq]', params.origen);
   if (params?.destino) q.set('filters[ruta][destino][$eq]', params.destino);
+  if (params?.tipoViaje) q.set('filters[ruta][tipoViaje][$eq]', params.tipoViaje);
   if (params?.desde) q.set('filters[fechaHoraSalida][$gte]', params.desde);
   if (params?.hasta) q.set('filters[fechaHoraSalida][$lte]', params.hasta);
   return api<SalidaDto[]>(`/api/salidas?${q}`);
@@ -108,7 +111,7 @@ export interface BoletoRecuperado {
   estado: string;
   estadoPago: string;
   pasajeroNombre: string;
-  salida?: { fechaHoraSalida?: string; ruta?: { origen?: string; destino?: string }; linea?: { nombre?: string } } | null;
+  salida?: { fechaHoraSalida?: string; ruta?: { origen?: string; destino?: string; tipoViaje: TipoViaje }; linea?: { nombre?: string } } | null;
 }
 export const recuperarBoletos = (datos: { referencia: string; banco: string; telefono: string; documento: string }) =>
   api<BoletoRecuperado[]>('/api/boletos/recuperar', { method: 'POST', body: datos, auth: false });
@@ -532,10 +535,17 @@ export const marcarReembolsado = (boletoId: string) =>
 export const actualizarConfiguracionEmpresa = (datos: Record<string, unknown>) =>
   api<{ actualizada: boolean }>('/api/empresa/configuracion', { method: 'PUT', body: datos });
 
-export const getRutas = (lineaSlug?: string) =>
-  api<import('./types').RutaDto[]>(
-    `/api/rutas?populate[tarifas]=true&populate[paradas]=true&sort=codigo&pagination[pageSize]=100${lineaSlug ? `&filters[linea][slug][$eq]=${lineaSlug}` : ''}`
-  );
+export const getRutas = (lineaSlug?: string, tipoViaje?: TipoViaje) => {
+  const q = new URLSearchParams({
+    'populate[tarifas]': 'true',
+    'populate[paradas]': 'true',
+    sort: 'codigo',
+    'pagination[pageSize]': '100',
+  });
+  if (lineaSlug) q.set('filters[linea][slug][$eq]', lineaSlug);
+  if (tipoViaje) q.set('filters[tipoViaje][$eq]', tipoViaje);
+  return api<import('./types').RutaDto[]>(`/api/rutas?${q}`);
+};
 export const guardarRuta = (documentId: string | null, data: Record<string, unknown>) =>
   documentId
     ? api<import('./types').RutaDto>(`/api/rutas/${documentId}`, { method: 'PUT', body: { data } })

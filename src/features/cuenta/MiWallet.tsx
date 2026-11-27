@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '../../stores/auth';
 import { getMetodosPago, getPagoMovilPlataforma, getWallet, reportarRecarga } from '../../lib/api/endpoints';
 import { ApiError } from '../../lib/api/client';
 import { fechaCorta, hora } from '../../lib/time';
@@ -40,6 +41,7 @@ const montoDe = (texto: string): number => {
  * y verificada por la plataforma; el saldo paga pasajes urbanos por QR.
  */
 export default function MiWallet() {
+  const usuarioId = useAuth(s => s.usuario?.id);
   useSeo('Mi wallet — Butaca En Línea', undefined, { noindex: true });
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -53,7 +55,7 @@ export default function MiWallet() {
   const [aviso, setAviso] = useState<string | null>(null);
 
   const { data: wallet, isLoading } = useQuery({
-    queryKey: ['wallet'],
+    queryKey: ['wallet', usuarioId],
     queryFn: getWallet,
     refetchInterval: 20_000,
   });

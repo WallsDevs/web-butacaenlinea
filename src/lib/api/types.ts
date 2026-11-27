@@ -42,12 +42,19 @@ export interface LugarRuta {
   lng: number;
 }
 
+export const NOMBRE_TIPO_VIAJE = { nacional: 'Nacional', extraurbano: 'Extraurbano', tours: 'Tours' } as const;
+export type TipoViaje = keyof typeof NOMBRE_TIPO_VIAJE;
+export type NombreTipoViaje = (typeof NOMBRE_TIPO_VIAJE)[TipoViaje];
+export const MODALIDADES = ['Urbano', NOMBRE_TIPO_VIAJE.extraurbano, NOMBRE_TIPO_VIAJE.nacional, NOMBRE_TIPO_VIAJE.tours] as const;
+export type Modalidad = (typeof MODALIDADES)[number];
+
 export interface RutaDto {
   /** Id numérico: sirve para enlazar la ida con su vuelta (inversaId). */
   id: number;
   documentId: string;
   codigo: string;
   nombre: string;
+  tipoViaje: TipoViaje;
   origen: string;
   destino: string;
   duracionMin: number;
@@ -150,7 +157,7 @@ export interface MapaAsientos {
     fechaHoraSalida: string;
     fechaHoraLlegada: string;
     rampa: string;
-    ruta?: { origen: string; destino: string; duracionMin: number };
+    ruta?: Pick<RutaDto, 'origen' | 'destino' | 'duracionMin' | 'tipoViaje'>;
     unidad?: { numero: string; marcaModelo: string; amenidades?: string[] };
     linea?: { nombre: string; slug: string };
   };
@@ -239,7 +246,7 @@ export interface BoletoPublico {
     fechaHoraSalida: string;
     fechaHoraLlegada: string;
     rampa: string;
-    ruta?: { origen: string; destino: string };
+    ruta?: Pick<RutaDto, 'origen' | 'destino' | 'tipoViaje'>;
     unidad?: { numero: string };
   };
 }
@@ -302,7 +309,7 @@ export interface BoletoMio {
   salida?: {
     fechaHoraSalida: string;
     fechaHoraLlegada: string;
-    ruta?: { origen: string; destino: string };
+    ruta?: Pick<RutaDto, 'origen' | 'destino' | 'tipoViaje'>;
     unidad?: { numero: string };
   };
 }
@@ -362,7 +369,7 @@ export interface BoletoAdmin {
   estado: 'emitido' | 'abordado' | 'no_show' | 'anulado';
   estadoPago: EstadoPago;
   referenciaPago?: string;
-  salida?: { fechaHoraSalida: string; ruta?: { destino: string } };
+  salida?: { fechaHoraSalida: string; ruta?: Pick<RutaDto, 'destino' | 'tipoViaje'> };
 }
 
 // ── Manifiesto ───────────────────────────────────────────────────────────────

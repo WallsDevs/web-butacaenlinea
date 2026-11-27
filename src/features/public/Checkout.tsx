@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { Link, useNavigate } from 'react-router';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { adjuntarComprobante, emitirBoletos, getDatosPago, getMapaAsientos, getWallet, type DatosPagoPlataforma } from '../../lib/api/endpoints';
 import { ApiError, esSinConexion } from '../../lib/api/client';
 import { hora, fechaConAnio } from '../../lib/time';
@@ -9,7 +9,7 @@ import { TicketCard } from '../../components/ticket/TicketCard';
 import { ReservationTimer } from '../../components/ui/ReservationTimer';
 import { useBooking } from './useBooking';
 import { useAuth } from '../../stores/auth';
-import type { MetodoPago } from '../../lib/api/types';
+import { NOMBRE_TIPO_VIAJE, type MetodoPago } from '../../lib/api/types';
 import ui from '../../components/ui/ui.module.css';
 import styles from './public.module.css';
 import { BANCOS_VE } from '../../lib/bancos';
@@ -102,6 +102,7 @@ function CuentaButaca({ metodo, datos, monto }: { metodo: MetodoPago; datos: Dat
 
 export default function Checkout() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const {
     salidaId,
     reservaToken,
@@ -129,8 +130,8 @@ export default function Checkout() {
   // Con cuenta todo se paga con la wallet; sin cuenta, directo a Butaca
   const usuario = useAuth((s) => s.usuario);
   const esCliente = usuario?.role?.type === 'cliente';
-  const { data: wallet, refetch: refrescarWallet } = useQuery({
-    queryKey: ['wallet'],
+  const { data: wallet, isError: errorWallet, refetch: refrescarWallet } = useQuery({
+    queryKey: ['wallet', usuario?.id],
     queryFn: getWallet,
     enabled: esCliente,
   });
@@ -197,8 +198,13 @@ export default function Checkout() {
       if (captura && (!esCliente || !walletAlcanza)) {
         await adjuntarComprobante(r.boletos.map((b) => b.qrId), captura).catch(() => undefined);
       }
+      if (esCliente) {
+        void queryClient.invalidateQueries({ queryKey: ['mis-boletos'] });
+        void queryClient.invalidateQueries({ queryKey: ['wallet'] });
+      }
       reiniciar();
       navigate(`/boleto/${r.boletos[0].qrId}`, {
+        replace: true,
         state: { grupo: r.boletos.map((b) => ({ qrId: b.qrId, asientoId: b.asientoId })) },
       });
     },
@@ -215,7 +221,7 @@ export default function Checkout() {
   if (!salidaId || !reservaToken || !pasajeros.length) {
     return (
       <div style={{ padding: 48, textAlign: 'center', color: 'var(--text-soft)', fontSize: 14 }}>
-        No hay una compra en curso. <a href="/salidas">Busca tu salida</a>.
+        No hay una compra en curso. <Link to={esCliente ? '/cuenta' : '/salidas'}>Busca tu salida</Link>.
       </div>
     );
   }
@@ -226,7 +232,8 @@ export default function Checkout() {
   const subtotal = pasajeros.reduce((acc, p) => acc + Number(precios[p.claseServicio] ?? 0), 0);
   const total = subtotal + pasajeros.length * (recargos.tasaTerminal + recargos.seguro);
   const totalBs = totalBsCompra;
-  const pideReferencia = !esCliente || !walletAlcanza;
+  const pagoListo = Boolean(totalBs && (!esCliente || wallet));
+  const pideReferencia = pagoListo && (!esCliente || !walletAlcanza);
   const telPagador = telefonoPagador ?? pasajeros[0]?.telefono ?? '';
   const docPagador = documentoPagador ?? pasajeros[0]?.documento ?? '';
   const pagoMovilSinCuenta = !esCliente && metodoPago === 'pago_movil';
@@ -308,7 +315,13 @@ export default function Checkout() {
 
         <h3 style={{ margin: '28px 0 12px', fontSize: 20, fontWeight: 700 }}>Pago</h3>
         {esCliente ? (
-          walletAlcanza ? (
+          !pagoListo ? (
+            <div role="status">
+              {errorWallet && !wallet ? (
+                <>No pudimos consultar tu saldo. <button className={ui.btnGhost} onClick={() => refrescarWallet()}>Reintentar</button></>
+              ) : !mapa || !wallet ? 'Consultando el total y tu saldo…' : 'El precio de esta salida está pendiente de confirmación.'}
+            </div>
+          ) : walletAlcanza ? (
             <p style={{ fontSize: 14, color: 'var(--blue-700)', background: 'var(--tint-50)', borderRadius: 12, padding: '12px 14px', maxWidth: 480, margin: 0 }}>
               Se descuentan <strong>{fmtBs(totalBs)}</strong> de tu wallet (saldo {fmtBs(saldoBs)}) y el boleto sale{' '}
               <strong>pagado al instante</strong>.
@@ -405,6 +418,7 @@ export default function Checkout() {
           variant="checkout"
           data={{
             folio: 'Por emitir',
+            tipo: s?.ruta && NOMBRE_TIPO_VIAJE[s.ruta.tipoViaje],
             lineaNombre: s?.linea?.nombre,
             unidad: s?.unidad?.numero,
             origen: s?.ruta?.origen ?? '',
@@ -421,18 +435,15 @@ export default function Checkout() {
           footer={
             <>
               {error && (
-                <div style={{ marginTop: 10, fontSize: 13, color: 'var(--bad-text)' }}>{error}</div>
+                <div role="alert" style={{ marginTop: 10, fontSize: 14, color: 'var(--bad-text)' }}>{error}</div>
               )}
               <button
                 className={`${ui.btnPrimary} ${ui.btnPrimaryLg}`}
                 style={{ marginTop: 12 }}
-                disabled={!datosCompletos || (pideReferencia && !referencia.trim()) || !pagadorCompleto || expirada || emitir.isPending || !totalBs}
+                disabled={!datosCompletos || (pideReferencia && !referencia.trim()) || !pagadorCompleto || expirada || emitir.isPending || !pagoListo}
                 onClick={() => emitir.mutate()}
               >
-                {emitir.isPending ? 'Emitiendo…' : esCliente && walletAlcanza ? `Pagar ${fmtBs(totalBs)} con mi wallet` : esCliente ? 'Recargar y apartar mis puestos' : 'Ya pagué · emitir mis boletos'}
-              </button>
-              <button className={ui.btnSecondary} style={{ width: '100%', marginTop: 8 }}>
-                Enviar por WhatsApp · descargar PDF
+                {emitir.isPending ? 'Emitiendo…' : !pagoListo ? 'Confirmar compra' : esCliente && walletAlcanza ? `Pagar ${fmtBs(totalBs)} con mi wallet` : esCliente ? 'Recargar y apartar mis puestos' : 'Ya pagué · emitir mis boletos'}
               </button>
             </>
           }

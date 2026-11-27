@@ -14,20 +14,20 @@ import {
 import { useAuth } from '../../stores/auth';
 import { ApiError } from '../../lib/api/client';
 import { duracion } from '../../lib/time';
-import { PillTabs } from '../../components/ui/PillTabs';
 import { ModalRutaViaje, type FormRuta } from './ModalRutaViaje';
 import { StatusChip } from '../../components/ui/StatusChip';
 import { Letrero } from '../../components/ui/Letrero';
 import { EditorRutaUrbana, nuevaFormUrbana, paradasParaGuardar, tramosDe, trazadoDe, type FormUrbana } from '../urbano/EditorRutaUrbana';
 import type { Referencia } from '../urbano/MapaParadas';
 import type { RutaUrbanaDto } from '../../lib/api/endpoints';
-import type { RutaDto } from '../../lib/api/types';
+import { NOMBRE_TIPO_VIAJE, type RutaDto, type TipoViaje } from '../../lib/api/types';
 import ui from '../../components/ui/ui.module.css';
 import styles from '../flota/flota.module.css';
 
 
 const NUEVA: FormRuta = {
   documentId: null,
+  tipoViaje: 'nacional',
   codigo: '',
   origen: '',
   destino: '',
@@ -64,8 +64,9 @@ function referenciasUrbanas(urbanas: RutaUrbanaDto[], actual: string | null): Re
   return [...porSitio.values()];
 }
 
-type TipoRuta = 'nacional' | 'urbana';
-type Filtro = 'todas' | 'nacionales' | 'urbanas';
+type TipoEditor = 'programada' | 'urbana';
+type Filtro = 'todas' | TipoViaje | 'urbana';
+const TIPOS_RUTA = { ...NOMBRE_TIPO_VIAJE, urbana: 'Urbana' };
 
 /**
  * Todas las rutas de la línea en una sola tabla: las de viaje (entre
@@ -74,7 +75,8 @@ type Filtro = 'todas' | 'nacionales' | 'urbanas';
  */
 export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }) {
   const queryClient = useQueryClient();
-  const { integracionActiva } = useModulos();
+  const { integracionActiva, tiene } = useModulos();
+  const permiteProgramadas = !integracionActiva && tiene('boleteria');
   const [form, setForm] = useState<FormRuta | null>(null);
   const [errorRutaViaje, setErrorRutaViaje] = useState<string | null>(null);
   // Ciudades comunes a todas las líneas: origen y destino se eligen de aquí
@@ -85,7 +87,7 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [Boolean(form)]);
   const ciudadOficial = (t: string) => (ciudades ?? []).find((c) => normalizar(c.nombre) === normalizar(t))?.nombre ?? null;
-  const [tipo, setTipo] = useState<TipoRuta>('nacional');
+  const [tipo, setTipo] = useState<TipoEditor>('programada');
   const [filtro, setFiltro] = useState<Filtro>('todas');
   const [buscar, setBuscar] = useState('');
 
@@ -137,6 +139,7 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
     mutationFn: (f: FormRuta) =>
       guardarRuta(f.documentId, {
         codigo: f.codigo,
+        tipoViaje: f.tipoViaje,
         nombre: `Ruta ${f.codigo} · ${ciudadOficial(f.origen) ?? f.origen} — ${ciudadOficial(f.destino) ?? f.destino}`,
         origen: ciudadOficial(f.origen) ?? f.origen,
         destino: ciudadOficial(f.destino) ?? f.destino,
@@ -161,6 +164,9 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rutas'] });
+      queryClient.invalidateQueries({ queryKey: ['rutas-publicas'] });
+      queryClient.invalidateQueries({ queryKey: ['salidas-home'] });
+      queryClient.invalidateQueries({ queryKey: ['salidas'] });
       setForm(null);
       setErrorRutaViaje(null);
     },
@@ -188,6 +194,7 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
   const editar = (r: RutaDto) =>
     setForm({
       documentId: r.documentId,
+      tipoViaje: r.tipoViaje ?? 'nacional',
       codigo: r.codigo ?? '',
       origen: r.origen,
       destino: r.destino,
@@ -204,7 +211,7 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
     });
 
   // Abrir el modal de creación del tipo pedido (con integración, solo urbanas: las de viaje vienen del sistema de la línea)
-  const abrirNuevo = (t: TipoRuta = integracionActiva ? 'urbana' : 'nacional') => {
+  const abrirNuevo = (t: TipoEditor = permiteProgramadas ? 'programada' : 'urbana') => {
     setTipo(t);
     if (t === 'urbana') {
       setForm(null);
@@ -229,7 +236,7 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
   const selectorTipo = (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
       <div role="tablist" aria-label="Tipo de ruta" style={{ display: 'inline-flex', gap: 2, padding: 3, borderRadius: 10, background: 'var(--pill-bg, #EEF2F9)', flex: 'none' }}>
-        {([...(integracionActiva ? [] : [['nacional', 'Nacional']]), ['urbana', 'Urbana']] as [TipoRuta, string][]).map(([id, etiqueta]) => (
+        {([...(permiteProgramadas ? [['programada', 'Programada']] : []), ['urbana', 'Urbana']] as [TipoEditor, string][]).map(([id, etiqueta]) => (
           <button
             key={id}
             type="button"
@@ -253,7 +260,7 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
         ))}
       </div>
       <span style={{ fontSize: 12, color: 'var(--text-faint)', lineHeight: 1.35, minWidth: 0 }} className="solo-ancho">
-        {tipo === 'nacional' ? 'Entre ciudades · asientos y salidas · USD' : 'Dentro de la ciudad · pago con QR · Bs'}
+        {tipo === 'programada' ? 'Asientos y salidas · USD' : 'Dentro de la ciudad · pago con QR · Bs'}
       </span>
     </div>
   );
@@ -261,7 +268,7 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
   // Una sola lista con las dos clases de ruta
   interface Fila {
     clave: string;
-    tipo: TipoRuta;
+    tipo: TipoViaje | 'urbana';
     titulo: string;
     sub: string;
     letreros?: string[];
@@ -278,7 +285,7 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
       .filter((r) => !r.inversaId || !(rutas ?? []).some((x) => x.id === r.inversaId) || r.id < r.inversaId)
       .map((r): Fila => ({
       clave: `n-${r.documentId}`,
-      tipo: 'nacional',
+      tipo: r.tipoViaje ?? 'nacional',
       titulo: r.idaYVuelta ? `${r.origen} ⇄ ${r.destino}` : `${r.origen} → ${r.destino}`,
       sub: [r.codigo ? `Código ${r.codigo}` : '', r.idaYVuelta ? 'Ida y vuelta' : 'Solo ida'].filter(Boolean).join(' · '),
       medida: r.duracionMin ? duracion(r.duracionMin) : '—',
@@ -300,7 +307,7 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
       eliminar: () => {
         if (confirm(`¿Eliminar la ruta ${r.origen} → ${r.destino}?`)) eliminar.mutate(r.documentId);
       },
-      bloqueada: integracionActiva,
+      bloqueada: !permiteProgramadas,
     })),
     ...(urbanas ?? []).map((u): Fila => ({
       clave: `u-${u.documentId}`,
@@ -323,10 +330,8 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
   ];
   const q = buscar.trim().toLowerCase();
   const visibles = filas
-    .filter((f) => (filtro === 'todas' ? true : filtro === 'nacionales' ? f.tipo === 'nacional' : f.tipo === 'urbana'))
+    .filter((f) => filtro === 'todas' || f.tipo === filtro)
     .filter((f) => !q || f.texto.includes(q));
-  // Como en la tabla: la vuelta enlazada no cuenta aparte (A ⇄ B es una ruta)
-  const n = { todas: filas.length, nacionales: filas.filter((f) => f.tipo === 'nacional').length, urbanas: filas.filter((f) => f.tipo === 'urbana').length };
   const cargando = isLoading && !rutas;
 
   return (
@@ -335,15 +340,12 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
 
       {/* Filtros a la izquierda, búsqueda a la derecha; el botón vive en la cabecera de la pantalla */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
-        <PillTabs<Filtro>
-          items={[
-            { id: 'todas', label: `Todas · ${n.todas}` },
-            { id: 'nacionales', label: `Nacionales · ${n.nacionales}` },
-            { id: 'urbanas', label: `Urbanas · ${n.urbanas}` },
-          ]}
-          value={filtro}
-          onChange={setFiltro}
-        />
+        <select className={ui.fieldInput} style={{ width: 'auto' }} aria-label="Filtrar por tipo de ruta" value={filtro} onChange={(e) => setFiltro(e.target.value as Filtro)}>
+          <option value="todas">Todas las rutas · {filas.length}</option>
+          {Object.entries(TIPOS_RUTA).map(([id, nombre]) => (
+            <option key={id} value={id}>{nombre} · {filas.filter((f) => f.tipo === id).length}</option>
+          ))}
+        </select>
         <input
           className={ui.fieldInput}
           style={{ marginLeft: 'auto', width: 'min(100%, 300px)' }}
@@ -368,7 +370,7 @@ export default function EmpresaRutas({ abrirNueva = 0 }: { abrirNueva?: number }
             {visibles.map((f) => (
               <tr key={f.clave}>
                 <td>
-                  <StatusChip tono={f.tipo === 'nacional' ? 'info' : 'ok'} size="sm">{f.tipo === 'nacional' ? 'Nacional' : 'Urbana'}</StatusChip>
+                  <StatusChip tono={f.tipo === 'urbana' ? 'ok' : 'info'} size="sm">{TIPOS_RUTA[f.tipo]}</StatusChip>
                 </td>
                 <td>
                   <div style={{ fontWeight: 600 }}>{f.titulo}</div>

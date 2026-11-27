@@ -1,5 +1,6 @@
 import { useId, type ReactNode } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
+import type { NombreTipoViaje } from '../../lib/api/types';
 import { Isotipo } from '../brand/LogoMark';
 import { Money, MoneyAlt } from '../ui/Money';
 import { StatusChip, type TonoChip } from '../ui/StatusChip';
@@ -13,7 +14,7 @@ export interface TicketData {
   qrValue?: string;
   lineaNombre?: string;
   unidad?: string;
-  tipo?: 'Nacional' | 'Urbano';
+  tipo?: NombreTipoViaje | 'Urbano';
   origen: string;
   destino: string;
   salidaHora: string;

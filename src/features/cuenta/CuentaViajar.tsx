@@ -1,8 +1,10 @@
-import { useNavigate } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '../../stores/auth';
 import { getMisBoletos, getWallet } from '../../lib/api/endpoints';
 import { fechaCorta, hora } from '../../lib/time';
-import { useAuth } from '../../stores/auth';
+import { IconoNav } from '../../app/iconos';
+import { MODALIDADES, type Modalidad } from '../../lib/api/types';
 import { useSeo } from '../../lib/seo';
 import { BuscadorPasajes } from '../public/BuscadorPasajes';
 import { PaginaPasajero } from './CuentaLayout';
@@ -17,58 +19,51 @@ export function proximoViaje<T extends { estado: string; salida?: { fechaHoraSal
     .sort((a, b) => new Date(a.salida!.fechaHoraSalida).getTime() - new Date(b.salida!.fechaHoraSalida).getTime())[0];
 }
 
-/**
- * Inicio del pasajero: su próximo viaje (con el boleto a un toque), su saldo,
- * y el mismo buscador de la página principal para comprar el siguiente
- * pasaje sin salir de su cuenta.
- */
 export default function CuentaViajar() {
-  useSeo('Viajar — Butaca En Línea', undefined, { noindex: true });
-  const navigate = useNavigate();
-  const usuario = useAuth((s) => s.usuario);
-  const { data: boletos } = useQuery({ queryKey: ['mis-boletos'], queryFn: getMisBoletos });
-  const { data: wallet } = useQuery({ queryKey: ['wallet'], queryFn: getWallet });
+  const usuarioId = useAuth(s => s.usuario?.id);
+  useSeo('Comprar pasaje — Butaca En Línea', undefined, { noindex: true });
+  const [params, setParams] = useSearchParams();
+  const modalidad = MODALIDADES.find(m => m.toLowerCase() === params.get('tipo')) ?? 'Nacional';
+  const { data: boletos } = useQuery({ queryKey: ['mis-boletos', usuarioId], queryFn: getMisBoletos });
+  const { data: wallet } = useQuery({ queryKey: ['wallet', usuarioId], queryFn: getWallet });
   const proximo = proximoViaje(boletos ?? []);
   const iniciarGuia = useGuia((s) => s.iniciar);
-  const nombre = (usuario?.nombreCorto ?? usuario?.username ?? '').split(' ')[0];
+
+  function elegirModalidad(m: Modalidad) {
+    const siguientes = new URLSearchParams(params);
+    siguientes.set('tipo', m.toLowerCase());
+    setParams(siguientes, { replace: true, preventScrollReset: true });
+  }
 
   return (
     <PaginaPasajero
-      titulo={nombre ? `Hola, ${nombre}` : 'Viajar'}
-      sub={
-        <>
-          Busca tu salida, escoge tu puesto y paga en línea.{' '}
-          <button type="button" className={styles.enlace} style={{ fontSize: 14, marginTop: 0, padding: 0 }} onClick={() => iniciarGuia('comprar')}>¿Primera vez? Te enseño a comprar</button>
-        </>
+      titulo="Comprar pasaje"
+      acciones={
+        <Link to="/cuenta/wallet" className={styles.saldoCompra}>
+          <IconoNav id="wallet" size={20}/>
+          <span>Mi saldo</span>
+          {wallet && <strong>Bs {wallet.saldoBs.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>}
+        </Link>
       }
     >
-      <div className={styles.resumen}>
-        {proximo ? (
-          <button type="button" className={styles.proximo} onClick={() => navigate(`/boleto/${proximo.qrId}`)}>
-            <span className={styles.proximoHora}>
-              <b>{hora(proximo.salida!.fechaHoraSalida)}</b>
-              <span>{fechaCorta(proximo.salida!.fechaHoraSalida)}</span>
-            </span>
-            <span className={styles.proximoRuta}>
-              <small>Tu próximo viaje</small>
-              <b>{proximo.salida?.ruta?.origen} → {proximo.salida?.ruta?.destino}</b>
-              <span>Puesto {proximo.asientoId} · {proximo.linea?.nombre}</span>
-            </span>
-            <span className={styles.proximoVer}>Ver boleto</span>
-          </button>
-        ) : (
-          <div className={`${styles.tarjeta} ${styles.sinViaje}`}>
-            <b>No tienes viajes próximos</b>
-            <span>Cuando compres un pasaje, tu boleto con QR aparece aquí.</span>
-          </div>
-        )}
-        <div className={`${styles.tarjeta} ${styles.saldo}`}>
-          <span>Saldo</span>
-          <b>Bs {(wallet?.saldoBs ?? 0).toLocaleString('es-VE', { minimumFractionDigits: 2 })}</b>
-          <a href="/cuenta/wallet" onClick={(e) => { e.preventDefault(); navigate('/cuenta/wallet'); }}>Recargar o pagar busetas →</a>
-        </div>
-      </div>
-      <BuscadorPasajes enPanel />
+      <BuscadorPasajes enPanel modalidad={modalidad} elegirModalidad={elegirModalidad}/>
+      {proximo && (
+        <Link className={styles.proximo} to={`/boleto/${proximo.qrId}`}>
+          <span className={styles.proximoHora}>
+            <b>{hora(proximo.salida!.fechaHoraSalida)}</b>
+            <span>{fechaCorta(proximo.salida!.fechaHoraSalida)}</span>
+          </span>
+          <span className={styles.proximoRuta}>
+            <small>Tu próximo viaje</small>
+            <b>{proximo.salida?.ruta?.origen} → {proximo.salida?.ruta?.destino}</b>
+            <span>Puesto {proximo.asientoId} · {proximo.linea?.nombre}</span>
+          </span>
+          <span className={styles.proximoVer}>Ver boleto</span>
+        </Link>
+      )}
+      <button type="button" className={styles.guiaCompra} onClick={() => iniciarGuia(modalidad === 'Urbano' ? 'pagar-buseta' : 'comprar')}>
+        <IconoNav id="ayuda" size={18}/>{modalidad === 'Urbano' ? 'Cómo pagar la buseta' : 'Cómo comprar un pasaje'}
+      </button>
     </PaginaPasajero>
   );
 }

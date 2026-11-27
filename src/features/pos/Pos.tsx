@@ -29,7 +29,7 @@ import { ReservationTimer } from '../../components/ui/ReservationTimer';
 import { SeatMap } from '../../components/seat-map/SeatMap';
 import { TicketCard } from '../../components/ticket/TicketCard';
 import { Isotipo } from '../../components/brand/LogoMark';
-import type { BoletoEmitido, MetodoPago } from '../../lib/api/types';
+import { NOMBRE_TIPO_VIAJE, type BoletoEmitido, type MetodoPago } from '../../lib/api/types';
 import ui from '../../components/ui/ui.module.css';
 import styles from './pos.module.css';
 
@@ -735,6 +735,7 @@ export default function Pos() {
             {emitidos.map((boleto) => (
               <TicketCard key={boleto.qrId} data={{
                 folio: boleto.folio,
+                tipo: NOMBRE_TIPO_VIAJE[salida.ruta?.tipoViaje ?? 'nacional'],
                 codigo: boleto.qrId.slice(0, 8).toUpperCase(),
                 qrValue: boleto.qr,
                 lineaNombre: salida.linea?.nombre ?? usuario?.linea?.nombre,

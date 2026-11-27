@@ -23,20 +23,13 @@ export function PanelAsientos({ salidaId, pax }: { salidaId: string; pax: number
   const [error, setError] = useState<string | null>(null);
 
   // Ocupación en vivo mientras el panel está abierto
-  const { data: mapa } = useQuery({ queryKey: ['mapa', salidaId], queryFn: () => getMapaAsientos(salidaId), refetchInterval: 4000 });
+  const { data: mapa, isError: errorMapa, refetch: recargarMapa } = useQuery({ queryKey: ['mapa', salidaId], queryFn: () => getMapaAsientos(salidaId), refetchInterval: 4000 });
 
   // Si bajan los pasajeros, se conservan los últimos puestos tocados
   useEffect(() => setSel((s) => s.slice(-pax)), [pax]);
 
   const reservar = useMutation({
-    mutationFn: () => crearReserva(salidaId, sel.map((e) => e.id)),
-    onSuccess: (r) => {
-      // El checkout lee la selección del almacén de reserva
-      limpiarSeleccion();
-      sel.forEach((e) => toggleAsiento(e.piso, e.id));
-      iniciarCheckout({ salidaId, token: r.token, expiraEn: r.expiraEn, serverTime: r.serverTime, mapa: mapa! });
-      navigate('/checkout');
-    },
+    mutationFn: (puestos: Elegido[]) => crearReserva(salidaId, puestos.map(e => e.id)),
     onError: (e) => {
       if (e instanceof ApiError && e.code === 'asientos_no_disponibles') {
         const ocupados = (e.details as { asientos?: string[] })?.asientos ?? [];
@@ -48,6 +41,18 @@ export function PanelAsientos({ salidaId, pax }: { salidaId: string; pax: number
       }
     },
   });
+
+  function apartar() {
+    if (!mapa || sel.length !== pax || reservar.isPending) return;
+    reservar.mutate(sel, {
+      onSuccess: (r, puestos) => {
+        limpiarSeleccion();
+        puestos.forEach(e => toggleAsiento(e.piso, e.id));
+        iniciarCheckout({ salidaId, token: r.token, expiraEn: r.expiraEn, serverTime: r.serverTime, mapa });
+        navigate('/checkout');
+      },
+    });
+  }
 
   const piso = mapa?.pisos.find((p) => p.numero === pisoActivo) ?? mapa?.pisos[0];
   const precioDe = (p: number) => {
@@ -80,7 +85,9 @@ export function PanelAsientos({ salidaId, pax }: { salidaId: string; pax: number
 
   return (
     <div style={{ margin: '0 8px 8px', borderRadius: 12, background: '#FFFFFF', color: '#0F172A', padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
-      {!mapa || !piso ? (
+      {(!mapa && errorMapa) || (mapa && !piso) ? (
+        <div role="status">No pudimos mostrar los puestos de esta salida. <button type="button" onClick={() => recargarMapa()}>Reintentar</button></div>
+      ) : !mapa || !piso ? (
         <div style={{ padding: 28, textAlign: 'center', color: '#7C8AA5', fontSize: 14 }}>Cargando mapa…</div>
       ) : (
         <>
@@ -107,6 +114,7 @@ export function PanelAsientos({ salidaId, pax }: { salidaId: string; pax: number
               seleccionados={sel.filter((e) => e.piso === piso.numero).map((e) => e.id)}
               onToggle={(id) => toggle(piso.numero, id)}
               size="web"
+              readOnly={reservar.isPending}
             />
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 14, paddingTop: 14, borderTop: '1px solid #EEF2F9' }}>
@@ -120,7 +128,7 @@ export function PanelAsientos({ salidaId, pax }: { salidaId: string; pax: number
               {subtotal !== total && <span style={{ fontSize: 12, color: '#7C8AA5' }}>Incluye tasa de terminal y seguro</span>}
             </div>
             <button
-              onClick={() => listo && reservar.mutate()}
+              onClick={apartar}
               disabled={!listo || reservar.isPending}
               style={{ height: 50, padding: '0 30px', borderRadius: 14, border: 'none', background: listo ? '#2563EB' : '#E6EBF4', color: listo ? '#FFFFFF' : '#7C8AA5', fontFamily: 'inherit', fontSize: 16, fontWeight: 700, cursor: listo && !reservar.isPending ? 'pointer' : 'default' }}
             >

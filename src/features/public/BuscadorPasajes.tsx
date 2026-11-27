@@ -2,14 +2,16 @@ import { useEffect, useMemo, useState, type ReactElement, type ReactNode } from 
 import { Link } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { getOcupacionSalidas, getRutas, getRutasUrbanasPublicas, getSalidas, type RutaUrbanaPublica } from '../../lib/api/endpoints';
-import { fechaConAnio, fechaCorta, rangoDia, hoyISO } from '../../lib/time';
-import { PantallaCarga } from '../../components/ui/PantallaCarga';
+import { capacidadPiso } from '../../lib/asientos';
+import type { Modalidad, TipoViaje } from '../../lib/api/types';
+import { fechaConAnio, fechaCorta, fechaParaInput, rangoDia, hoyISO } from '../../lib/time';
+import { Cargando, PantallaCarga } from '../../components/ui/PantallaCarga';
 import { Isotipo } from '../../components/brand/LogoMark';
 import { IconoNav } from '../../app/iconos';
 import { useBooking } from './useBooking';
 import { TarjetaSalida } from './TarjetaSalida';
 import { PanelAsientos } from './inicio/PanelAsientos';
-import { FormularioViaje, IconoModalidad, type Modalidad } from './FormularioViaje';
+import { FormularioViaje, IconoModalidad } from './FormularioViaje';
 import formulario from './FormularioViaje.module.css';
 
 // Número de atención por WhatsApp (solo dígitos, con código de país). VITE_WHATSAPP lo reemplaza.
@@ -20,6 +22,8 @@ const TITULOS: Record<Modalidad, string> = {
   Nacional: 'Salidas nacionales',
   Tours: 'Tours',
 };
+
+const TIPO_PROGRAMADO = { Nacional: 'nacional', Extraurbano: 'extraurbano', Tours: 'tours' } satisfies Record<Exclude<Modalidad, 'Urbano'>, TipoViaje>;
 
 function EstadoBusqueda({ modalidad, titulo, detalle, acciones, error, sinPasajes = false }: {
   modalidad: Modalidad;
@@ -110,55 +114,71 @@ interface Props {
 
 export function BuscadorPasajes({ enPanel = false, modalidad = 'Nacional', elegirModalidad }: Props) {
   const { criterios, setCriterios } = useBooking();
-  const [trayectoUrbano, setTrayectoUrbano] = useState({ origen: '', destino: '' });
-  const [consultas, setConsultas] = useState({
+  const [trayectos, setTrayectos] = useState({
+    Urbano: { origen: '', destino: '' },
     Extraurbano: { origen: '', destino: '' },
     Tours: { origen: '', destino: '' },
   });
-  const consulta = modalidad === 'Extraurbano' || modalidad === 'Tours' ? consultas[modalidad] : undefined;
   const [abierta, setAbierta] = useState<string | null>(null);
   const urbano = modalidad === 'Urbano';
-  const nacional = modalidad === 'Nacional';
-  const nacionales = useQuery({ queryKey: ['rutas-publicas'], queryFn: () => getRutas(), enabled: nacional });
+  const tipoViaje = urbano ? undefined : TIPO_PROGRAMADO[modalidad];
+  const programadas = useQuery({
+    queryKey: ['rutas-publicas', tipoViaje], queryFn: () => getRutas(undefined, tipoViaje), enabled: !urbano,
+  });
   const urbanas = useQuery({ queryKey: ['rutas-urbanas-publicas', 'inicio'], queryFn: () => getRutasUrbanasPublicas(), enabled: urbano, refetchInterval: urbano ? 15_000 : false });
-  const catalogo = urbano ? urbanas : nacionales;
-  const rutas = consulta ? undefined : catalogo.data;
-  const seleccion = urbano ? trayectoUrbano : criterios;
+  const catalogo = urbano ? urbanas : programadas;
+  const rutas = catalogo.data;
+  const seleccion = modalidad === 'Nacional' ? criterios : trayectos[modalidad];
+  const consultaLibre = !enPanel && (modalidad === 'Tours' || modalidad === 'Extraurbano') && rutas?.length === 0;
+  const opcional = urbano || enPanel;
   const origenes = useMemo(() => {
     const nombres = (rutas ?? []).map(r => r.origen).filter((o): o is string => Boolean(o));
     return [...new Set(nombres)].sort();
   }, [rutas]);
-  const origen = origenes.includes(seleccion.origen) ? seleccion.origen : (urbano ? '' : origenes[0] || '');
+  const origen = consultaLibre || origenes.includes(seleccion.origen) ? seleccion.origen : (opcional ? '' : origenes[0] || '');
   const destinos = useMemo(() => {
-    const nombres = (rutas ?? []).filter(r => r.origen === origen || (urbano && !origen)).map(r => r.destino).filter((d): d is string => Boolean(d));
+    const nombres = (rutas ?? []).filter(r => !origen || r.origen === origen).map(r => r.destino).filter((d): d is string => Boolean(d));
     return [...new Set(nombres)].sort();
-  }, [rutas, origen, urbano]);
-  const destino = destinos.includes(seleccion.destino) ? seleccion.destino : (urbano ? '' : destinos[0] || '');
-  const reversible = origen !== destino && Boolean(rutas?.some(r =>
-    (r.origen === destino || (urbano && !destino)) && (r.destino === origen || (urbano && !origen))));
+  }, [rutas, origen]);
+  const destino = consultaLibre || destinos.includes(seleccion.destino) ? seleccion.destino : (opcional ? '' : destinos[0] || '');
+  const reversible = origen !== destino && (consultaLibre || Boolean(rutas?.some(r =>
+    (!destino || r.origen === destino) && (!origen || r.destino === origen))));
   const hoy = hoyISO();
   const fecha = criterios.fecha >= hoy ? criterios.fecha : hoy;
   const pax = Math.max(1, Math.min(6, criterios.pasajeros));
   const diaTxt = fechaCorta(`${fecha}T12:00:00`);
 
-  const distintas = Boolean(origen && destino && origen !== destino);
+  const buscarSalidas = !urbano && !consultaLibre && (enPanel || Boolean(origen && destino));
   const { data: salidas, isError: errorSalidas, refetch: recargarSalidas } = useQuery({
-    queryKey: ['salidas-home', origen, destino, fecha],
-    queryFn: () => getSalidas({ origen, destino, ...rangoDia(fecha) }),
-    enabled: nacional && distintas,
+    queryKey: ['salidas-home', tipoViaje, origen, destino, fecha],
+    queryFn: () => {
+      const rango = rangoDia(fecha);
+      if (fecha === hoy) rango.desde = new Date().toISOString();
+      return getSalidas({ tipoViaje, origen, destino, ...rango });
+    },
+    enabled: buscarSalidas,
     refetchInterval: 60_000,
   });
   const { data: ocupacion } = useQuery({
     queryKey: ['ocupacion', (salidas ?? []).map((s) => s.documentId).join(',')],
     queryFn: () => getOcupacionSalidas((salidas ?? []).map((s) => s.documentId)),
-    enabled: nacional && Boolean(salidas?.length),
+    enabled: buscarSalidas && Boolean(salidas?.length),
     refetchInterval: 30_000,
   });
+  const { data: siguiente } = useQuery({
+    queryKey: ['salidas-home', 'siguiente', tipoViaje, origen, destino, fecha],
+    enabled: enPanel && buscarSalidas && salidas?.length === 0,
+    queryFn: async () => {
+      const desde = new Date(Date.parse(rangoDia(fecha).hasta) + 1).toISOString();
+      const [primera] = await getSalidas({ tipoViaje, origen, destino, desde, limite: 1 });
+      return primera?.fechaHoraSalida ?? null;
+    },
+  });
   const libresDe = (s: NonNullable<typeof salidas>[number]) => {
-    const total = s.unidad?.configuracionAsientos?.pisos?.reduce((acc, p) => acc + (p.filas.length * (p.layout.izquierda + p.layout.derecha) + (p.filaTrasera ?? 0)), 0) ?? 0;
+    const total = s.unidad?.configuracionAsientos?.pisos?.reduce((acc, p) => acc + capacidadPiso(p), 0) ?? 0;
     return Math.max(0, total - (ocupacion?.[s.documentId] ?? 0));
   };
-  const lista = nacional && distintas ? (salidas ?? []).filter((s) => !ocupacion || libresDe(s) >= pax) : [];
+  const lista = buscarSalidas ? (salidas ?? []).filter((s) => !ocupacion || libresDe(s) >= pax) : [];
   const recorridos = urbano ? (urbanas.data ?? []).filter(r =>
     (!origen || r.origen === origen) && (!destino || r.destino === destino)) : [];
   const hayResultados = Boolean(lista.length || recorridos.length);
@@ -167,46 +187,54 @@ export function BuscadorPasajes({ enPanel = false, modalidad = 'Nacional', elegi
   useEffect(() => setAbierta(null), [modalidad, origen, destino, fecha]);
 
   function cambiarTrayecto(origen: string, destino: string) {
-    if (modalidad === 'Extraurbano' || modalidad === 'Tours') {
-      setConsultas(actual => ({ ...actual, [modalidad]: { origen, destino } }));
-    } else if (urbano) {
-      setTrayectoUrbano({ origen, destino });
-    } else {
-      setCriterios({ origen, destino });
-    }
+    if (modalidad === 'Nacional') setCriterios({ origen, destino });
+    else setTrayectos(actual => ({ ...actual, [modalidad]: { origen, destino } }));
   }
 
   function estadoResultados() {
-    const desde = (consulta?.origen ?? origen).trim();
-    const hasta = (consulta?.destino ?? destino).trim();
+    if ((!rutas && catalogo.isError) || (buscarSalidas && !salidas && errorSalidas)) {
+      return <EstadoBusqueda modalidad={modalidad} error titulo="No pudimos cargar los resultados"
+        detalle="Revisa tu conexión y vuelve a intentarlo."
+        acciones={<button type="button" className={formulario.accionPrincipal} onClick={() => !rutas && catalogo.isError ? catalogo.refetch() : recargarSalidas()}>Reintentar</button>}/>;
+    }
+    if (!rutas || (buscarSalidas && !salidas)) {
+      const mensaje = urbano ? 'Buscando rutas urbanas…' : 'Buscando salidas…';
+      return enPanel ? <Cargando mensaje={mensaje}/> : <PantallaCarga enLista mensaje={mensaje}/>;
+    }
+    if (urbano) {
+      return <EstadoBusqueda modalidad={modalidad} sinPasajes titulo={rutas.length ? 'No hay recorridos con estas paradas' : 'Aún no hay rutas urbanas publicadas'}
+        detalle={rutas.length ? 'Elige otra parada de origen o destino.' : undefined}/>;
+    }
+    if (enPanel) {
+      if (!rutas.length && !salidas?.length && !siguiente) {
+        const titulo = modalidad === 'Tours' ? 'Aún no hay tours publicados' : `Aún no hay rutas ${modalidad === 'Nacional' ? 'nacionales' : 'extraurbanas'} publicadas`;
+        return <EstadoBusqueda modalidad={modalidad} titulo={titulo} detalle="Elige otro tipo de viaje para ver sus salidas."/>;
+      }
+      return <EstadoBusqueda modalidad={modalidad}
+        titulo={salidas?.length ? 'No hay suficientes puestos disponibles' : 'No hay salidas para esta búsqueda'}
+        detalle={salidas?.length ? 'Elige otra fecha o cambia la cantidad de pasajeros.' : 'Prueba otra fecha, otro trayecto o un tipo de viaje distinto.'}
+        acciones={!salidas?.length && siguiente && (
+          <button type="button" className={formulario.accionPrincipal} onClick={() => setCriterios({ fecha: fechaParaInput(new Date(siguiente)) })}>
+            Ver salidas del {fechaCorta(siguiente).toLowerCase()}
+          </button>
+        )}/>;
+    }
+    const desde = origen.trim();
+    const hasta = destino.trim();
     const trayecto = [desde && `desde ${desde}`, hasta && `hasta ${hasta}`].filter(Boolean).join(' ');
     const mensaje = [
-      consulta ? `Hola, quisiera consultar ${modalidad === 'Tours' ? 'un tour' : 'un viaje extraurbano'}` : 'Hola, avísame cuando haya salidas',
+      consultaLibre ? `Hola, quisiera consultar ${modalidad === 'Tours' ? 'un tour' : 'un viaje extraurbano'}` : 'Hola, avísame cuando haya salidas',
       trayecto, `el ${fechaConAnio(fecha + 'T12:00:00')} para ${pax} ${pax === 1 ? 'pasajero' : 'pasajeros'}.`,
     ].filter(Boolean).join(' ');
     const contacto = <a className={formulario.accionPrincipal} href={`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(mensaje)}`}
-      target="_blank" rel="noopener noreferrer">{consulta ? 'Consultar por WhatsApp' : 'Avísame por WhatsApp'}</a>;
+      target="_blank" rel="noopener noreferrer">{consultaLibre ? 'Consultar por WhatsApp' : 'Avísame por WhatsApp'}</a>;
 
-    if (consulta) {
+    if (consultaLibre) {
       return <EstadoBusqueda modalidad={modalidad} sinPasajes
         titulo={modalidad === 'Tours' ? 'Aún no hay tours publicados' : 'Aún no hay rutas extraurbanas publicadas'}
         detalle="Indica desde dónde sales y adónde quieres ir para consultar disponibilidad." acciones={contacto}/>;
     }
-    if ((!catalogo.data && catalogo.isError) || (nacional && distintas && !salidas && errorSalidas)) {
-      return <EstadoBusqueda modalidad={modalidad} error titulo="No pudimos cargar los resultados"
-        detalle="Revisa tu conexión y vuelve a intentarlo."
-        acciones={<button type="button" className={formulario.accionPrincipal} onClick={() => rutas ? recargarSalidas() : catalogo.refetch()}>Reintentar</button>}/>;
-    }
-    if (!catalogo.data || (nacional && distintas && !salidas)) {
-      return <PantallaCarga enLista mensaje={urbano ? 'Buscando rutas urbanas…' : 'Buscando salidas…'}/>;
-    }
-    if (urbano) {
-      return <EstadoBusqueda modalidad={modalidad} sinPasajes titulo="Aún no hay rutas urbanas publicadas"/>;
-    }
-    if (origen && origen === destino) {
-      return <EstadoBusqueda modalidad={modalidad} titulo="Elige un destino distinto al origen"/>;
-    }
-    const titulo = !distintas ? 'Todavía no hay rutas publicadas'
+    const titulo = !buscarSalidas ? 'Todavía no hay rutas publicadas'
       : salidas?.length ? 'No hay suficientes puestos para este viaje' : `Todavía no hay salidas de ${origen} a ${destino}`;
     return <EstadoBusqueda modalidad={modalidad} sinPasajes titulo={titulo}
       detalle={salidas?.length ? 'Prueba otra fecha o reduce la cantidad de pasajeros.'
@@ -217,20 +245,19 @@ export function BuscadorPasajes({ enPanel = false, modalidad = 'Nacional', elegi
   return (
     <>
       <FormularioViaje modalidad={modalidad} elegirModalidad={elegirModalidad} enPanel={enPanel}
-        origenes={origenes} destinos={destinos} origen={consulta?.origen ?? origen} destino={consulta?.destino ?? destino}
-        invertir={consulta ? Boolean(consulta.origen.trim() || consulta.destino.trim()) : reversible}
-        cambiarTrayecto={cambiarTrayecto} consultaLibre={Boolean(consulta)}
+        origenes={origenes} destinos={destinos} origen={origen} destino={destino}
+        invertir={reversible} cambiarTrayecto={cambiarTrayecto} consultaLibre={consultaLibre}
         fecha={fecha} pasajeros={pax} cambiarFecha={fecha => setCriterios({ fecha })} cambiarPasajeros={pasajeros => setCriterios({ pasajeros })}
       />
       <div className={enPanel ? formulario.resultadosEnPanel : formulario.resultadosPortada}>
         <section id="salidas" className={formulario.resultados} aria-labelledby="titulo-resultados" data-guia="buscar-salidas">
           <header className={formulario.cabeceraResultados}>
-            <Isotipo size={23} trazo={5} contorno="#fff" acento="#60a5fa"/>
+            {!enPanel && <Isotipo size={23} trazo={5} contorno="#fff" acento="#60a5fa"/>}
             <div>
               <h2 id="titulo-resultados">{TITULOS[modalidad]}</h2>
               {urbano ? <span role="status">{urbanas.data && `${recorridos.length} ${recorridos.length === 1 ? 'recorrido' : 'recorridos'}`}</span> : <span>{diaTxt}</span>}
             </div>
-            {nacional && lista.length > 0 && <small>{lista.length} {lista.length === 1 ? 'salida' : 'salidas'}</small>}
+            {!urbano && lista.length > 0 && <small>{lista.length} {lista.length === 1 ? 'salida' : 'salidas'}</small>}
           </header>
           <div key={`${modalidad}/${origen}/${destino}/${urbano ? '' : fecha}`} className={formulario.listaResultados}>
             {!hayResultados && estadoResultados()}

@@ -47,8 +47,9 @@ export function rangoDia(fecha: string): { desde: string; hasta: string } {
   return { desde: d.toISOString(), hasta: fin.toISOString() };
 }
 
-/** Fecha local de hoy en formato input date. */
-export function hoyISO(): string {
-  const d = new Date();
+/** Fecha del calendario local para un input date. */
+export function fechaParaInput(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
+
+export const hoyISO = () => fechaParaInput(new Date());

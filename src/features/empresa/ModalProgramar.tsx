@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { programarSerie } from '../../lib/api/endpoints';
-import type { RutaDto, UnidadDto } from '../../lib/api/types';
+import { NOMBRE_TIPO_VIAJE, type RutaDto, type UnidadDto } from '../../lib/api/types';
 import { expandirConfiguracion } from '../../lib/asientos';
 import { diasSemanales, enHora, isoDia } from '../../lib/series';
 import { fechaCorta, hora as horaDe, hoyISO } from '../../lib/time';
@@ -164,7 +164,7 @@ export function ModalProgramar({ rutas, onCerrar, onListo }: { rutas: RutaDto[];
               <option value="">Escoge la ruta…</option>
               {visibles.map((r) => (
                 <option key={r.documentId} value={r.documentId}>
-                  {r.origen} {r.inversaId && porId.has(r.inversaId) ? '⇄' : '→'} {r.destino}
+                  {r.origen} {r.inversaId && porId.has(r.inversaId) ? '⇄' : '→'} {r.destino} · {NOMBRE_TIPO_VIAJE[r.tipoViaje ?? 'nacional']}
                 </option>
               ))}
             </select>

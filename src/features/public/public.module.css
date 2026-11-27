@@ -544,3 +544,8 @@
 .datosPagadorTitulo { font-size: 15px; font-weight: 700; }
 .datosPagadorNota { margin: -6px 0 2px; font-size: 12.5px; line-height: 1.5; color: var(--text-soft); }
 .marcaDato { display: inline-grid; place-items: center; width: 20px; height: 20px; margin-right: 6px; border-radius: 50%; background: var(--blue-600); color: #fff; font-size: 11px; font-weight: 800; vertical-align: -5px; }
+
+/* Deja espacio para los datos y el comprobante cuando se ve el menú lateral. */
+@media (min-width: 1021px) and (max-width: 1279px) {
+  :global(body.con-barra-lateral) .layoutCheckout { max-width: 800px; grid-template-columns: minmax(0, 1fr); }
+}

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { MapaAsientos } from '../../lib/api/types';
+import { hoyISO } from '../../lib/time';
 
 export interface CriteriosBusqueda {
   origen: string;
@@ -43,13 +44,8 @@ interface BookingState {
   reiniciar: () => void;
 }
 
-const hoy = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-};
-
 export const useBooking = create<BookingState>()((set, get) => ({
-  criterios: { origen: '', destino: '', fecha: hoy(), pasajeros: 2 },
+  criterios: { origen: '', destino: '', fecha: hoyISO(), pasajeros: 1 },
   salidaId: null,
   seleccionados: {},
   reservaToken: null,

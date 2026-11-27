@@ -15,7 +15,7 @@ import { Destinos } from './inicio/Destinos';
 import { H2 } from './inicio/piezas';
 import { TableroMuestra } from './inicio/Tablero';
 import { BuscadorPasajes } from './BuscadorPasajes';
-import type { Modalidad } from './FormularioViaje';
+import type { Modalidad } from '../../lib/api/types';
 import { useInstalar } from './inicio/useInstalar';
 import css from './inicio/inicio.module.css';
 import { rutaCiudad, rutaPar } from '../../seo/contenido.mjs';
