@@ -42,7 +42,7 @@ const montoDe = (texto: string): number => {
  */
 export default function MiWallet() {
   const usuarioId = useAuth(s => s.usuario?.id);
-  useSeo('Mi wallet — Butaca En Línea', undefined, { noindex: true });
+  useSeo('Mi saldo — Butaca En Línea', undefined, { noindex: true });
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [recargando, setRecargando] = useState(false);
@@ -93,14 +93,14 @@ export default function MiWallet() {
             : code === 'referencia_requerida'
               ? 'Escribe la referencia del pago móvil.'
               : code === 'solo_pasajero'
-                ? 'Solo las cuentas de pasajero recargan wallet. Entra con tu cuenta de pasajero.'
+                ? 'Entra con tu cuenta de pasajero para recargar saldo.'
                 : 'No se pudo reportar la recarga. Revisa tu conexión e inténtalo de nuevo.'
       );
     },
   });
 
   return (
-    <PaginaPasajero titulo="Mi wallet" sub="Tu saldo para pagar las busetas escaneando su QR.">
+    <PaginaPasajero titulo="Mi saldo" sub="Recarga saldo para comprar boletos y pagar en la buseta con el QR.">
       <div className={c.walletGrid}>
       <div className={c.walletLado}>
       <div className={ui.card} style={{ padding: 24, marginBottom: 14, textAlign: 'center' }}>
@@ -208,7 +208,7 @@ export default function MiWallet() {
       {recargando && (
         <div className={styles.velo}>
           <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>Recargar wallet</h3>
+            <h3 style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>Recargar saldo</h3>
             <p style={{ fontSize: 13, color: 'var(--text-soft)', marginBottom: 12 }}>
               1) Haz el pago móvil a esta cuenta · 2) Reporta aquí el monto, la referencia y la captura · 3) Tu
               saldo se acredita cuando la plataforma confirme el pago.
@@ -229,7 +229,7 @@ export default function MiWallet() {
               // Sin cuenta publicada no hay a dónde pagar: nada que reportar
               <div style={{ background: 'var(--warn-bg)', color: 'var(--warn-text-alert)', borderRadius: 'var(--r-14)', padding: '12px 14px', marginBottom: 14, fontSize: 13 }}>
                 La plataforma todavía no publicó sus datos de pago móvil, así que por ahora no se puede recargar.{' '}
-                <a href={`https://wa.me/${WHATSAPP}?text=${encodeURIComponent('Hola, quiero recargar mi wallet de Butaca En Línea')}`} target="_blank" rel="noreferrer" style={{ fontWeight: 700, color: 'inherit' }}>
+                <a href={`https://wa.me/${WHATSAPP}?text=${encodeURIComponent('Hola, quiero recargar mi saldo de Butaca En Línea')}`} target="_blank" rel="noreferrer" style={{ fontWeight: 700, color: 'inherit' }}>
                   Escríbenos por WhatsApp
                 </a>
                 .

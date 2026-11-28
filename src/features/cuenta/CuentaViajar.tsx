@@ -39,7 +39,7 @@ export default function CuentaViajar() {
     <PaginaPasajero
       titulo="Comprar pasaje"
       acciones={
-        <Link to="/cuenta/wallet" className={styles.saldoCompra}>
+        <Link to="/cuenta/saldo" className={styles.saldoCompra}>
           <IconoNav id="wallet" size={20}/>
           <span>Mi saldo</span>
           {wallet && <strong>Bs {wallet.saldoBs.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>}

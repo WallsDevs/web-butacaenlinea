@@ -16,7 +16,7 @@ const NOMBRE_METODO: Record<string, string> = {
   punto_venta: 'Punto de venta',
   tarjeta_cop: 'Pesos COP',
   zelle: 'Zelle',
-  wallet: 'Wallet Butaca',
+  wallet: 'Saldo Butaca',
 };
 
 const fmt = (monto: number, moneda: string) =>
@@ -161,9 +161,7 @@ export default function CierreTurno() {
         </div>
         {cerrado && aDepositar.length > 0 && (
           <div style={{ padding: '14px 20px', borderTop: '1px solid var(--border)', background: 'var(--warn-bg)', color: 'var(--warn-text)', fontSize: 14, lineHeight: 1.5 }}>
-            <strong>Se deposita a Butaca: {aDepositar.map(([m, v]) => fmtMoneda(v, m)).join(' · ')}.</strong> Es lo cobrado en caja (lo pagado
-            con wallet ya está en Butaca). Tu empresa lo reporta en Wallet → Depósitos a Butaca; cuando Butaca lo confirma, el neto entra a la
-            wallet de la línea.
+            <strong>Se deposita a Butaca: {aDepositar.map(([m, v]) => fmtMoneda(v, m)).join(' · ')}.</strong> Tu empresa reporta lo cobrado en caja en Saldo → Depósitos a Butaca. Al confirmarlo Butaca, el neto se suma al saldo de la línea. Los pagos con saldo ya están en Butaca.
           </div>
         )}
       </div>

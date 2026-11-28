@@ -16,6 +16,7 @@ const NOMBRE_METODO: Record<string, string> = {
   punto_venta: 'Punto de venta',
   tarjeta_cop: 'Pesos COP',
   zelle: 'Zelle',
+  wallet: 'Saldo Butaca',
 };
 
 const fmt = (monto: number, moneda: string) =>

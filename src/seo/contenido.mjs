@@ -131,7 +131,7 @@ export function resumenPar(filas, { precioDesde = null, tasaBcv = null } = {}) {
 /** Lo común a cualquier compra: va en las preguntas de todas las páginas. */
 const PREGUNTAS_COMPRA = [
   { p: '¿Puedo escoger mi puesto?', r: 'Sí. Al abrir la salida ves el mapa del bus con los puestos libres y escoges el tuyo, igual que en la taquilla.' },
-  { p: '¿Cómo pago?', r: 'Con Pago Móvil, Zelle o el saldo de tu wallet de Butaca. El boleto llega al momento con su código QR.' },
+  { p: '¿Cómo pago?', r: 'Con Pago Móvil, Zelle o tu saldo de Butaca. El boleto llega al momento con su código QR.' },
   { p: '¿Necesito imprimir el boleto?', r: 'No. Lo muestras en el teléfono al abordar, y funciona aunque no tengas señal.' },
 ];
 
@@ -226,7 +226,7 @@ export function textosLinea(nombre, { rutas = [], salidasSemana = 0, terminalBas
     intro: `${nombre}${terminalBase ? `, con base en ${terminalBase},` : ''} vende sus pasajes en ${MARCA}: ves sus salidas, escoges tu puesto en el mapa del bus y pagas desde el teléfono, sin hacer cola en el terminal.`,
     preguntas: [
       { p: `¿A dónde viaja ${nombre}?`, r: destinos.length ? `${nombre} tiene salidas hacia ${destinos.join(', ')}.` : `${nombre} publica sus rutas y salidas en ${MARCA}; las verás aquí apenas estén.` },
-      { p: `¿Cómo compro un pasaje de ${nombre}?`, r: `Escoge la ruta, la salida y tu puesto, y paga con tu wallet de ${MARCA}, Pago Móvil, transferencia o Zelle. El boleto llega al momento con su código QR.` },
+      { p: `¿Cómo compro un pasaje de ${nombre}?`, r: `Escoge la ruta, la salida y tu puesto, y paga con tu saldo de ${MARCA}, Pago Móvil, transferencia o Zelle. El boleto llega al momento con su código QR.` },
       ...PREGUNTAS_COMPRA,
     ],
   };
@@ -277,7 +277,7 @@ export function textosTemporada(t, { salidas = 0, rutas = [] } = {}) {
     preguntas: [
       { p: `¿Cuándo compro mis pasajes para ${t.nombre}?`, r: `Lo antes posible: las salidas cercanas al 24 y al 31 son las primeras en llenarse. Apenas una línea publica sus salidas de ${t.nombre}, aparecen aquí y en el buscador.` },
       { p: `¿Suben los pasajes en ${t.nombre}?`, r: 'Cada línea fija sus precios en dólares; en temporada alta algunas los ajustan. El precio de tu salida queda fijo al comprar, aunque después cambie.' },
-      { p: '¿Qué pasa si se cancela mi salida?', r: `Si la línea cancela, el dinero se te devuelve: a tu wallet de ${MARCA} al instante si compraste con cuenta, o por el mismo medio si compraste sin cuenta.` },
+      { p: '¿Qué pasa si se cancela mi salida?', r: `Si la línea cancela, el dinero se te devuelve: a tu saldo de ${MARCA} al instante si compraste con cuenta, o por el mismo medio si compraste sin cuenta.` },
       ...PREGUNTAS_COMPRA,
     ],
   };

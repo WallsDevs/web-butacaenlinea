@@ -67,9 +67,9 @@ export default function EscanerPago() {
       <button
         className={ui.btnSecondary}
         style={{ width: '100%', marginTop: 16 }}
-        onClick={() => navigate('/cuenta/wallet')}
+        onClick={() => navigate('/cuenta/saldo')}
       >
-        Volver a mi wallet
+        Ver mi saldo
       </button>
       <p style={{ fontSize: 12, color: 'var(--text-faint)', textAlign: 'center', marginTop: 12, lineHeight: 1.5 }}>
         También puedes escanear el QR con la cámara normal de tu teléfono: abre esta misma

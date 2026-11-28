@@ -121,7 +121,7 @@ export function ServicioUrbanoCard({
         <div>
           <div className={styles.kicker}>Servicio urbano</div>
           <div style={{ fontSize: 13, color: 'var(--text-soft)', marginTop: 4 }}>
-            Pasaje por QR con la wallet: tarifa plana, split inmediato, sin equipaje.
+            El pasajero paga la tarifa plana con su saldo al escanear el QR. El cobro se reparte de inmediato y no incluye equipaje.
           </div>
         </div>
         <div style={{ marginLeft: 'auto' }}>
@@ -231,7 +231,7 @@ export function ServicioUrbanoCard({
       {necesitaProp && (
         <div style={{ marginTop: 12, maxWidth: 380 }}>
           <label className={ui.field}>
-            <span className={ui.fieldLabel}>Propietario del bus (recibe su parte en su wallet)</span>
+            <span className={ui.fieldLabel}>Propietario del bus (recibe su parte del cobro en su saldo)</span>
             <select
               className={ui.fieldInput}
               value={form.propietarioUsuarioId}
@@ -288,7 +288,7 @@ export function ServicioUrbanoCard({
                 <QRCodeSVG value={urlPago} size={220} level="M" />
               </div>
               <div style={{ fontSize: 13, color: 'var(--text-soft)', marginTop: 12 }}>
-                Escanea con la cámara de tu teléfono y paga con tu wallet de Butaca En Línea.
+                Escanea con la cámara de tu teléfono y paga con tu saldo de Butaca En Línea.
               </div>
               <div style={{ fontSize: 12, color: 'var(--text-faint)', marginTop: 4 }}>butacaenlinea.com</div>
             </div>

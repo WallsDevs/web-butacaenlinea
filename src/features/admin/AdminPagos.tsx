@@ -9,12 +9,12 @@ import styles from '../flota/flota.module.css';
 
 const bs = (n: number) => `Bs ${n.toLocaleString('es-VE', { minimumFractionDigits: 2 })}`;
 const monto = (n: number, moneda: string | null) => (moneda === 'USD' ? `$${n.toLocaleString('es-VE', { minimumFractionDigits: 2 })}` : moneda === 'COP' ? `COP ${n.toLocaleString('es-VE')}` : bs(n));
-const METODO: Record<string, string> = { pago_movil: 'Pago Móvil', transferencia: 'Transferencia', zelle: 'Zelle', tarjeta_cop: 'Tarjeta COP' };
+const METODO: Record<string, string> = { pago_movil: 'Pago Móvil', transferencia: 'Transferencia', zelle: 'Zelle', tarjeta_cop: 'Tarjeta COP', wallet: 'Saldo Butaca' };
 
 /**
  * Plataforma → Pagos. Toda la plata de lo vendido en línea entra a Butaca:
  * aquí se verifican contra el banco las compras de quien pagó sin cuenta (al
- * aprobar, el neto entra a la wallet de la línea) y se marcan las devoluciones
+ * aprobar, el neto se acredita al saldo de la línea) y se marcan las devoluciones
  * hechas a mano. Las recargas de wallet (también las de una compra) están en
  * Wallet.
  */
@@ -50,7 +50,7 @@ export default function AdminPagos() {
     <div className={styles.contenido}>
       <h2 style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 6 }}>Pagos de pasajes</h2>
       <p style={{ fontSize: 14, color: 'var(--text-soft)', margin: '0 0 18px', maxWidth: 760 }}>
-        Compras de quien pagó sin cuenta a las cuentas de Butaca. Confírmalas contra el banco: al aprobar, el neto entra a la wallet de la
+        Compras de quien pagó sin cuenta a las cuentas de Butaca. Confírmalas contra el banco: al aprobar, el neto se acredita al saldo de la
         línea y la comisión queda para Butaca. Rechazar anula los boletos y libera los puestos.
       </p>
 
@@ -120,7 +120,7 @@ export default function AdminPagos() {
         {debidos.length > 0 && <StatusChip tono="neutral">{debidos.length} sin reportar</StatusChip>}
       </div>
       <p style={{ fontSize: 13, color: 'var(--text-soft)', margin: '0 0 10px', maxWidth: 760 }}>
-        Lo que las líneas cobraron en caja y depositan a Butaca. Al confirmarlo, el neto entra a la wallet de la línea y la comisión queda para Butaca.
+        Lo que las líneas cobraron en caja y depositan a Butaca. Al confirmarlo, el neto se acredita al saldo de la línea y la comisión queda para Butaca.
       </p>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {[...reportados, ...debidos].map((d) => (
@@ -169,8 +169,7 @@ export default function AdminPagos() {
         <StatusChip tono={reembolsos?.length ? 'warn' : 'ok'}>{reembolsos?.length ?? 0}</StatusChip>
       </div>
       <p style={{ fontSize: 13, color: 'var(--text-soft)', margin: '0 0 10px', maxWidth: 760 }}>
-        Boletos anulados de quien compró sin cuenta: devuélvele por el mismo medio y márcalo. Sale de la wallet de la línea (el neto) y de
-        la de Butaca (la comisión). Quien tiene cuenta recibe la devolución en su wallet al instante, sin pasar por aquí.
+        Boletos anulados de quien compró sin cuenta: devuélvele por el mismo medio y márcalo. El neto se descuenta del saldo de la línea y la comisión, del saldo de Butaca. Quien tiene cuenta recibe la devolución en su saldo al instante.
       </p>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {(reembolsos ?? []).map((r) => (

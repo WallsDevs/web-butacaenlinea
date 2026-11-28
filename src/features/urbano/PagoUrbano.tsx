@@ -86,7 +86,7 @@ export default function PagoUrbano() {
     onError: (e) => {
       if (e instanceof ApiError && e.code === 'saldo_insuficiente') {
         const d = e.details as { saldoBs?: number; requeridoBs?: number };
-        setError(`Saldo insuficiente: tienes ${bs(d.saldoBs ?? 0)} y el pasaje es ${bs(d.requeridoBs ?? 0)}. Recarga tu wallet.`);
+        setError(`Saldo insuficiente: tienes ${bs(d.saldoBs ?? 0)} y el pasaje es ${bs(d.requeridoBs ?? 0)}. Recarga tu saldo.`);
       } else if (e instanceof ApiError && e.code === 'tramo_requerido') {
         setError('Dinos desde qué parada hasta cuál vas para calcular tu pasaje.');
         queryClient.invalidateQueries({ queryKey: ['unidad-urbana', unidadId] });
@@ -175,9 +175,9 @@ export default function PagoUrbano() {
         <button
           className={`${ui.btnSecondary}`}
           style={{ width: '100%', marginTop: 14 }}
-          onClick={() => navigate('/cuenta/wallet')}
+          onClick={() => navigate('/cuenta/saldo')}
         >
-          Ir a mi wallet
+          Ver mi saldo
         </button>
       </div>
     );
@@ -272,12 +272,12 @@ export default function PagoUrbano() {
                 pagar.mutate();
               }}
             >
-              {!enLinea ? 'Sin internet: conéctate para pagar' : pagar.isPending ? 'Pagando…' : `Pagar con mi wallet · saldo ${bs(wallet?.saldoBs ?? 0)}`}
+              {!enLinea ? 'Sin internet: conéctate para pagar' : pagar.isPending ? 'Pagando…' : `Pagar con mi saldo · disponible ${bs(wallet?.saldoBs ?? 0)}`}
             </button>
             {error && (
               <div style={{ fontSize: 13, color: 'var(--bad-text)', marginTop: 12 }}>
                 {error}{' '}
-                <a href="/cuenta/wallet" style={{ fontWeight: 700 }}>
+                <a href="/cuenta/saldo" style={{ fontWeight: 700 }}>
                   Recargar
                 </a>
               </div>
@@ -295,7 +295,7 @@ export default function PagoUrbano() {
         </button>
       )}
       <p style={{ fontSize: 12, color: 'var(--text-faint)', textAlign: 'center', marginTop: 12, lineHeight: 1.5 }}>
-        Escaneaste el código QR de esta buseta. El pago se descuenta de tu wallet Butaca y el
+        Escaneaste el código QR de esta buseta. El pago se descuenta de tu saldo en Butaca y el
         colector lo ve entrar en su pantalla.
       </p>
     </div>

@@ -10,7 +10,7 @@ import ui from '../../components/ui/ui.module.css';
 import styles from '../flota/flota.module.css';
 
 const bs = (n: number) => `Bs ${n.toLocaleString('es-VE', { minimumFractionDigits: 2 })}`;
-const NOMBRE_MOV: Record<string, string> = { reparto: 'Venta cobrada con wallet', retiro: 'Retiro', ajuste: 'Ajuste', comision: 'Comisión', recarga: 'Abono', reembolso: 'Devolución al pasajero' };
+const NOMBRE_MOV: Record<string, string> = { reparto: 'Venta pagada con saldo', retiro: 'Retiro', ajuste: 'Ajuste', comision: 'Comisión', recarga: 'Abono', reembolso: 'Devolución al pasajero' };
 /** El pasaje urbano lleva unidad; el boleto de viaje, su folio en la referencia. */
 const nombreMov = (m: { tipo: string; unidad?: string | null; nota?: string | null }) =>
   m.tipo === 'pasaje'
@@ -50,7 +50,7 @@ export default function EmpresaWallet() {
   return (
     <div className={styles.contenido} style={{ maxWidth: 1240 }}>
       <EncabezadoPantalla
-        titulo="Wallet"
+        titulo="Saldo de la línea"
         chip={retirosPendientes.length > 0 && <StatusChip tono="warn">{retirosPendientes.length} {retirosPendientes.length === 1 ? 'retiro en proceso' : 'retiros en proceso'}</StatusChip>}
         descripcion="Toda la plata pasa por Butaca: aquí entra lo que vendes (pasajes urbanos, boletos de viaje y depósitos de taquilla), ya con la comisión descontada. Desde aquí pides el retiro a tu banco."
       />
@@ -103,7 +103,7 @@ export default function EmpresaWallet() {
           )}
           {!isLoading && !movimientos.length && (
             <div style={{ padding: 28, textAlign: 'center', color: 'var(--text-soft)', fontSize: 14 }}>
-              Todavía no hay movimientos. Aparecen aquí al cobrar un pasaje urbano por QR o una venta pagada con wallet.
+              Todavía no hay movimientos. Aparecen aquí al cobrar un pasaje urbano por QR o una venta pagada con saldo.
             </div>
           )}
         </div>

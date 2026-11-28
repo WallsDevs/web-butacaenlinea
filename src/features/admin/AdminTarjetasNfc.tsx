@@ -37,7 +37,7 @@ const mensajes: Record<string, string> = {
   monto_invalido: 'Escribe un monto entre Bs 0,01 y Bs 99.999.999,99, con hasta dos decimales.',
   referencia_requerida: 'Escribe la referencia que aparece en el banco.',
   referencia_invalida: 'Revisa la referencia del pago bancario.',
-  referencia_duplicada: 'Esta referencia ya se usó para otra operación. Revisa el movimiento en la wallet.',
+  referencia_duplicada: 'Esta referencia ya se usó para otra operación. Revisa los movimientos de saldo.',
   banco_invalido: 'Revisa el banco de origen.',
   sin_conexion: 'Sin conexión con el servidor. Vuelve a intentarlo cuando recuperes la conexión.',
 };
@@ -239,7 +239,7 @@ function PanelTarjetas({ operador }: { operador: number }) {
         {ficha.data && (ficha.data.titular ? <>
           <dl className={css.datos}>
             <div><dt>Titular</dt><dd>{ficha.data.titular.nombre}</dd></div>
-            <div><dt>Saldo de la wallet</dt><dd className={css.saldo}>{ficha.data.saldoBs === null ? '—' : formatoBs(ficha.data.saldoBs)}</dd></div>
+            <div><dt>Saldo disponible</dt><dd className={css.saldo}>{ficha.data.saldoBs === null ? '—' : formatoBs(ficha.data.saldoBs)}</dd></div>
           </dl>
           <Recarga codigo={codigo} titular={ficha.data.titular} />
         </> : <Vinculacion codigo={codigo} onListo={(tarjeta) => {
@@ -268,7 +268,7 @@ function Vinculacion({ codigo, onListo }: { codigo: string; onListo: (tarjeta: T
       <h3>Vincular a un pasajero</h3>
       {elegido ? (
         <div className={css.formulario}>
-          <p>La tarjeta <strong>{codigo}</strong> quedará asociada a la wallet de <strong>{elegido.nombreCorto || elegido.username}</strong> (@{elegido.username}{elegido.documento && ` · ${elegido.documento}`}).</p>
+          <p>La tarjeta <strong>{codigo}</strong> quedará vinculada al saldo de <strong>{elegido.nombreCorto || elegido.username}</strong> (@{elegido.username}{elegido.documento && ` · ${elegido.documento}`}).</p>
           {vincular.isError && <p className={css.error} role="alert">{mensajeError(vincular.error)}</p>}
           <div className={css.acciones}>
             <button className={ui.btnPrimary} disabled={vincular.isPending} onClick={() => vincular.mutate(elegido)}>{vincular.isPending ? 'Vinculando…' : 'Confirmar vinculación'}</button>
@@ -346,7 +346,7 @@ function Recarga({ codigo, titular }: { codigo: string; titular: NonNullable<Tar
       ) : pago ? (
         <>
           <h3>Confirmar recarga</h3>
-          <p>Verifica que el pago figure en el banco antes de acreditar la wallet.</p>
+          <p>Verifica que el pago figure en el banco antes de acreditar el saldo.</p>
           <dl className={css.resumen}>
             <div><dt>Titular</dt><dd>{titular.nombre}</dd></div>
             <div><dt>Tarjeta</dt><dd>{codigo}</dd></div>

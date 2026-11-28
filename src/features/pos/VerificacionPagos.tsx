@@ -14,6 +14,7 @@ const NOMBRE_METODO: Record<string, string> = {
   pago_movil: 'Pago Móvil',
   transferencia: 'Transferencia',
   zelle: 'Zelle',
+  wallet: 'Saldo Butaca',
   tarjeta_cop: 'Tarjeta COP',
 };
 
@@ -55,7 +56,7 @@ export default function VerificacionPagos() {
       <EncabezadoPantalla
         titulo="Pagos"
         chip={!isLoading && <StatusChip tono={pendientes?.length ? 'warn' : 'ok'}>{pendientes?.length ?? 0} en revisión</StatusChip>}
-        descripcion="Toda venta en línea se paga a Butaca, que confirma el pago contra su banco. Cuando lo confirma, el boleto queda pagado y el neto entra a tu wallet. Aquí ves lo que está en revisión."
+        descripcion="Toda venta en línea se paga a Butaca, que confirma el pago contra su banco. Cuando lo confirma, el boleto queda pagado y el neto se suma a tu saldo. Aquí ves lo que está en revisión."
       />
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>

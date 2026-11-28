@@ -77,7 +77,7 @@ export default function AdminWallet() {
   return (
     <div className={styles.contenido}>
       <h2 style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 16 }}>
-        Wallet de la plataforma
+        Saldos de la plataforma
       </h2>
 
       <PagoMovilCard />
@@ -140,7 +140,7 @@ export default function AdminWallet() {
                 <div style={{ minWidth: 170, fontSize: 12, color: 'var(--blue-700)' }}>
                   <div style={{ fontWeight: 700 }}>Paga {r.boletos.length === 1 ? 'un boleto' : `${r.boletos.length} boletos`}</div>
                   <div>{r.boletos.map((b) => `${b.folio} · ${b.ruta ?? ''}`).join(' · ')}</div>
-                  <div style={{ color: 'var(--text-faint)' }}>Al confirmar se cobran de su wallet; al rechazar se anulan</div>
+                  <div style={{ color: 'var(--text-faint)' }}>Si confirmas la recarga, los boletos se cobran de su saldo. Si la rechazas, se anulan.</div>
                 </div>
               )}
               <div style={{ minWidth: 110, fontSize: 13 }}>
