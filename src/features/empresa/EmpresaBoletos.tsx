@@ -42,7 +42,7 @@ export default function EmpresaBoletos() {
       setMotivo('');
       setAviso(
         r.estadoPago === 'reembolsado'
-          ? `Boleto ${r.folio} anulado. Se devolvieron Bs ${(r.devueltoBs ?? 0).toLocaleString('es-VE', { minimumFractionDigits: 2 })} a la wallet del pasajero (sale de la wallet de la línea).`
+          ? `Boleto ${r.folio} anulado. Se devolvieron Bs ${(r.devueltoBs ?? 0).toLocaleString('es-VE', { minimumFractionDigits: 2 })} al saldo del pasajero con cargo al saldo de la línea.`
           : r.estadoPago === 'reembolso_pendiente'
             ? `Boleto ${r.folio} anulado. Se pagó por Pago Móvil o Zelle: queda en «Reembolsos pendientes» para devolverlo por el mismo medio.`
             : `Boleto ${r.folio} anulado. Si se cobró en taquilla, devuelve el dinero en la caja.`
@@ -140,8 +140,7 @@ export default function EmpresaBoletos() {
             <h3 style={{ fontSize: 20, fontWeight: 700 }}>Anular boleto</h3>
             <p style={{ fontSize: 13, color: 'var(--text-soft)', marginTop: 4 }}>
               El puesto vuelve a estar disponible y la anulación queda auditada con tu usuario y la
-              hora. El registro original no se borra. Si se pagó con wallet, el dinero vuelve a la
-              wallet del pasajero en el acto.
+              hora. El registro original no se borra. Si el pasajero pagó con su saldo, recibe allí la devolución de inmediato.
             </p>
             <div style={{ marginTop: 14 }}>
               <Field label="Motivo de la anulación" value={motivo} onChange={(e) => setMotivo(e.target.value)} autoFocus />

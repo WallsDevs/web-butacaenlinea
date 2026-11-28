@@ -49,7 +49,7 @@ export default function PagoEquipaje() {
       if (e instanceof ApiError && e.code === 'saldo_insuficiente') {
         const d = e.details as { saldoBs?: number; requeridoBs?: number };
         setError(
-          `Saldo insuficiente: tienes ${bs(d.saldoBs ?? 0)} y la pieza cuesta ${bs(d.requeridoBs ?? 0)}. Recarga tu wallet.`
+          `Saldo insuficiente: tienes ${bs(d.saldoBs ?? 0)} y la pieza cuesta ${bs(d.requeridoBs ?? 0)}. Recarga tu saldo.`
         );
       } else if (e instanceof ApiError && e.code === 'cobro_vencido') {
         setError('Este cobro ya venció. Pídele al conductor que lo genere otra vez.');
@@ -116,9 +116,9 @@ export default function PagoEquipaje() {
         <button
           className={ui.btnSecondary}
           style={{ width: '100%', marginTop: 14 }}
-          onClick={() => navigate('/cuenta/wallet')}
+          onClick={() => navigate('/cuenta/saldo')}
         >
-          Ir a mi wallet
+          Ver mi saldo
         </button>
       </div>
     );
@@ -165,7 +165,7 @@ export default function PagoEquipaje() {
         {!usuario ? (
           <>
             <div style={{ fontSize: 14, color: 'var(--text-soft)', margin: '18px 0 12px', lineHeight: 1.5 }}>
-              Entra con tu cuenta para pagar con tu wallet.
+              Entra con tu cuenta para pagar con tu saldo.
             </div>
             <button
               className={ui.btnPrimary}
@@ -200,9 +200,9 @@ export default function PagoEquipaje() {
               <button
                 className={ui.btnSecondary}
                 style={{ width: '100%', marginTop: 10 }}
-                onClick={() => navigate('/cuenta/wallet')}
+                onClick={() => navigate('/cuenta/saldo')}
               >
-                Recargar mi wallet
+                Recargar mi saldo
               </button>
             )}
           </>

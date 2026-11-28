@@ -111,11 +111,19 @@ function AppLayout() {
   );
 }
 
+function EnlaceAnteriorDeSaldo({ a }: { a: string }) {
+  const { search, hash, state } = useLocation();
+  return <Navigate to={{ pathname: a, search, hash }} state={state} replace />;
+}
+
 export const router = createBrowserRouter([
   {
     element: <AppLayout />,
     errorElement: <ErrorPantalla />,
     children: [
+      { path: '/cuenta/wallet', element: <EnlaceAnteriorDeSaldo a="/cuenta/saldo" /> },
+      { path: '/empresa/wallet', element: <EnlaceAnteriorDeSaldo a="/empresa/saldo" /> },
+      { path: '/admin/wallet', element: <EnlaceAnteriorDeSaldo a="/admin/saldo" /> },
       { path: '/', element: <MarketplaceHome /> },
       // Compra global (marketplace: todas las empresas)
       { path: '/salidas', element: <Salidas /> },
@@ -175,7 +183,7 @@ export const router = createBrowserRouter([
           { path: 'tasas', element: <AdminTasas /> },
           { path: 'ciudades', element: <AdminCiudades /> },
           { path: 'auditoria', element: <AdminAuditoria /> },
-          { path: 'wallet', element: <AdminWallet /> },
+          { path: 'saldo', element: <AdminWallet /> },
           { path: 'tarjetas-nfc', element: <AdminTarjetasNfc /> },
           { path: 'pagos', element: <AdminPagos /> },
           { path: 'seguridad', element: <AdminSeguridad /> },
@@ -206,7 +214,7 @@ export const router = createBrowserRouter([
         ),
       },
       {
-        path: '/cuenta/wallet',
+        path: '/cuenta/saldo',
         element: (
           <RequireAuth roles={['cliente']}>
             <MiWallet />
@@ -286,7 +294,7 @@ export const router = createBrowserRouter([
           { path: 'boletos', element: <EmpresaBoletos /> },
           { path: 'reportes', element: <EmpresaReportes /> },
           { path: 'flota-en-vivo', element: <Navigate to="/empresa/flota" replace /> },
-          { path: 'wallet', element: <EmpresaWallet /> },
+          { path: 'saldo', element: <EmpresaWallet /> },
           { path: 'facturas', element: <EmpresaFacturas /> },
           { path: 'configuracion', element: <EmpresaConfiguracion /> },
         ],

@@ -33,23 +33,23 @@ export const GUIAS: Record<string, Guia> = {
   },
   recargar: {
     id: 'recargar',
-    titulo: 'Recargar tu wallet',
+    titulo: 'Recargar tu saldo',
     pasos: [
-      { ruta: '/cuenta/wallet', objetivo: 'wallet-saldo', titulo: 'Este es tu saldo', texto: 'Con él pagas las busetas escaneando su QR, y también tus pasajes.' },
-      { ruta: '/cuenta/wallet', objetivo: 'wallet-metodos', titulo: 'La primera vez, guarda tu Pago Móvil', texto: 'En «Mis métodos de pago» guardas el Pago Móvil desde el que vas a pagar. Solo se hace una vez.' },
-      { ruta: '/cuenta/wallet', objetivo: 'wallet-recargar', titulo: 'Toca «Recargar»', texto: 'Verás la cuenta de Butaca para el Pago Móvil, con botones para copiar el teléfono y la cédula.' },
-      { ruta: '/cuenta/wallet', titulo: 'Haz el Pago Móvil y repórtalo', texto: 'Desde tu banco envía el monto. Luego escribe el monto y la referencia, adjunta la captura y toca reportar.' },
-      { ruta: '/cuenta/wallet', objetivo: 'wallet-movimientos', titulo: 'Aquí ves tu recarga', texto: 'Aparece como «Por confirmar» hasta que verificamos el pago; entonces se suma a tu saldo.' },
+      { ruta: '/cuenta/saldo', objetivo: 'wallet-saldo', titulo: 'Este es tu saldo', texto: 'Con él pagas las busetas escaneando su QR, y también tus pasajes.' },
+      { ruta: '/cuenta/saldo', objetivo: 'wallet-metodos', titulo: 'La primera vez, guarda tu Pago Móvil', texto: 'En «Mis métodos de pago» guardas el Pago Móvil desde el que vas a pagar. Solo se hace una vez.' },
+      { ruta: '/cuenta/saldo', objetivo: 'wallet-recargar', titulo: 'Toca «Recargar»', texto: 'Verás la cuenta de Butaca para el Pago Móvil, con botones para copiar el teléfono y la cédula.' },
+      { ruta: '/cuenta/saldo', titulo: 'Haz el Pago Móvil y repórtalo', texto: 'Desde tu banco envía el monto. Luego escribe el monto y la referencia, adjunta la captura y toca reportar.' },
+      { ruta: '/cuenta/saldo', objetivo: 'wallet-movimientos', titulo: 'Aquí ves tu recarga', texto: 'Aparece como «Por confirmar» hasta que verificamos el pago; entonces se suma a tu saldo.' },
     ],
   },
   'pagar-buseta': {
     id: 'pagar-buseta',
     titulo: 'Pagar la buseta',
     pasos: [
-      { ruta: '/cuenta/wallet', objetivo: 'wallet-saldo', titulo: 'Necesitas saldo', texto: 'El pasaje de la buseta se descuenta de tu wallet. Si no tienes, recarga primero.' },
-      { ruta: '/cuenta/wallet', objetivo: 'wallet-pagar', titulo: 'Toca «Pagar pasaje — escanear QR»', texto: 'Apunta la cámara al QR de la buseta: está pegado adentro o lo muestra el colector.' },
-      { ruta: '/cuenta/wallet', titulo: 'Dinos dónde te subes y te bajas', texto: 'Si la ruta cobra por tramos, elige tu parada de subida y de bajada; el precio sale de ahí. Confirma y listo: el colector ve tu pago al instante.' },
-      { ruta: '/cuenta/wallet', objetivo: 'nav-busetas', titulo: '¿Por dónde viene tu buseta?', texto: 'En «Busetas» ves en el mapa las busetas en servicio de cada ruta.' },
+      { ruta: '/cuenta/saldo', objetivo: 'wallet-saldo', titulo: 'Necesitas saldo', texto: 'El pasaje de la buseta se descuenta de tu saldo. Si no tienes, recarga primero.' },
+      { ruta: '/cuenta/saldo', objetivo: 'wallet-pagar', titulo: 'Toca «Pagar pasaje — escanear QR»', texto: 'Apunta la cámara al QR de la buseta: está pegado adentro o lo muestra el colector.' },
+      { ruta: '/cuenta/saldo', titulo: 'Dinos dónde te subes y te bajas', texto: 'Si la ruta cobra por tramos, elige tu parada de subida y de bajada; el precio sale de ahí. Confirma y listo: el colector ve tu pago al instante.' },
+      { ruta: '/cuenta/saldo', objetivo: 'nav-busetas', titulo: '¿Por dónde viene tu buseta?', texto: 'En «Busetas» ves en el mapa las busetas en servicio de cada ruta.' },
     ],
   },
 };

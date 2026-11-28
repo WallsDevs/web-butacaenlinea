@@ -185,7 +185,7 @@ test('comprar desde la cuenta del pasajero', async (t) => {
   });
 
   for (const [etiqueta, tipo] of [['Nacional', 'nacional'], ['Tours', 'tours']]) {
-    await t.test('en escritorio compra ' + etiqueta + ' y emite su boleto con la wallet de la cuenta', async t => {
+    await t.test('en escritorio compra ' + etiqueta + ' y emite su boleto con el saldo de la cuenta', async t => {
       const { pagina, reservas, emisiones } = await abrirCuenta(t, navegador, origen, 1440);
       await modalidad(pagina, etiqueta).click();
       await resultado(pagina, empresas[tipo]).click();
@@ -199,7 +199,7 @@ test('comprar desde la cuenta del pasajero', async (t) => {
       assert.deepEqual(reservas, [{ salidaId: 'salida-' + tipo, asientos: ['02'] }]);
       const nombre = pagina.getByLabel('Nombre y apellido', { exact: true });
       assert.equal(await nombre.inputValue(), pasajero.nombreCorto);
-      const pagar = pagina.getByRole('button', { name: /Pagar .* con mi wallet/ });
+      const pagar = pagina.getByRole('button', { name: /Pagar .* con mi saldo/ });
       assert(await pagar.isDisabled(), 'el documento es obligatorio');
       await pagina.getByLabel('Cédula o pasaporte', { exact: true }).fill('QA-000001');
       await pagar.click();

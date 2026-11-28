@@ -27,7 +27,7 @@ function useInsignias(rol: string | undefined): Record<string, number> {
   const { data: recargas } = useQuery({ queryKey: ['admin-recargas'], queryFn: getRecargasPendientes, refetchInterval: 60_000, enabled: rol === 'superadmin' });
   const insignias: Record<string, number> = {};
   if (compras?.length) insignias['/admin/pagos'] = compras.length;
-  if (recargas?.length) insignias['/admin/wallet'] = recargas.length;
+  if (recargas?.length) insignias['/admin/saldo'] = recargas.length;
   return insignias;
 }
 

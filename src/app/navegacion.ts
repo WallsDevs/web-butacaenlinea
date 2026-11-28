@@ -40,7 +40,7 @@ export const MENU_ADMIN: EntradaNav[] = [
   {
     id: 'finanzas',
     label: 'Finanzas',
-    items: [sec('Pagos', '/admin/pagos'), sec('Wallet', '/admin/wallet'), sec('Tarjetas NFC', '/admin/tarjetas-nfc'), sec('Liquidaciones', '/admin/liquidaciones'), sec('Facturas', '/admin/facturas'), sec('Tasas', '/admin/tasas')],
+    items: [sec('Pagos', '/admin/pagos'), sec('Saldos', '/admin/saldo'), sec('Tarjetas NFC', '/admin/tarjetas-nfc'), sec('Liquidaciones', '/admin/liquidaciones'), sec('Facturas', '/admin/facturas'), sec('Tasas', '/admin/tasas')],
   },
   { id: 'sistema', label: 'Sistema', items: [sec('Ciudades', '/admin/ciudades'), sec('Auditoría', '/admin/auditoria'), sec('Seguridad', '/admin/seguridad')] },
 ];
@@ -65,7 +65,7 @@ export const MENU_EMPRESA: EntradaNav[] = [
       sec('Reportes', '/empresa/reportes', ['boleteria', 'urbano']),
     ],
   },
-  { id: 'cuenta', label: 'Administración', items: [sec('Personal', '/empresa/personal', ['flota']), sec('Wallet', '/empresa/wallet'), sec('Facturas', '/empresa/facturas'), sec('Configuración', '/empresa/configuracion')] },
+  { id: 'cuenta', label: 'Administración', items: [sec('Personal', '/empresa/personal', ['flota']), sec('Saldo', '/empresa/saldo'), sec('Facturas', '/empresa/facturas'), sec('Configuración', '/empresa/configuracion')] },
 ];
 
 /**
@@ -97,7 +97,7 @@ export const SECCIONES_CUENTA: SeccionModulo[] = [
   // Lo primero: buscar y comprar el pasaje (con el próximo viaje y el saldo)
   { id: 'viajar', label: 'Viajar', ruta: '/cuenta' },
   { id: 'boletos', label: 'Mis boletos', ruta: '/cuenta/boletos' },
-  { id: 'wallet', label: 'Mi wallet', ruta: '/cuenta/wallet' },
+  { id: 'wallet', label: 'Mi saldo', ruta: '/cuenta/saldo' },
   { id: 'busetas', label: 'Busetas', ruta: '/busetas' },
   // En el teléfono no cabe en la barra de abajo: se llega desde Perfil y desde la wallet
   { id: 'metodos', label: 'Métodos de pago', ruta: '/cuenta/metodos', soloEscritorio: true },
@@ -177,7 +177,7 @@ export const LATERAL_EMPRESA: SeccionLateral[] = [
   {
     id: 'administracion',
     label: 'Administración',
-    items: [item('Personal', '/empresa/personal', 'clientes', ['flota']), item('Wallet', '/empresa/wallet', 'wallet'), item('Facturas', '/empresa/facturas', 'finanzas'), item('Configuración', '/empresa/configuracion', 'sistema')],
+    items: [item('Personal', '/empresa/personal', 'clientes', ['flota']), item('Saldo', '/empresa/saldo', 'wallet'), item('Facturas', '/empresa/facturas', 'finanzas'), item('Configuración', '/empresa/configuracion', 'sistema')],
   },
 ];
 

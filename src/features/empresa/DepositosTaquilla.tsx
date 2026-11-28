@@ -55,7 +55,7 @@ export function DepositosTaquilla() {
         {deuda.size > 0 && <StatusChip tono="warn">Por depositar: {[...deuda.entries()].map(([m, v]) => monto(v, m)).join(' · ')}</StatusChip>}
       </div>
       <p style={{ fontSize: 13, color: 'var(--text-soft)', margin: '6px 0 12px', lineHeight: 1.5 }}>
-        Lo cobrado en la taquilla se deposita a Butaca. Cuando Butaca lo confirma, el neto (lo cobrado menos la comisión) entra a tu wallet.
+        Lo cobrado en la taquilla se deposita a Butaca. Cuando Butaca lo confirma, el neto (lo cobrado menos la comisión) se suma a tu saldo.
         {cuentas?.pagoMovil || cuentas?.transferencia || cuentas?.zelle ? (
           <>
             {' '}Bolívares: {cuentas?.transferencia ? `${cuentas.transferencia.banco} ${cuentas.transferencia.cuenta} · ${cuentas.transferencia.titular}` : cuentas?.pagoMovil ? `Pago Móvil ${cuentas.pagoMovil.banco} ${cuentas.pagoMovil.telefono} · ${cuentas.pagoMovil.documento}` : '—'}.
@@ -78,7 +78,7 @@ export function DepositosTaquilla() {
               </div>
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontWeight: 700 }}>{monto(d.monto, d.moneda)}</div>
-                <div style={{ fontSize: 12, color: 'var(--text-faint)' }}>a tu wallet: {bs(d.netoBs)}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-faint)' }}>Neto para la línea · {bs(d.netoBs)}</div>
               </div>
               <StatusChip tono={ESTADO[d.estado].tono} size="sm">{ESTADO[d.estado].texto}</StatusChip>
               {(d.estado === 'pendiente' || d.estado === 'rechazado') && abierto !== d.documentId && (

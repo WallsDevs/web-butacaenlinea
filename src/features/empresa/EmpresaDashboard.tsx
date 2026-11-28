@@ -152,7 +152,7 @@ export default function EmpresaDashboard() {
                 {data.porVerificar} pago{data.porVerificar === 1 ? '' : 's'} web en revisión
               </span>
               <span style={{ display: 'block', fontSize: 13, color: 'var(--text-soft)', marginTop: 4 }}>
-                Los confirma Butaca; el neto llega a tu wallet →
+                Cuando Butaca confirme los pagos, verás el neto en tu saldo →
               </span>
             </button>
           )}

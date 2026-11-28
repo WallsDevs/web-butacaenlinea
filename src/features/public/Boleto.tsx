@@ -118,7 +118,7 @@ export default function Boleto() {
         <div role="status" style={{ marginBottom: 12, padding: '12px 14px', borderRadius: 'var(--r-14)', background: 'var(--bad-bg)', color: 'var(--bad-text)', fontSize: 13, lineHeight: 1.45 }}>
           <strong>Este boleto fue anulado y ya no sirve para viajar.</strong>{' '}
           {boleto.estadoPago === 'reembolsado'
-            ? 'El dinero ya se te devolvió (si pagaste con tu wallet, está en tu saldo).'
+            ? 'Ya recibiste la devolución. Si pagaste con tu saldo, puedes verla en «Mi saldo».'
             : boleto.estadoPago === 'reembolso_pendiente'
               ? 'Butaca te devolverá el dinero por el mismo medio con que pagaste.'
               : boleto.estadoPago === 'rechazado'

@@ -33,7 +33,7 @@ function motivoEmision(e: unknown): string {
     case 'pasajeros_invalidos':
       return 'Falta el nombre de algún pasajero.';
     case 'wallet_requiere_sesion':
-      return 'Para pagar con tu wallet tienes que ingresar a tu cuenta.';
+      return 'Para pagar con tu saldo tienes que ingresar a tu cuenta.';
     case 'payload_invalido':
       return 'Falta algún dato del pago. Revisa el método y la referencia.';
     case 'referencia_requerida':
@@ -45,7 +45,7 @@ function motivoEmision(e: unknown): string {
     case 'salida_no_vendible':
       return 'Esta salida ya no está a la venta (se canceló o ya partió). Busca otra; no se te cobró nada.';
     case 'metodo_no_permitido':
-      return 'Por la web se paga con tu wallet o a las cuentas de Butaca. Escoge Pago Móvil, transferencia o Zelle.';
+      return 'Puedes pagar con tu saldo o enviar el pago a Butaca por Pago Móvil, transferencia o Zelle.';
     case 'demasiadas_solicitudes':
     case 'demasiados_intentos':
       return 'Demasiados intentos seguidos. Espera un minuto e intenta de nuevo.';
@@ -323,14 +323,13 @@ export default function Checkout() {
             </div>
           ) : walletAlcanza ? (
             <p style={{ fontSize: 14, color: 'var(--blue-700)', background: 'var(--tint-50)', borderRadius: 12, padding: '12px 14px', maxWidth: 480, margin: 0 }}>
-              Se descuentan <strong>{fmtBs(totalBs)}</strong> de tu wallet (saldo {fmtBs(saldoBs)}) y el boleto sale{' '}
-              <strong>pagado al instante</strong>.
+              Tienes <strong>{fmtBs(saldoBs)}</strong> de saldo. Al confirmar, se descuentan <strong>{fmtBs(totalBs)}</strong> y recibes tu boleto pagado.
             </p>
           ) : (
             <div style={{ maxWidth: 480 }}>
               <p style={{ fontSize: 14, margin: '0 0 4px' }}>
                 Tu saldo es {fmtBs(saldoBs)} y el total {fmtBs(totalBs)}. Recarga <strong>{fmtBs(faltanteBs)}</strong> a Butaca y tus puestos
-                quedan apartados: el boleto se paga solo de tu wallet cuando Butaca confirme la recarga.
+                quedan apartados. Cuando Butaca confirme la recarga, el boleto se cobrará automáticamente de tu saldo.
               </p>
               <div className={styles.metodosPago} style={{ marginTop: 10 }}>
                 {(['pago_movil', 'transferencia'] as const).map((m) => (
@@ -355,7 +354,7 @@ export default function Checkout() {
             </div>
             <CuentaButaca metodo={metodoActual.id} datos={datosPago} monto={metodoActual.moneda === 'USD' ? `$${total.toLocaleString('es-VE', { minimumFractionDigits: 2 })}` : fmtBs(totalBs)} />
             <p style={{ fontSize: 13, color: 'var(--text-soft)', marginTop: 10 }}>
-              Con una <a href="/registro">cuenta</a> pagas con tu wallet al instante y tus boletos quedan guardados.
+              Con una <a href="/registro">cuenta</a> pagas con tu saldo al instante y tus boletos quedan guardados.
             </p>
           </div>
         )}
@@ -443,7 +442,7 @@ export default function Checkout() {
                 disabled={!datosCompletos || (pideReferencia && !referencia.trim()) || !pagadorCompleto || expirada || emitir.isPending || !pagoListo}
                 onClick={() => emitir.mutate()}
               >
-                {emitir.isPending ? 'Emitiendo…' : !pagoListo ? 'Confirmar compra' : esCliente && walletAlcanza ? `Pagar ${fmtBs(totalBs)} con mi wallet` : esCliente ? 'Recargar y apartar mis puestos' : 'Ya pagué · emitir mis boletos'}
+                {emitir.isPending ? 'Emitiendo…' : !pagoListo ? 'Confirmar compra' : esCliente && walletAlcanza ? `Pagar ${fmtBs(totalBs)} con mi saldo` : esCliente ? 'Recargar y apartar mis puestos' : 'Ya pagué · emitir mis boletos'}
               </button>
             </>
           }

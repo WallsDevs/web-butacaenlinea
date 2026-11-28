@@ -41,7 +41,7 @@ const METODOS: { id: MetodoPago; moneda: 'BS' | 'USD' | 'COP'; label: string; su
   { id: 'transferencia', moneda: 'BS', label: 'Transferencia', sub: 'Verificar referencia' },
   { id: 'punto_venta', moneda: 'BS', label: 'Punto de venta', sub: 'Débito Bs' },
   { id: 'tarjeta_cop', moneda: 'COP', label: 'Pesos COP', sub: 'Tarjeta' },
-  { id: 'wallet', moneda: 'BS', label: 'Wallet QR', sub: 'QR de caja' },
+  { id: 'wallet', moneda: 'BS', label: 'Saldo Butaca', sub: 'QR de caja' },
 ];
 
 interface PasajeroPos {
@@ -710,7 +710,7 @@ export default function Pos() {
                 <QRCodeSVG value={`${window.location.origin}/caja/${taquillaCajaId}`} size={220} level="M" />
               </div>
               <div style={{ fontSize: 13, color: 'var(--text-soft)', marginTop: 12 }}>
-                Escanea con la cámara de tu teléfono y paga con tu wallet de Butaca En Línea.
+                Escanea con la cámara de tu teléfono y paga con tu saldo de Butaca En Línea.
               </div>
               <div style={{ fontSize: 12, color: 'var(--text-faint)', marginTop: 4 }}>butacaenlinea.com</div>
             </div>

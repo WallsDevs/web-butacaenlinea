@@ -29,32 +29,32 @@ const TUTORIALES: Tutorial[] = [
       { titulo: 'Busca tu salida', texto: 'En «Viajar» elige desde dónde sales, a dónde vas, el día y cuántos pasajeros viajan.' },
       { titulo: 'Escoge la salida', texto: 'Toca la que te sirva: se abre el mapa del bus con los puestos libres.' },
       { titulo: 'Toca tus puestos', texto: 'Elige uno por pasajero y toca «Pagar boleto». Los puestos quedan apartados para ti durante 5 minutos mientras pagas.' },
-      { titulo: 'Escribe los datos y paga', texto: 'Pon el nombre y la cédula de cada pasajero y paga con Pago Móvil, Zelle o el saldo de tu wallet.' },
+      { titulo: 'Escribe los datos y paga', texto: 'Pon el nombre y la cédula de cada pasajero y paga con Pago Móvil, Zelle o tu saldo de Butaca.' },
       { titulo: 'Guarda tu boleto', texto: 'Tu boleto con QR queda en «Mis boletos». Al abordar, muéstralo en el teléfono: lo escanean en la puerta.' },
     ],
     ir: { texto: 'Buscar salidas', ruta: '/cuenta', conCuenta: true },
   },
   {
     id: 'recargar',
-    titulo: 'Cómo recargar tu wallet',
+    titulo: 'Cómo recargar tu saldo',
     resumen: 'Tu saldo sirve para pagar las busetas y también tus pasajes.',
     pasos: [
       { titulo: 'Guarda tu método de pago', texto: 'La primera vez, en «Métodos de pago» guarda el Pago Móvil desde el que vas a pagar.' },
-      { titulo: 'Abre «Recargar»', texto: 'En «Mi wallet» toca «Recargar»: verás la cuenta de Butaca para el Pago Móvil, con botones para copiar el teléfono y la cédula.' },
+      { titulo: 'Abre «Recargar»', texto: 'En «Mi saldo» toca «Recargar»: verás la cuenta de Butaca para el Pago Móvil, con botones para copiar el teléfono y la cédula.' },
       { titulo: 'Haz el Pago Móvil', texto: 'Desde tu banco, envía el monto a esa cuenta y guarda la referencia y la captura.' },
       { titulo: 'Reporta el pago', texto: 'Escribe el monto y la referencia, adjunta la captura y toca reportar. La recarga aparece como «Por confirmar».' },
       { titulo: 'Espera la confirmación', texto: 'Cuando la plataforma verifica el pago, el saldo se acredita. Si sale «Rechazada», revisa el monto y la referencia.' },
     ],
-    ir: { texto: 'Ir a mi wallet', ruta: '/cuenta/wallet', conCuenta: true },
+    ir: { texto: 'Ver mi saldo', ruta: '/cuenta/saldo', conCuenta: true },
   },
   {
     id: 'pagar-buseta',
     titulo: 'Cómo pagar el pasaje de la buseta',
     resumen: 'Sin efectivo: escaneas el QR de la buseta y se descuenta de tu saldo.',
     pasos: [
-      { titulo: 'Ten saldo en tu wallet', texto: 'El pasaje urbano se paga con tu saldo. Si no tienes, recarga primero.' },
+      { titulo: 'Revisa tu saldo', texto: 'El pasaje urbano se paga con tu saldo. Si no tienes, recarga primero.' },
       { titulo: 'Busca el QR de la buseta', texto: 'Está pegado en la buseta o lo muestra el colector en su teléfono.' },
-      { titulo: 'Escanéalo', texto: 'En «Mi wallet» toca «Pagar pasaje — escanear QR» y apunta la cámara al código.' },
+      { titulo: 'Escanéalo', texto: 'En «Mi saldo» toca «Pagar pasaje — escanear QR» y apunta la cámara al código.' },
       { titulo: 'Dinos dónde te subes y te bajas', texto: 'Si la ruta cobra por tramos, elige tu parada de subida y de bajada: el precio sale de ahí.' },
       { titulo: 'Confirma', texto: 'Toca pagar. El colector y el conductor ven tu pago al instante y saben dónde te bajas.' },
     ],
@@ -66,10 +66,10 @@ const PREGUNTAS: { p: string; r: string }[] = [
   { p: '¿Necesito una cuenta para comprar?', r: 'No: puedes comprar sin cuenta. Con una cuenta tus boletos quedan guardados en «Mis boletos», puedes pagar con tu saldo y pagar las busetas con QR.' },
   { p: '¿Cuánto tiempo tengo para pagar?', r: 'Los puestos quedan apartados 5 minutos desde que tocas «Pagar boleto». Si no terminas a tiempo se liberan y tienes que escogerlos de nuevo.' },
   { p: 'Mi boleto dice «Pago por verificar»', r: 'Butaca está confirmando tu pago (o tu recarga) contra su banco. Tu puesto ya está apartado; cuando lo confirme, el boleto cambia a «Pagado». Con la captura del pago es más rápido.' },
-  { p: '¿A quién le pago mi pasaje?', r: 'Siempre a Butaca En Línea. Con cuenta pagas con tu wallet; si no te alcanza, recargas ahí mismo al comprar. Sin cuenta pagas por Pago Móvil, transferencia o Zelle a las cuentas de Butaca que aparecen al pagar. Nunca le transfieras a una persona.' },
+  { p: '¿A quién le pago mi pasaje?', r: 'Siempre a Butaca En Línea. Con cuenta pagas con tu saldo. Si te falta dinero, puedes recargar durante la compra. Sin cuenta pagas por Pago Móvil, transferencia o Zelle a las cuentas de Butaca que aparecen al pagar. Nunca le transfieras a una persona.' },
   { p: '¿El boleto funciona sin señal?', r: 'Sí. Ábrelo una vez con conexión y queda guardado en tu teléfono: el QR se ve aunque no tengas señal al abordar.' },
   { p: 'Hice una recarga y no aparece en mi saldo', r: 'Se acredita cuando la plataforma verifica el pago; mientras tanto se ve como «Por confirmar». Si aparece «Rechazada», revisa que el monto y la referencia coincidan con tu Pago Móvil.' },
-  { p: '¿Puedo pagar la buseta sin saldo?', r: 'No: el pasaje urbano se descuenta de tu wallet. Recarga antes de subir.' },
+  { p: '¿Puedo pagar la buseta sin saldo?', r: 'No: el pasaje urbano se descuenta de tu saldo. Recarga antes de subir.' },
   { p: '¿Cómo sé por dónde viene mi buseta?', r: 'En «Busetas» ves en el mapa las busetas que están en servicio en cada ruta y por dónde van.' },
   { p: 'Compré sin cuenta y perdí mi boleto', r: 'Entra en «Recuperar mis boletos» (enlace abajo) y escribe los cuatro datos de tu comprobante de Pago Móvil: la referencia, el banco y el teléfono desde el que pagaste, y la cédula de quien pagó. Aparecen los boletos de esa compra y puedes abrirlos de nuevo.' },
   { p: '¿Puedo cambiar o devolver un boleto?', r: 'Escríbenos por WhatsApp con el folio de tu boleto (aparece en el boleto) y te ayudamos con la línea.' },
@@ -81,7 +81,7 @@ const PREGUNTAS: { p: string; r: string }[] = [
  * frecuentes. Pública: sirve con o sin cuenta.
  */
 export default function Ayuda() {
-  useSeo('Ayuda — Butaca En Línea', 'Cómo comprar pasajes, recargar tu wallet y pagar la buseta con QR en Butaca En Línea.');
+  useSeo('Ayuda — Butaca En Línea', 'Cómo comprar pasajes, recargar tu saldo y pagar la buseta con QR en Butaca En Línea.');
   const navigate = useNavigate();
   const { hash } = useLocation();
   const conCuenta = useAuth((s) => s.usuario?.role?.type) === 'cliente';

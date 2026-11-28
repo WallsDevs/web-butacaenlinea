@@ -56,7 +56,7 @@ export default function AdminPasajeros() {
       {/* Totales de lo que se ve */}
       <div className={ui.card} style={{ padding: 18, marginBottom: 16, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 14 }}>
         {[
-          ['Saldo en wallets', bs(totales.saldo)],
+          ['Saldo total de los pasajeros', bs(totales.saldo)],
           ['Recargado (confirmado)', bs(totales.recargado)],
           ['Recargas pendientes', String(totales.pendientes)],
           ['Boletos comprados', String(totales.boletos)],
@@ -139,7 +139,7 @@ export default function AdminPasajeros() {
 
                 <div style={{ display: 'flex', gap: 24, marginTop: 16, flexWrap: 'wrap' }}>
                   <div>
-                    <div style={{ fontSize: 12, color: 'var(--text-faint)' }}>Saldo en wallet</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-faint)' }}>Saldo disponible</div>
                     <div style={{ fontSize: 24, fontWeight: 700 }}>{bs(ficha.wallet.saldoBs)}</div>
                   </div>
                   <div>
@@ -148,7 +148,7 @@ export default function AdminPasajeros() {
                   </div>
                 </div>
 
-                <h3 style={{ fontSize: 15, fontWeight: 700, margin: '20px 0 8px' }}>Wallet: recargas y pasajes</h3>
+                <h3 style={{ fontSize: 15, fontWeight: 700, margin: '20px 0 8px' }}>Movimientos de saldo</h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 320, overflowY: 'auto' }}>
                   {ficha.wallet.movimientos.map((m) => (
                     <div key={m.documentId} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
@@ -166,7 +166,7 @@ export default function AdminPasajeros() {
                       </div>
                     </div>
                   ))}
-                  {!ficha.wallet.movimientos.length && <div style={{ fontSize: 13, color: 'var(--text-faint)' }}>Sin movimientos en la wallet.</div>}
+                  {!ficha.wallet.movimientos.length && <div style={{ fontSize: 13, color: 'var(--text-faint)' }}>Todavía no hay movimientos de saldo.</div>}
                 </div>
 
                 <h3 style={{ fontSize: 15, fontWeight: 700, margin: '20px 0 8px' }}>Boletos comprados</h3>

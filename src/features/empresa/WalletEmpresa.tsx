@@ -48,7 +48,7 @@ export function WalletEmpresa() {
 
   return (
     <div className={ui.card} style={{ padding: 24 }}>
-      <div style={{ fontSize: 12, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-faint)', fontWeight: 700 }}>Wallet de la empresa</div>
+      <div style={{ fontSize: 12, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-faint)', fontWeight: 700 }}>Saldo disponible</div>
       <div style={{ fontSize: 34, fontWeight: 700, letterSpacing: '-0.02em', marginTop: 4 }}>
         {wallet ? bs(wallet.saldoBs) : errorWallet ? '—' : '…'}
       </div>

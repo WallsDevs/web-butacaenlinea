@@ -51,7 +51,7 @@ export default function PagoTaquilla() {
       if (e instanceof ApiError && e.code === 'saldo_insuficiente') {
         const d = e.details as { saldoBs?: number; requeridoBs?: number };
         setError(
-          `Saldo insuficiente: tienes ${bs(d.saldoBs ?? 0)} y el total es ${bs(d.requeridoBs ?? 0)}. Recarga tu wallet y vuelve a intentar.`
+          `Saldo insuficiente: tienes ${bs(d.saldoBs ?? 0)} y el total es ${bs(d.requeridoBs ?? 0)}. Recarga tu saldo y vuelve a intentar.`
         );
       } else if (e instanceof ApiError && (e.code === 'cobro_expirado' || e.code === 'cobro_no_disponible')) {
         setError('Este cobro ya no está disponible. Pídele al cajero que lo publique de nuevo.');
@@ -162,7 +162,7 @@ export default function PagoTaquilla() {
           <div style={{ fontSize: 15, fontWeight: 600 }}>Esperando que el cajero prepare tu cobro…</div>
           <div style={{ fontSize: 13, color: 'var(--text-faint)', marginTop: 8, lineHeight: 1.5 }}>
             Dile al cajero qué viaje quieres. Cuando publique el cobro, aparecerá aquí para que
-            lo pagues con tu wallet. Esta pantalla se actualiza sola.
+            lo pagues con tu saldo. Esta pantalla se actualiza sola.
           </div>
         </div>
       </div>
@@ -220,13 +220,13 @@ export default function PagoTaquilla() {
               >
                 {pagar.isPending
                   ? 'Pagando…'
-                  : `Pagar con mi wallet · saldo ${bs(wallet?.saldoBs ?? 0)}`}
+                  : `Pagar con mi saldo · disponible ${bs(wallet?.saldoBs ?? 0)}`}
               </button>
               {error && (
                 <div style={{ fontSize: 13, color: 'var(--bad-text)', marginTop: 12 }}>
                   {error}{' '}
-                  <a href="/cuenta/wallet" style={{ fontWeight: 700 }}>
-                    Ir a mi wallet
+                  <a href="/cuenta/saldo" style={{ fontWeight: 700 }}>
+                    Ver mi saldo
                   </a>
                 </div>
               )}

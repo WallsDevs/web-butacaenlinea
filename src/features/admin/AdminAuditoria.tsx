@@ -28,15 +28,23 @@ const NOMBRE_TIPO: Record<string, string> = {
   onboarding_empresa: 'Alta/cambio de empresa',
   equipaje: 'Equipaje',
   asignacion_unidad: 'Asignación de unidad',
-  recarga: 'Recarga de wallet',
+  recarga: 'Recarga de saldo',
   pasaje_urbano: 'Pasaje urbano (QR)',
-  retiro: 'Retiro de wallet',
+  retiro: 'Retiro de saldo',
 };
 
 const fmtMonto = (monto: number | null | undefined, moneda?: string | null) => {
   if (monto == null) return '—';
   return moneda === 'USD' ? `$ ${monto.toLocaleString('es-VE', { minimumFractionDigits: 2 })}` : `${monto.toLocaleString('es-VE')} ${moneda ?? ''}`;
 };
+
+function valorDelDetalle(clave: string, valor: unknown): unknown {
+  if ((clave === 'metodoPago' || clave === 'a') && valor === 'wallet') return 'Saldo Butaca';
+  if (clave === 'nota' && valor === 'La recarga se confirmó, pero el saldo ya no alcanzaba: quedó en tu wallet') {
+    return 'La recarga se confirmó y se sumó a tu saldo. El importe disponible era insuficiente para pagar el boleto.';
+  }
+  return valor;
+}
 
 /** Auditoría global: todo lo que pasa en la plataforma, empresa por empresa. */
 export default function AdminAuditoria() {
@@ -97,7 +105,7 @@ export default function AdminAuditoria() {
                 <td style={{ color: 'var(--text-soft)' }}>{e.usuario ?? 'sistema'}</td>
                 <td>{fmtMonto(e.monto, e.moneda)}</td>
                 <td style={{ fontSize: 12, color: 'var(--text-faint)', maxWidth: 340, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {e.datos ? JSON.stringify(e.datos) : '—'}
+                  {e.datos ? JSON.stringify(e.datos, valorDelDetalle) : '—'}
                 </td>
               </tr>
             ))}
